@@ -5,7 +5,8 @@ import {
   ClinicSinglePatientResponseSchema,
   ClinicPatientExistsSchema,
   ClinicFreeSlotsResponseSchema,
-  ClinicBookSlotResponseSchema
+  ClinicBookSlotResponseSchema,
+  ClinicInsuranceResponseSchema
 } from "@/schemas/clinic";
 
 const CLINIC_URL = process.env.CLINIC_API_URL;
@@ -119,9 +120,13 @@ export const ClinicService = {
     return data;
   },
 
-  async getFreeSlots(doctorId: string, addressId: string, startDate: string, endDate: string) {
-    // Usando a rota conforme exemplo do cURL: /addresses/:id/slots
-    const url = `/api/v1/integration/facilities/${FACILITY_ID}/doctors/${doctorId}/addresses/${addressId}/slots?start_date=${startDate}&end_date=${endDate}`;
+ async getFreeSlots(doctorId: string, addressId: string, startDate: string, endDate: string) {
+    // CORREÇÃO: A rota correta é /available-slots e não /slots
+    const url = `/api/v1/integration/facilities/${FACILITY_ID}/doctors/${doctorId}/addresses/${addressId}/available-slots?start_date=${startDate}&end_date=${endDate}`;
+    
+    // Adicionamos um console.log de debug para você ver a URL exata sendo chamada no terminal
+    console.log("[DEBUG GET SLOTS URL]:", url);
+
     const data = await clinicFetch(url);
     return ClinicFreeSlotsResponseSchema.parse(data);
   },
@@ -136,5 +141,10 @@ export const ClinicService = {
       body: JSON.stringify(payload)
     });
     return ClinicBookSlotResponseSchema.parse(data);
-  }
+  },
+
+  async getInsuranceProviders() {
+    const data = await clinicFetch(`/api/v1/integration/insurance-providers`);
+    return ClinicInsuranceResponseSchema.parse(data);
+  },
 };

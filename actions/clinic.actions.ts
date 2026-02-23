@@ -23,6 +23,16 @@ export async function fetchDoctorsAction() {
   }
 }
 
+export async function fetchInsuranceProvidersAction() {
+  try {
+    const response = await ClinicService.getInsuranceProviders();
+    return { success: true, data: response.result.items || [] };
+  } catch (error) {
+    console.error("[Clinic API Error] fetchInsuranceProviders:", error);
+    return { success: false, error: "Falha ao buscar convênios da Clinic API." };
+  }
+}
+
 // --- Actions Individuais ---
 export async function fetchSingleDoctorAction(doctorId: string) {
   if (!doctorId) return { success: false, error: "ID obrigatório." };

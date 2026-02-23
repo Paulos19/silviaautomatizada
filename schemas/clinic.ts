@@ -38,14 +38,19 @@ export const ClinicDoctorResponseSchema = z.object({
 
 export const ClinicInsuranceProviderSchema = z.object({
   id: z.number(),
-  name: z.string(),
-  status: z.boolean(),
+  name: z.string().nullish(),
+  status: z.boolean().nullish(),
+  ans: z.string().nullish(),
+  requireRegistration: z.boolean().nullish(),
+  requireCardValidity: z.boolean().nullish(),
+  requirePlan: z.boolean().nullish(),
+  acceptWeb: z.boolean().nullish()
 }).passthrough();
 
 export const ClinicInsuranceResponseSchema = z.object({
   result: z.object({
-    items: z.array(ClinicInsuranceProviderSchema)
-  })
+    items: z.array(ClinicInsuranceProviderSchema).nullish()
+  }).passthrough()
 });
 
 export const ClinicHealthInsuranceCodeSchema = z.object({

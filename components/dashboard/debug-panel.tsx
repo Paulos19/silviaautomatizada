@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { 
   fetchSingleDoctorAction, fetchSinglePatientAction, checkPatientExistsAction, 
-  createPatientAction, fetchFreeSlotsAction, bookSlotAction 
+  createPatientAction, fetchFreeSlotsAction, bookSlotAction, fetchInsuranceProvidersAction 
 } from "@/actions/clinic.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,22 +15,19 @@ export function DebugPanel() {
   const [loading, setLoading] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, any>>({});
 
-  // --- Handlers Anteriores ---
   const handleFetchDoctor = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading("doctor");
-    const formData = new FormData(e.currentTarget);
-    const res = await fetchSingleDoctorAction(formData.get("doctorId") as string);
+    const res = await fetchSingleDoctorAction(new FormData(e.currentTarget).get("doctorId") as string);
     setResults(prev => ({ ...prev, doctor: res }));
     setLoading(null);
   };
 
-  const handleFetchPatient = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleFetchInsurances = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading("patient");
-    const formData = new FormData(e.currentTarget);
-    const res = await fetchSinglePatientAction(formData.get("patientId") as string);
-    setResults(prev => ({ ...prev, patient: res }));
+    setLoading("insurances");
+    const res = await fetchInsuranceProvidersAction();
+    setResults(prev => ({ ...prev, insurances: res }));
     setLoading(null);
   };
 
@@ -43,21 +40,22 @@ export function DebugPanel() {
     setLoading(null);
   };
 
-  // --- Novos Handlers ---
   const handleCreatePatient = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading("createPatient");
     const formData = new FormData(e.currentTarget);
     
-    // Payload simplificado para debug
+    // Agora o Convênio é dinâmico, vindo do formulário
     const payload = {
       name: formData.get("name"),
-      nin: formData.get("nin"), // CPF
-      birthday: formData.get("birthday"), // YYYY-MM-DD
-      mobile: formData.get("mobile"),
-      email: formData.get("email"),
-      sex: "M", // mock
-      maritalStatus: 3 // mock solteiro
+      nin: formData.get("nin"), 
+      birthday: formData.get("birthday"), 
+      mobile: formData.get("mobile") || "",
+      email: formData.get("email") || "",
+      sex: "M", 
+      maritalStatus: 3, 
+      healthInsuranceCode: Number(formData.get("healthInsuranceCode")), // Puxa do input
+      external_id: "" 
     };
 
     const res = await createPatientAction(payload);
@@ -88,13 +86,16 @@ export function DebugPanel() {
       patient_id: Number(formData.get("patientId")),
       healthInsuranceCode: Number(formData.get("healthInsuranceCode")),
       obs: "Teste via Dashboard Silvia",
-      appointmentType: 1 // 1 = Consulta
+      appointmentType: 1, 
+      external_id: "", 
+      address_service_id: 1, 
+      consultationType: 1    
     };
 
     const res = await bookSlotAction(
       formData.get("doctorId") as string,
       formData.get("addressId") as string,
-      formData.get("slotStart") as string, // Ex: 2022-01-05T09:00:00-03:00
+      formData.get("slotStart") as string, 
       payload
     );
     setResults(prev => ({ ...prev, book: res }));
@@ -104,22 +105,32 @@ export function DebugPanel() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
-      {/* 1. Buscar Médico */}
-      <Card><CardHeader><CardTitle className="text-lg">1. Buscar Médico</CardTitle></CardHeader>
+      {/* 1. Buscar Convênios */}
+      <Card><CardHeader><CardTitle className="text-lg">1. Buscar Convênios</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <form onSubmit={handleFetchInsurances} className="flex gap-2 items-end">
+            <Button type="submit" className="w-full" disabled={loading === "insurances"}>{loading === "insurances" ? <Loader2 className="animate-spin" /> : "Listar Todos os Convênios"}</Button>
+          </form>
+          {results.insurances && <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">{JSON.stringify(results.insurances, null, 2)}</pre>}
+        </CardContent>
+      </Card>
+
+      {/* 2. Buscar Médico */}
+      <Card><CardHeader><CardTitle className="text-lg">2. Buscar Médico</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleFetchDoctor} className="flex gap-2 items-end">
-            <div className="flex-1"><Label>ID Médico</Label><Input name="doctorId" placeholder="Ex: 8" required /></div>
+            <div className="flex-1"><Label>ID Médico</Label><Input name="doctorId" placeholder="Ex: 10073" required /></div>
             <Button type="submit" disabled={loading === "doctor"}>{loading === "doctor" ? <Loader2 className="animate-spin" /> : "Ir"}</Button>
           </form>
           {results.doctor && <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">{JSON.stringify(results.doctor, null, 2)}</pre>}
         </CardContent>
       </Card>
 
-      {/* 2. Ver. Existência / Buscar Paciente */}
-      <Card><CardHeader><CardTitle className="text-lg">2. Verificar CPF</CardTitle></CardHeader>
+      {/* 3. Verificar CPF */}
+      <Card><CardHeader><CardTitle className="text-lg">3. Verificar CPF</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleCheckExists} className="space-y-2">
-            <div><Label>NIN / CPF</Label><Input name="nin" placeholder="Ex: 07846954660" required /></div>
+            <div><Label>NIN / CPF</Label><Input name="nin" placeholder="Ex: 05814436166" required /></div>
             <div><Label>Data Nasc.</Label><Input name="birthday" type="date" required /></div>
             <Button type="submit" className="w-full" disabled={loading === "exists"}>{loading === "exists" ? <Loader2 className="animate-spin" /> : "Verificar"}</Button>
           </form>
@@ -127,8 +138,8 @@ export function DebugPanel() {
         </CardContent>
       </Card>
 
-      {/* 3. Criar Paciente */}
-      <Card><CardHeader><CardTitle className="text-lg">3. Criar Paciente (Mock)</CardTitle></CardHeader>
+      {/* 4. Criar / Atualizar Paciente */}
+      <Card><CardHeader><CardTitle className="text-lg">4. Atualizar Paciente (Setar Convênio)</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleCreatePatient} className="space-y-2 text-sm">
             <div><Label>Nome Completo</Label><Input name="name" required /></div>
@@ -136,19 +147,20 @@ export function DebugPanel() {
               <div className="flex-1"><Label>CPF</Label><Input name="nin" required /></div>
               <div className="flex-1"><Label>Data Nasc.</Label><Input name="birthday" type="date" required /></div>
             </div>
+            <div><Label>ID Convênio (Ex: Unimed = 12)</Label><Input name="healthInsuranceCode" type="number" required /></div>
             <Button type="submit" className="w-full" disabled={loading === "createPatient"}>{loading === "createPatient" ? <Loader2 className="animate-spin" /> : "Criar / Atualizar"}</Button>
           </form>
           {results.createPatient && <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">{JSON.stringify(results.createPatient, null, 2)}</pre>}
         </CardContent>
       </Card>
 
-      {/* 4. Buscar Slots */}
-      <Card><CardHeader><CardTitle className="text-lg">4. Buscar Slots Livres</CardTitle></CardHeader>
+      {/* 5. Buscar Slots */}
+      <Card><CardHeader><CardTitle className="text-lg">5. Buscar Slots Livres</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleGetSlots} className="space-y-2 text-sm">
             <div className="flex gap-2">
-              <div className="flex-1"><Label>ID Med.</Label><Input name="doctorId" placeholder="Ex: 8" required /></div>
-              <div className="flex-1"><Label>ID Endereço</Label><Input name="addressId" placeholder="Ex: 103" required /></div>
+              <div className="flex-1"><Label>ID Med.</Label><Input name="doctorId" placeholder="Ex: 10073" required /></div>
+              <div className="flex-1"><Label>ID Endereço</Label><Input name="addressId" placeholder="Ex: 1" required /></div>
             </div>
             <div className="flex gap-2">
               <div className="flex-1"><Label>Início</Label><Input name="startDate" type="date" required /></div>
@@ -160,18 +172,18 @@ export function DebugPanel() {
         </CardContent>
       </Card>
 
-      {/* 5. Book Slot */}
-      <Card className="lg:col-span-2"><CardHeader><CardTitle className="text-lg">5. Agendar Consulta (Book)</CardTitle></CardHeader>
+      {/* 6. Book Slot */}
+      <Card className="lg:col-span-2"><CardHeader><CardTitle className="text-lg">6. Agendar Consulta (Book)</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleBookSlot} className="space-y-2 text-sm">
             <div className="grid grid-cols-3 gap-2">
-              <div><Label>ID Médico</Label><Input name="doctorId" placeholder="Ex: 8" required /></div>
-              <div><Label>ID Endereço</Label><Input name="addressId" placeholder="Ex: 103" required /></div>
-              <div><Label>ID Paciente</Label><Input name="patientId" placeholder="Ex: 1139" required /></div>
+              <div><Label>ID Médico</Label><Input name="doctorId" placeholder="Ex: 10073" required /></div>
+              <div><Label>ID Endereço</Label><Input name="addressId" placeholder="Ex: 1" required /></div>
+              <div><Label>ID Paciente</Label><Input name="patientId" placeholder="Ex: 215591" required /></div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div><Label>Data/Hora Slot (ISO)</Label><Input name="slotStart" placeholder="2022-01-05T09:00:00-03:00" required /></div>
-              <div><Label>ID Convênio</Label><Input name="healthInsuranceCode" placeholder="Ex: 12" required /></div>
+              <div><Label>ID Convênio (Ex: 12)</Label><Input name="healthInsuranceCode" placeholder="Ex: 12" required /></div>
             </div>
             <Button type="submit" className="w-full" variant="default" disabled={loading === "book"}>{loading === "book" ? <Loader2 className="animate-spin" /> : "Confirmar Agendamento"}</Button>
           </form>
