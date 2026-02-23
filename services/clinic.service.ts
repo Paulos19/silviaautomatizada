@@ -1,6 +1,11 @@
 import { 
   ClinicDoctorResponseSchema, 
-  ClinicPatientResponseSchema 
+  ClinicPatientResponseSchema,
+  ClinicSingleDoctorResponseSchema,
+  ClinicSinglePatientResponseSchema,
+  ClinicPatientExistsSchema,
+  ClinicFreeSlotsResponseSchema,
+  ClinicBookSlotResponseSchema
 } from "@/schemas/clinic";
 
 const CLINIC_URL = process.env.CLINIC_API_URL;
@@ -13,7 +18,6 @@ let cachedToken: string | null = null;
 let tokenExpiresAt: number | null = null;
 
 async function getAccessToken(): Promise<string> {
-  // Retorna o token em cache se ainda for válido (com margem de segurança de 30s)
   if (cachedToken && tokenExpiresAt && Date.now() < tokenExpiresAt - 30000) {
     return cachedToken;
   }
@@ -30,7 +34,6 @@ async function getAccessToken(): Promise<string> {
       "Authorization": `Basic ${authString}`,
       "Content-Type": "application/json",
     },
-    // Next.js: não fazer cache de chamadas de autenticação
     cache: "no-store", 
   });
 
@@ -41,11 +44,8 @@ async function getAccessToken(): Promise<string> {
   }
 
   const data = await response.json();
-  
   cachedToken = data.access_token;
-  // Converte expires_in (segundos) para timestamp (ms)
   tokenExpiresAt = Date.now() + data.expires_in * 1000;
-
   return cachedToken!;
 }
 
@@ -71,10 +71,12 @@ async function clinicFetch(endpoint: string, options: RequestInit = {}) {
 }
 
 export const ClinicService = {
-  async getPatients(nin?: string) {
+
+  // --- Buscas Gerais ---
+  async getPatients(nin?: string, page: number = 1, pageSize: number = 10) {
     const url = new URL(`${CLINIC_URL}/api/v1/integration/facilities/${FACILITY_ID}/patients`);
-    url.searchParams.append("page", "1");
-    url.searchParams.append("pageSize", "100");
+    url.searchParams.append("page", page.toString());
+    url.searchParams.append("pageSize", pageSize.toString());
     if (nin) url.searchParams.append("nin", nin);
 
     const data = await clinicFetch(url.pathname + url.search);
@@ -84,5 +86,55 @@ export const ClinicService = {
   async getDoctors() {
     const data = await clinicFetch(`/api/v1/integration/facilities/${FACILITY_ID}/doctors?filter_web_disabled=0`);
     return ClinicDoctorResponseSchema.parse(data);
+  },
+
+  // --- Buscas Individuais ---
+  async getDoctorById(doctorId: string | number) {
+    const data = await clinicFetch(`/api/v1/integration/facilities/${FACILITY_ID}/doctors/${doctorId}`);
+    return ClinicSingleDoctorResponseSchema.parse(data);
+  },
+
+  async getPatientById(patientId: string | number) {
+    const data = await clinicFetch(`/api/v1/integration/facilities/${FACILITY_ID}/patients/${patientId}?returnAttendedBy=1`);
+    try {
+      return ClinicSinglePatientResponseSchema.parse(data);
+    } catch (error) {
+      console.error("[ZOD PARSE ERROR getPatientById]:", error);
+      throw new Error("Falha na validação do paciente.");
+    }
+  },
+
+  async checkPatientExists(nin: string, birthday: string) {
+    const data = await clinicFetch(`/api/v1/integration/facilities/${FACILITY_ID}/patients/exists?nin=${nin}&birthday=${birthday}`);
+    return ClinicPatientExistsSchema.parse(data);
+  },
+
+  // --- Operações de Escrita e Slots ---
+  async createOrUpdatePatient(payload: Record<string, any>) {
+    const data = await clinicFetch(`/api/v1/integration/facilities/${FACILITY_ID}/patients`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    // API retorna 201 (Created) ou 202 (Updated)
+    return data;
+  },
+
+  async getFreeSlots(doctorId: string, addressId: string, startDate: string, endDate: string) {
+    // Usando a rota conforme exemplo do cURL: /addresses/:id/slots
+    const url = `/api/v1/integration/facilities/${FACILITY_ID}/doctors/${doctorId}/addresses/${addressId}/slots?start_date=${startDate}&end_date=${endDate}`;
+    const data = await clinicFetch(url);
+    return ClinicFreeSlotsResponseSchema.parse(data);
+  },
+
+  async bookSlot(doctorId: string, addressId: string, slotStart: string, payload: Record<string, any>) {
+    // encodeURIComponent para lidar com os sinais de + e timezone no ISO date
+    const slotPath = encodeURIComponent(slotStart);
+    const url = `/api/v1/integration/facilities/${FACILITY_ID}/doctors/${doctorId}/addresses/${addressId}/slots/${slotPath}`;
+    
+    const data = await clinicFetch(url, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    return ClinicBookSlotResponseSchema.parse(data);
   }
 };

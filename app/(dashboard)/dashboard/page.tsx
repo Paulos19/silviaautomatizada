@@ -1,7 +1,7 @@
 import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
-import { fetchDoctorsAction, fetchPatientsAction } from "@/actions/clinic.actions";
 import { Button } from "@/components/ui/button";
+import { DebugPanel } from "@/components/dashboard/debug-panel"; // Importamos o novo componente
 
 export default async function DashboardPage() {
   // 1. Validação de Sessão
@@ -9,10 +9,6 @@ export default async function DashboardPage() {
   if (!session) {
     redirect("/login");
   }
-
-  // 2. Busca de Debug (Apenas para fins de teste inicial)
-  const doctorsRes = await fetchDoctorsAction();
-  const patientsRes = await fetchPatientsAction();
 
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-8">
@@ -31,23 +27,9 @@ export default async function DashboardPage() {
         </form>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Debug Médicos */}
-        <div className="border rounded-lg p-4 bg-card shadow-sm">
-          <h2 className="text-xl font-semibold mb-4">Debug: Médicos (Clinic API)</h2>
-          <pre className="bg-muted p-4 rounded-md overflow-auto max-h-[400px] text-xs">
-            {JSON.stringify(doctorsRes, null, 2)}
-          </pre>
-        </div>
-
-        {/* Debug Pacientes */}
-        <div className="border rounded-lg p-4 bg-card shadow-sm">
-          <h2 className="text-xl font-semibold mb-4">Debug: Pacientes (Clinic API)</h2>
-          <pre className="bg-muted p-4 rounded-md overflow-auto max-h-[400px] text-xs">
-            {JSON.stringify(patientsRes, null, 2)}
-          </pre>
-        </div>
-      </div>
+      {/* 2. Injetamos o painel de debug interativo */}
+      <DebugPanel />
+      
     </div>
   );
 }
