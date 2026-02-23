@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { 
   fetchSingleDoctorAction, fetchSinglePatientAction, checkPatientExistsAction, 
-  createPatientAction, fetchFreeSlotsAction, bookSlotAction, fetchInsuranceProvidersAction 
+  createPatientAction, fetchFreeSlotsAction, bookSlotAction, fetchInsuranceProvidersAction,
+  cancelBookingAction
 } from "@/actions/clinic.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,20 +45,16 @@ export function DebugPanel() {
     e.preventDefault();
     setLoading("createPatient");
     const formData = new FormData(e.currentTarget);
-    
-    // Agora o Convênio é dinâmico, vindo do formulário
     const payload = {
       name: formData.get("name"),
       nin: formData.get("nin"), 
       birthday: formData.get("birthday"), 
       mobile: formData.get("mobile") || "",
       email: formData.get("email") || "",
-      sex: "M", 
-      maritalStatus: 3, 
-      healthInsuranceCode: Number(formData.get("healthInsuranceCode")), // Puxa do input
+      sex: "M", maritalStatus: 3, 
+      healthInsuranceCode: Number(formData.get("healthInsuranceCode")),
       external_id: "" 
     };
-
     const res = await createPatientAction(payload);
     setResults(prev => ({ ...prev, createPatient: res }));
     setLoading(null);
@@ -81,17 +78,12 @@ export function DebugPanel() {
     e.preventDefault();
     setLoading("book");
     const formData = new FormData(e.currentTarget);
-    
     const payload = {
       patient_id: Number(formData.get("patientId")),
       healthInsuranceCode: Number(formData.get("healthInsuranceCode")),
       obs: "Teste via Dashboard Silvia",
-      appointmentType: 1, 
-      external_id: "", 
-      address_service_id: 1, 
-      consultationType: 1    
+      appointmentType: 1, external_id: "", address_service_id: 1, consultationType: 1    
     };
-
     const res = await bookSlotAction(
       formData.get("doctorId") as string,
       formData.get("addressId") as string,
@@ -102,95 +94,99 @@ export function DebugPanel() {
     setLoading(null);
   };
 
+  const handleCancelBooking = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading("cancel");
+    const formData = new FormData(e.currentTarget);
+    const res = await cancelBookingAction(
+      formData.get("doctorId") as string,
+      formData.get("addressId") as string,
+      formData.get("bookingId") as string
+    );
+    setResults(prev => ({ ...prev, cancel: res }));
+    setLoading(null);
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      
-      {/* 1. Buscar Convênios */}
-      <Card><CardHeader><CardTitle className="text-lg">1. Buscar Convênios</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleFetchInsurances} className="flex gap-2 items-end">
-            <Button type="submit" className="w-full" disabled={loading === "insurances"}>{loading === "insurances" ? <Loader2 className="animate-spin" /> : "Listar Todos os Convênios"}</Button>
-          </form>
-          {results.insurances && <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">{JSON.stringify(results.insurances, null, 2)}</pre>}
+      <Card><CardHeader><CardTitle>1. Convênios</CardTitle></CardHeader>
+        <CardContent>
+          <Button onClick={handleFetchInsurances} className="w-full" disabled={loading === "insurances"}>Listar Convênios</Button>
+          {results.insurances && <pre className="mt-2 bg-muted p-2 text-xs overflow-auto max-h-40">{JSON.stringify(results.insurances, null, 2)}</pre>}
         </CardContent>
       </Card>
 
-      {/* 2. Buscar Médico */}
-      <Card><CardHeader><CardTitle className="text-lg">2. Buscar Médico</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleFetchDoctor} className="flex gap-2 items-end">
-            <div className="flex-1"><Label>ID Médico</Label><Input name="doctorId" placeholder="Ex: 10073" required /></div>
-            <Button type="submit" disabled={loading === "doctor"}>{loading === "doctor" ? <Loader2 className="animate-spin" /> : "Ir"}</Button>
+      <Card><CardHeader><CardTitle>2. Médico</CardTitle></CardHeader>
+        <CardContent>
+          <form onSubmit={handleFetchDoctor} className="flex gap-2">
+            <Input name="doctorId" placeholder="ID Médico" required />
+            <Button type="submit">Ir</Button>
           </form>
-          {results.doctor && <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">{JSON.stringify(results.doctor, null, 2)}</pre>}
+          {results.doctor && <pre className="mt-2 bg-muted p-2 text-xs max-h-40">{JSON.stringify(results.doctor, null, 2)}</pre>}
         </CardContent>
       </Card>
 
-      {/* 3. Verificar CPF */}
-      <Card><CardHeader><CardTitle className="text-lg">3. Verificar CPF</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
+      <Card><CardHeader><CardTitle>3. Verificar CPF</CardTitle></CardHeader>
+        <CardContent>
           <form onSubmit={handleCheckExists} className="space-y-2">
-            <div><Label>NIN / CPF</Label><Input name="nin" placeholder="Ex: 05814436166" required /></div>
-            <div><Label>Data Nasc.</Label><Input name="birthday" type="date" required /></div>
-            <Button type="submit" className="w-full" disabled={loading === "exists"}>{loading === "exists" ? <Loader2 className="animate-spin" /> : "Verificar"}</Button>
+            <Input name="nin" placeholder="CPF" required />
+            <Input name="birthday" type="date" required />
+            <Button type="submit" className="w-full">Verificar</Button>
           </form>
-          {results.exists && <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">{JSON.stringify(results.exists, null, 2)}</pre>}
+          {results.exists && <pre className="mt-2 bg-muted p-2 text-xs">{JSON.stringify(results.exists, null, 2)}</pre>}
         </CardContent>
       </Card>
 
-      {/* 4. Criar / Atualizar Paciente */}
-      <Card><CardHeader><CardTitle className="text-lg">4. Atualizar Paciente (Setar Convênio)</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleCreatePatient} className="space-y-2 text-sm">
-            <div><Label>Nome Completo</Label><Input name="name" required /></div>
-            <div className="flex gap-2">
-              <div className="flex-1"><Label>CPF</Label><Input name="nin" required /></div>
-              <div className="flex-1"><Label>Data Nasc.</Label><Input name="birthday" type="date" required /></div>
-            </div>
-            <div><Label>ID Convênio (Ex: Unimed = 12)</Label><Input name="healthInsuranceCode" type="number" required /></div>
-            <Button type="submit" className="w-full" disabled={loading === "createPatient"}>{loading === "createPatient" ? <Loader2 className="animate-spin" /> : "Criar / Atualizar"}</Button>
+      <Card><CardHeader><CardTitle>4. Criar/Atualizar Paciente</CardTitle></CardHeader>
+        <CardContent>
+          <form onSubmit={handleCreatePatient} className="space-y-2">
+            <Input name="name" placeholder="Nome" required />
+            <Input name="nin" placeholder="CPF" required />
+            <Input name="birthday" type="date" required />
+            <Input name="healthInsuranceCode" type="number" placeholder="ID Convênio" required />
+            <Button type="submit" className="w-full">Salvar</Button>
           </form>
-          {results.createPatient && <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">{JSON.stringify(results.createPatient, null, 2)}</pre>}
         </CardContent>
       </Card>
 
-      {/* 5. Buscar Slots */}
-      <Card><CardHeader><CardTitle className="text-lg">5. Buscar Slots Livres</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleGetSlots} className="space-y-2 text-sm">
-            <div className="flex gap-2">
-              <div className="flex-1"><Label>ID Med.</Label><Input name="doctorId" placeholder="Ex: 10073" required /></div>
-              <div className="flex-1"><Label>ID Endereço</Label><Input name="addressId" placeholder="Ex: 1" required /></div>
-            </div>
-            <div className="flex gap-2">
-              <div className="flex-1"><Label>Início</Label><Input name="startDate" type="date" required /></div>
-              <div className="flex-1"><Label>Fim</Label><Input name="endDate" type="date" required /></div>
-            </div>
-            <Button type="submit" className="w-full" disabled={loading === "slots"}>{loading === "slots" ? <Loader2 className="animate-spin" /> : "Buscar Slots"}</Button>
+      <Card><CardHeader><CardTitle>5. Slots Livres</CardTitle></CardHeader>
+        <CardContent>
+          <form onSubmit={handleGetSlots} className="space-y-2">
+            <Input name="doctorId" placeholder="ID Médico" required />
+            <Input name="addressId" placeholder="ID Endereço" required />
+            <Input name="startDate" type="date" required />
+            <Input name="endDate" type="date" required />
+            <Button type="submit" className="w-full">Buscar</Button>
           </form>
-          {results.slots && <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">{JSON.stringify(results.slots, null, 2)}</pre>}
+          {results.slots && <pre className="mt-2 bg-muted p-2 text-xs">{JSON.stringify(results.slots, null, 2)}</pre>}
         </CardContent>
       </Card>
 
-      {/* 6. Book Slot */}
-      <Card className="lg:col-span-2"><CardHeader><CardTitle className="text-lg">6. Agendar Consulta (Book)</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleBookSlot} className="space-y-2 text-sm">
-            <div className="grid grid-cols-3 gap-2">
-              <div><Label>ID Médico</Label><Input name="doctorId" placeholder="Ex: 10073" required /></div>
-              <div><Label>ID Endereço</Label><Input name="addressId" placeholder="Ex: 1" required /></div>
-              <div><Label>ID Paciente</Label><Input name="patientId" placeholder="Ex: 215591" required /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Data/Hora Slot (ISO)</Label><Input name="slotStart" placeholder="2022-01-05T09:00:00-03:00" required /></div>
-              <div><Label>ID Convênio (Ex: 12)</Label><Input name="healthInsuranceCode" placeholder="Ex: 12" required /></div>
-            </div>
-            <Button type="submit" className="w-full" variant="default" disabled={loading === "book"}>{loading === "book" ? <Loader2 className="animate-spin" /> : "Confirmar Agendamento"}</Button>
+      <Card><CardHeader><CardTitle>6. Agendar (Book)</CardTitle></CardHeader>
+        <CardContent>
+          <form onSubmit={handleBookSlot} className="space-y-2">
+            <Input name="doctorId" placeholder="ID Médico" required />
+            <Input name="addressId" placeholder="ID Endereço" required />
+            <Input name="patientId" placeholder="ID Paciente" required />
+            <Input name="slotStart" placeholder="ISO Date" required />
+            <Input name="healthInsuranceCode" placeholder="ID Convênio" required />
+            <Button type="submit" className="w-full">Agendar</Button>
           </form>
-          {results.book && <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">{JSON.stringify(results.book, null, 2)}</pre>}
+          {results.book && <pre className="mt-2 bg-muted p-2 text-xs">{JSON.stringify(results.book, null, 2)}</pre>}
         </CardContent>
       </Card>
 
+      <Card><CardHeader><CardTitle className="text-destructive">7. Cancelar</CardTitle></CardHeader>
+        <CardContent>
+          <form onSubmit={handleCancelBooking} className="space-y-2">
+            <Input name="doctorId" placeholder="ID Médico" required />
+            <Input name="addressId" placeholder="ID Endereço" required />
+            <Input name="bookingId" placeholder="ID Agendamento" required />
+            <Button type="submit" className="w-full" variant="destructive">Cancelar</Button>
+          </form>
+          {results.cancel && <pre className="mt-2 bg-muted p-2 text-xs">{JSON.stringify(results.cancel, null, 2)}</pre>}
+        </CardContent>
+      </Card>
     </div>
   );
 }

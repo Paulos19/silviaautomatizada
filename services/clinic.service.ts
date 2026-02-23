@@ -14,7 +14,6 @@ const CLIENT_ID = process.env.CLINIC_CLIENT_ID;
 const CLIENT_SECRET = process.env.CLINIC_CLIENT_SECRET;
 const FACILITY_ID = process.env.CLINIC_FACILITY_ID;
 
-// Cache do token em memória
 let cachedToken: string | null = null;
 let tokenExpiresAt: number | null = null;
 
@@ -22,13 +21,7 @@ async function getAccessToken(): Promise<string> {
   if (cachedToken && tokenExpiresAt && Date.now() < tokenExpiresAt - 30000) {
     return cachedToken;
   }
-
-  if (!CLINIC_URL || !CLIENT_ID || !CLIENT_SECRET) {
-    throw new Error("Credenciais da Clinic API ausentes no .env");
-  }
-
   const authString = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
-
   const response = await fetch(`${CLINIC_URL}/oauth/v1/token`, {
     method: "POST",
     headers: {
@@ -37,13 +30,7 @@ async function getAccessToken(): Promise<string> {
     },
     cache: "no-store", 
   });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    console.error(`[Clinic API Auth Error] ${response.status}: ${errorBody}`);
-    throw new Error("Falha ao obter token de acesso da Clinic API");
-  }
-
+  if (!response.ok) throw new Error("Falha na autenticação Clinic API");
   const data = await response.json();
   cachedToken = data.access_token;
   tokenExpiresAt = Date.now() + data.expires_in * 1000;
@@ -52,7 +39,6 @@ async function getAccessToken(): Promise<string> {
 
 async function clinicFetch(endpoint: string, options: RequestInit = {}) {
   const token = await getAccessToken();
-
   const response = await fetch(`${CLINIC_URL}${endpoint}`, {
     ...options,
     headers: {
@@ -64,22 +50,22 @@ async function clinicFetch(endpoint: string, options: RequestInit = {}) {
 
   if (!response.ok) {
     const errorBody = await response.text();
-    console.error(`[Clinic API Request Error] ${response.status}: ${errorBody}`);
+    console.error(`[Clinic API Error] ${response.status}: ${errorBody}`);
     throw new Error(`Erro na integração Clinic: Status ${response.status}`);
   }
+
+  // Tratamento para 204 No Content (Cancelamento)
+  if (response.status === 204) return { success: true };
 
   return response.json();
 }
 
 export const ClinicService = {
-
-  // --- Buscas Gerais ---
   async getPatients(nin?: string, page: number = 1, pageSize: number = 10) {
     const url = new URL(`${CLINIC_URL}/api/v1/integration/facilities/${FACILITY_ID}/patients`);
     url.searchParams.append("page", page.toString());
     url.searchParams.append("pageSize", pageSize.toString());
     if (nin) url.searchParams.append("nin", nin);
-
     const data = await clinicFetch(url.pathname + url.search);
     return ClinicPatientResponseSchema.parse(data);
   },
@@ -89,7 +75,6 @@ export const ClinicService = {
     return ClinicDoctorResponseSchema.parse(data);
   },
 
-  // --- Buscas Individuais ---
   async getDoctorById(doctorId: string | number) {
     const data = await clinicFetch(`/api/v1/integration/facilities/${FACILITY_ID}/doctors/${doctorId}`);
     return ClinicSingleDoctorResponseSchema.parse(data);
@@ -97,12 +82,7 @@ export const ClinicService = {
 
   async getPatientById(patientId: string | number) {
     const data = await clinicFetch(`/api/v1/integration/facilities/${FACILITY_ID}/patients/${patientId}?returnAttendedBy=1`);
-    try {
-      return ClinicSinglePatientResponseSchema.parse(data);
-    } catch (error) {
-      console.error("[ZOD PARSE ERROR getPatientById]:", error);
-      throw new Error("Falha na validação do paciente.");
-    }
+    return ClinicSinglePatientResponseSchema.parse(data);
   },
 
   async checkPatientExists(nin: string, birthday: string) {
@@ -110,41 +90,33 @@ export const ClinicService = {
     return ClinicPatientExistsSchema.parse(data);
   },
 
-  // --- Operações de Escrita e Slots ---
   async createOrUpdatePatient(payload: Record<string, any>) {
-    const data = await clinicFetch(`/api/v1/integration/facilities/${FACILITY_ID}/patients`, {
+    return await clinicFetch(`/api/v1/integration/facilities/${FACILITY_ID}/patients`, {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    // API retorna 201 (Created) ou 202 (Updated)
-    return data;
   },
 
- async getFreeSlots(doctorId: string, addressId: string, startDate: string, endDate: string) {
-    // CORREÇÃO: A rota correta é /available-slots e não /slots
+  async getFreeSlots(doctorId: string, addressId: string, startDate: string, endDate: string) {
     const url = `/api/v1/integration/facilities/${FACILITY_ID}/doctors/${doctorId}/addresses/${addressId}/available-slots?start_date=${startDate}&end_date=${endDate}`;
-    
-    // Adicionamos um console.log de debug para você ver a URL exata sendo chamada no terminal
-    console.log("[DEBUG GET SLOTS URL]:", url);
-
     const data = await clinicFetch(url);
     return ClinicFreeSlotsResponseSchema.parse(data);
   },
 
   async bookSlot(doctorId: string, addressId: string, slotStart: string, payload: Record<string, any>) {
-    // encodeURIComponent para lidar com os sinais de + e timezone no ISO date
     const slotPath = encodeURIComponent(slotStart);
     const url = `/api/v1/integration/facilities/${FACILITY_ID}/doctors/${doctorId}/addresses/${addressId}/slots/${slotPath}`;
-    
-    const data = await clinicFetch(url, {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
+    const data = await clinicFetch(url, { method: "POST", body: JSON.stringify(payload) });
     return ClinicBookSlotResponseSchema.parse(data);
+  },
+
+  async cancelBooking(doctorId: string, addressId: string, bookingId: string, externalId: string = "1") {
+    const url = `/api/v1/integration/facilities/${FACILITY_ID}/doctors/${doctorId}/addresses/${addressId}/bookings/${bookingId}?external_id=${externalId}`;
+    return await clinicFetch(url, { method: "DELETE" });
   },
 
   async getInsuranceProviders() {
     const data = await clinicFetch(`/api/v1/integration/insurance-providers`);
     return ClinicInsuranceResponseSchema.parse(data);
-  },
+  }
 };

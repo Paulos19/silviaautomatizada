@@ -94,7 +94,8 @@ export const ClinicFreeSlotsResponseSchema = z.object({
 export const ClinicBookSlotResponseSchema = z.object({
   result: z.object({
     id: z.number(),
-    status: z.string().nullish(),
+    // Aceitando tanto texto (ex: "booked") quanto número (ex: 1)
+    status: z.union([z.string(), z.number()]).nullish(),
     start_at: z.string().nullish(),
     end_at: z.string().nullish(),
   }).passthrough()

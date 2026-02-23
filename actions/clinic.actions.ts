@@ -95,3 +95,15 @@ export async function bookSlotAction(doctorId: string, addressId: string, slotSt
     return { success: false, error: "Falha ao agendar consulta." };
   }
 }
+
+export async function cancelBookingAction(doctorId: string, addressId: string, bookingId: string, externalId: string = "1") {
+  if (!doctorId || !addressId || !bookingId) return { success: false, error: "Parâmetros incompletos." };
+  
+  try {
+    const response = await ClinicService.cancelBooking(doctorId, addressId, bookingId, externalId);
+    return { success: true, data: "Agendamento cancelado com sucesso (204 No Content)." };
+  } catch (error: any) {
+    console.error("[Clinic API Error] cancelBooking:", error.message);
+    return { success: false, error: "Falha ao cancelar agendamento." };
+  }
+}
