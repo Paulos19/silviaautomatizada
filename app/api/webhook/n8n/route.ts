@@ -7,7 +7,8 @@ import {
   cancelBookingAction,
   fetchInsuranceProvidersAction,
   fetchSingleDoctorAction,
-  fetchDoctorsAction // <-- Adicionado aqui
+  fetchDoctorsAction,
+  fetchPatientBookingsAction // <-- Nova action importada aqui
 } from "@/actions/clinic.actions";
 
 // Validação de segurança: Só o n8n pode chamar essa rota
@@ -55,9 +56,18 @@ export async function POST(request: Request) {
       case "GET_DOCTOR":
         return NextResponse.json(await fetchSingleDoctorAction(payload.doctorId));
 
-      // --- CORREÇÃO: ADICIONADO A LISTAGEM DE MÉDICOS ---
       case "GET_DOCTORS":
         return NextResponse.json(await fetchDoctorsAction());
+
+      // --- NOVA ROTA: CONSULTAR AGENDAMENTOS DO PACIENTE ---
+      case "GET_BOOKINGS":
+        return NextResponse.json(await fetchPatientBookingsAction(
+          payload.doctorId, 
+          payload.addressId, 
+          payload.patientId, 
+          payload.startDate, 
+          payload.endDate
+        ));
 
       default:
         return NextResponse.json({ success: false, error: `Action '${action}' not supported.` }, { status: 400 });

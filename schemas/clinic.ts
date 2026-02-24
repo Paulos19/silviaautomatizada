@@ -100,3 +100,18 @@ export const ClinicBookSlotResponseSchema = z.object({
     end_at: z.string().nullish(),
   }).passthrough()
 });
+
+export const ClinicBookingsListSchema = z.object({
+  result: z.object({
+    items: z.array(z.object({
+      id: z.number(),
+      status: z.string().nullish(),
+      start_at: z.string().nullish(),
+      end_at: z.string().nullish(),
+      typeDescription: z.string().nullish(),
+      insurance: z.object({
+        name: z.string().nullish()
+      }).passthrough().nullish() // <-- ORDEM CORRETA AQUI
+    }).passthrough()).nullish()
+  }).passthrough()
+});

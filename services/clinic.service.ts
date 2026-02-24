@@ -6,7 +6,8 @@ import {
   ClinicPatientExistsSchema,
   ClinicFreeSlotsResponseSchema,
   ClinicBookSlotResponseSchema,
-  ClinicInsuranceResponseSchema
+  ClinicInsuranceResponseSchema,
+  ClinicBookingsListSchema
 } from "@/schemas/clinic";
 
 const CLINIC_URL = process.env.CLINIC_API_URL;
@@ -118,5 +119,14 @@ export const ClinicService = {
   async getInsuranceProviders() {
     const data = await clinicFetch(`/api/v1/integration/insurance-providers`);
     return ClinicInsuranceResponseSchema.parse(data);
-  }
+  },
+
+  async getPatientBookings(doctorId: string, addressId: string, patientId: string, startDate: string, endDate: string) {
+    // Nota: O cURL dizia POST, mas usa query params e o título é GET.
+    // O padrão REST para buscas é GET. Se falhar, podemos mudar o method para POST depois.
+    const url = `/api/v1/integration/facilities/${FACILITY_ID}/doctors/${doctorId}/addresses/${addressId}/bookings?start_date=${startDate}&end_date=${endDate}&patient_id=${patientId}`;
+    
+    const data = await clinicFetch(url, { method: "GET" });
+    return ClinicBookingsListSchema.parse(data);
+  },
 };

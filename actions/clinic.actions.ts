@@ -107,3 +107,13 @@ export async function cancelBookingAction(doctorId: string, addressId: string, b
     return { success: false, error: "Falha ao cancelar agendamento." };
   }
 }
+
+export async function fetchPatientBookingsAction(doctorId: string, addressId: string, patientId: string, startDate: string, endDate: string) {
+  try {
+    const response = await ClinicService.getPatientBookings(doctorId, addressId, patientId, startDate, endDate);
+    return { success: true, data: response };
+  } catch (error: any) {
+    console.error("[Clinic API Error] getPatientBookings:", error.message);
+    return { success: false, error: "Falha ao buscar agendamentos." };
+  }
+}
