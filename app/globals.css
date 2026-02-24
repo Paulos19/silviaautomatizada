@@ -124,3 +124,67 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* --- ANIMAÇÕES MAJESTOSAS --- */
+@layer utilities {
+  /* Animação do Sol */
+  .animate-sun-spin {
+    animation: sun-spin 10s linear infinite;
+  }
+  
+  /* Animação da Chuva */
+  .animate-rain-drop {
+    animation: rain-drop 1.5s ease-in-out infinite;
+  }
+  .animate-rain-drop-delayed {
+    animation: rain-drop 1.5s ease-in-out 0.75s infinite;
+  }
+
+  /* Animação do Frio / Neve */
+  .animate-snow-float {
+    animation: snow-float 3s ease-in-out infinite;
+  }
+
+  /* Animação do Calor */
+  .animate-heat-wave {
+    animation: heat-wave 2s ease-in-out infinite;
+  }
+}
+
+@keyframes sun-spin {
+  from { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.1); }
+  to { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes rain-drop {
+  0% { transform: translateY(-5px); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateY(10px); opacity: 0; }
+}
+
+@keyframes snow-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(15deg); }
+}
+
+@keyframes heat-wave {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(239,68,68,0.5)); }
+  50% { transform: scale(1.1); filter: drop-shadow(0 0 10px rgba(239,68,68,0.8)); }
+}
+
+/* Fundo Gradiente Ambital (Brilha sutilmente por trás do vidro) */
+.ambient-bg {
+  background: radial-gradient(circle at top left, var(--primary) 0%, transparent 25%),
+              radial-gradient(circle at bottom right, var(--chart-2) 0%, transparent 25%);
+  background-size: 100% 100%;
+  background-attachment: fixed;
+  opacity: 0.05; /* Super sutil */
+  pointer-events: none;
+  z-index: -1;
+  position: fixed;
+  inset: 0;
+}
+.dark .ambient-bg {
+  opacity: 0.15; /* Um pouco mais forte no escuro */
+}
