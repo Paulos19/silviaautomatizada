@@ -24,16 +24,19 @@ export function DashboardSidebar({ isOpen, setIsOpen }: SidebarProps) {
   return (
     <aside 
       className={cn(
-        "relative h-screen bg-card/60 backdrop-blur-2xl border-r border-border/50 flex flex-col transition-[width] duration-500 ease-in-out z-50",
-        isOpen ? "w-64" : "w-20"
+        "fixed inset-y-0 left-0 md:relative h-screen bg-card/80 md:bg-card/60 backdrop-blur-3xl border-r border-border/50 flex flex-col transition-all duration-500 ease-in-out z-50",
+        // Lógica de Responsividade:
+        // No telemóvel: escondida fora do ecrã (-translate-x-full) ou aberta (translate-x-0 w-64)
+        // No PC: sempre visível (md:translate-x-0), alterna entre w-20 e w-64
+        isOpen ? "translate-x-0 w-64" : "-translate-x-full md:translate-x-0 md:w-20"
       )}
     >
-      {/* Botão Retrátil */}
+      {/* Botão Retrátil (Apenas Desktop) */}
       <Button 
         variant="outline" 
         size="icon"
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute -right-4 top-6 w-8 h-8 rounded-full shadow-md bg-background hover:bg-accent border-border/50 hidden md:flex"
+        className="absolute -right-4 top-6 w-8 h-8 rounded-full shadow-md bg-background hover:bg-accent border-border/50 hidden md:flex z-50"
       >
         {isOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
       </Button>
@@ -41,22 +44,27 @@ export function DashboardSidebar({ isOpen, setIsOpen }: SidebarProps) {
       {/* Logo Area */}
       <div className="h-20 flex items-center justify-center border-b border-border/50 px-4">
         <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-chart-1 flex items-center justify-center shadow-lg transition-all duration-300", 
-                          !isOpen && "scale-90")}>
+                          !isOpen && "md:scale-90")}>
           <span className="text-primary-foreground font-bold text-xl">S</span>
         </div>
-        {isOpen && (
-          <span className="ml-3 font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/60 whitespace-nowrap overflow-hidden animate-in fade-in zoom-in duration-500">
-            Silvia AI
-          </span>
-        )}
+        {/* Mostra o texto se estiver aberta OU se estiver no telemóvel (onde aberta é o único estado visível) */}
+        <span className={cn(
+          "ml-3 font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/60 whitespace-nowrap overflow-hidden transition-all duration-300",
+          isOpen ? "opacity-100 w-auto" : "opacity-0 w-0 md:opacity-0"
+        )}>
+          Silvia AI
+        </span>
       </div>
 
       {/* Navegação */}
-      <nav className="flex-1 py-6 px-3 space-y-2 overflow-hidden">
+      <nav className="flex-1 py-6 px-3 space-y-2 overflow-hidden overflow-y-auto custom-scrollbar">
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
           return (
-            <Link key={item.href} href={item.href}>
+            <Link key={item.href} href={item.href} onClick={() => {
+              // Fecha a sidebar no telemóvel ao clicar num link
+              if (window.innerWidth < 768) setIsOpen(false);
+            }}>
               <div className={cn(
                 "flex items-center h-12 rounded-xl transition-all duration-300 group cursor-pointer",
                 isActive 
@@ -64,12 +72,13 @@ export function DashboardSidebar({ isOpen, setIsOpen }: SidebarProps) {
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                 isOpen ? "px-4" : "justify-center"
               )}>
-                <item.icon className={cn("w-5 h-5 transition-transform duration-300 group-hover:scale-110", isActive && "fill-primary/20")} />
-                {isOpen && (
-                  <span className="ml-3 font-medium text-sm whitespace-nowrap animate-in fade-in duration-300">
-                    {item.label}
-                  </span>
-                )}
+                <item.icon className={cn("w-5 h-5 shrink-0 transition-transform duration-300 group-hover:scale-110", isActive && "fill-primary/20")} />
+                <span className={cn(
+                  "ml-3 font-medium text-sm whitespace-nowrap transition-all duration-300",
+                  isOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 w-0 overflow-hidden"
+                )}>
+                  {item.label}
+                </span>
               </div>
             </Link>
           );
@@ -79,12 +88,12 @@ export function DashboardSidebar({ isOpen, setIsOpen }: SidebarProps) {
       {/* Rodapé da Sidebar */}
       <div className="p-4 border-t border-border/50 space-y-2">
         <div className={cn("flex items-center h-12 rounded-xl text-muted-foreground hover:bg-muted/50 cursor-pointer transition-all", isOpen ? "px-4" : "justify-center")}>
-          <Settings className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" />
-          {isOpen && <span className="ml-3 font-medium text-sm">Configurações</span>}
+          <Settings className="w-5 h-5 shrink-0 group-hover:rotate-90 transition-transform duration-500" />
+          <span className={cn("ml-3 font-medium text-sm whitespace-nowrap transition-all duration-300", isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden")}>Configurações</span>
         </div>
         <div className={cn("flex items-center h-12 rounded-xl text-destructive hover:bg-destructive/10 cursor-pointer transition-all", isOpen ? "px-4" : "justify-center")}>
-          <LogOut className="w-5 h-5" />
-          {isOpen && <span className="ml-3 font-medium text-sm">Sair</span>}
+          <LogOut className="w-5 h-5 shrink-0" />
+          <span className={cn("ml-3 font-medium text-sm whitespace-nowrap transition-all duration-300", isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden")}>Sair</span>
         </div>
       </div>
     </aside>
