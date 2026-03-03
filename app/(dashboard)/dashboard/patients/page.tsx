@@ -1,16 +1,36 @@
 "use client";
 
-import { useState } from "react";
-import { checkPatientExistsAction, createPatientAction } from "@/actions/clinic.actions";
+import { useState, useEffect } from "react";
+import { checkPatientExistsAction, createPatientAction, fetchInsuranceProvidersAction } from "@/actions/clinic.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, UserCheck, UserPlus } from "lucide-react";
+import { Loader2, UserCheck, UserPlus, ShieldPlus } from "lucide-react";
+
+interface InsuranceOption {
+  id: number;
+  name?: string | null;
+}
 
 export default function PatientsPage() {
   const [loading, setLoading] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, any>>({});
+  const [insurances, setInsurances] = useState<InsuranceOption[]>([]);
+  const [loadingInsurances, setLoadingInsurances] = useState(true);
+
+  useEffect(() => {
+    loadInsurances();
+  }, []);
+
+  const loadInsurances = async () => {
+    setLoadingInsurances(true);
+    const res = await fetchInsuranceProvidersAction();
+    if (res.success && res.data) {
+      setInsurances(res.data as InsuranceOption[]);
+    }
+    setLoadingInsurances(false);
+  };
 
   const handleCheckExists = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -27,13 +47,13 @@ export default function PatientsPage() {
     const formData = new FormData(e.currentTarget);
     const payload = {
       name: formData.get("name"),
-      nin: formData.get("nin"), 
-      birthday: formData.get("birthday"), 
+      nin: formData.get("nin"),
+      birthday: formData.get("birthday"),
       mobile: formData.get("mobile") || "",
       email: formData.get("email") || "",
-      sex: "M", maritalStatus: 3, 
+      sex: "M", maritalStatus: 3,
       healthInsuranceCode: Number(formData.get("healthInsuranceCode")),
-      external_id: "" 
+      external_id: ""
     };
     const res = await createPatientAction(payload);
     setResults(prev => ({ ...prev, createPatient: res }));
@@ -79,7 +99,32 @@ export default function PatientsPage() {
                 <div className="space-y-2"><Label>CPF</Label><Input name="nin" required className="bg-background/50" /></div>
                 <div className="space-y-2"><Label>Data Nasc.</Label><Input name="birthday" type="date" required className="bg-background/50" /></div>
               </div>
-              <div className="space-y-2"><Label>ID do Convênio (Ex: 260 para Unimed)</Label><Input name="healthInsuranceCode" type="number" required className="bg-background/50" /></div>
+
+              {/* Convênio via Dropdown */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <ShieldPlus className="w-3.5 h-3.5 text-chart-4" /> Convênio
+                </Label>
+                {loadingInsurances ? (
+                  <div className="flex items-center gap-2 h-10 px-3 text-sm text-muted-foreground">
+                    <Loader2 className="animate-spin w-4 h-4" /> Carregando convênios...
+                  </div>
+                ) : (
+                  <select
+                    name="healthInsuranceCode"
+                    required
+                    className="w-full h-10 rounded-xl border border-border/50 bg-background/50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
+                  >
+                    <option value="">Selecione um convênio...</option>
+                    {insurances.map((ins) => (
+                      <option key={ins.id} value={ins.id}>
+                        {ins.name || `Convênio #${ins.id}`}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
               <Button type="submit" variant="secondary" className="w-full" disabled={loading === "createPatient"}>
                 {loading === "createPatient" ? <Loader2 className="animate-spin w-4 h-4" /> : "Salvar Paciente"}
               </Button>

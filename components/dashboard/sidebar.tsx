@@ -22,7 +22,7 @@ export function DashboardSidebar({ isOpen, setIsOpen }: SidebarProps) {
   ];
 
   return (
-    <aside 
+    <aside
       className={cn(
         "fixed inset-y-0 left-0 md:relative h-screen bg-card/80 md:bg-card/60 backdrop-blur-3xl border-r border-border/50 flex flex-col transition-all duration-500 ease-in-out z-50",
         // Lógica de Responsividade:
@@ -32,8 +32,8 @@ export function DashboardSidebar({ isOpen, setIsOpen }: SidebarProps) {
       )}
     >
       {/* Botão Retrátil (Apenas Desktop) */}
-      <Button 
-        variant="outline" 
+      <Button
+        variant="outline"
         size="icon"
         onClick={() => setIsOpen(!isOpen)}
         className="absolute -right-4 top-6 w-8 h-8 rounded-full shadow-md bg-background hover:bg-accent border-border/50 hidden md:flex z-50"
@@ -43,8 +43,8 @@ export function DashboardSidebar({ isOpen, setIsOpen }: SidebarProps) {
 
       {/* Logo Area */}
       <div className="h-20 flex items-center justify-center border-b border-border/50 px-4">
-        <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-chart-1 flex items-center justify-center shadow-lg transition-all duration-300", 
-                          !isOpen && "md:scale-90")}>
+        <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-chart-1 flex items-center justify-center shadow-lg transition-all duration-300",
+          !isOpen && "md:scale-90")}>
           <span className="text-primary-foreground font-bold text-xl">S</span>
         </div>
         {/* Mostra o texto se estiver aberta OU se estiver no telemóvel (onde aberta é o único estado visível) */}
@@ -67,8 +67,8 @@ export function DashboardSidebar({ isOpen, setIsOpen }: SidebarProps) {
             }}>
               <div className={cn(
                 "flex items-center h-12 rounded-xl transition-all duration-300 group cursor-pointer",
-                isActive 
-                  ? "bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20" 
+                isActive
+                  ? "bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20"
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                 isOpen ? "px-4" : "justify-center"
               )}>
@@ -87,10 +87,20 @@ export function DashboardSidebar({ isOpen, setIsOpen }: SidebarProps) {
 
       {/* Rodapé da Sidebar */}
       <div className="p-4 border-t border-border/50 space-y-2">
-        <div className={cn("flex items-center h-12 rounded-xl text-muted-foreground hover:bg-muted/50 cursor-pointer transition-all", isOpen ? "px-4" : "justify-center")}>
-          <Settings className="w-5 h-5 shrink-0 group-hover:rotate-90 transition-transform duration-500" />
-          <span className={cn("ml-3 font-medium text-sm whitespace-nowrap transition-all duration-300", isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden")}>Configurações</span>
-        </div>
+        <Link href="/dashboard/settings" onClick={() => {
+          if (window.innerWidth < 768) setIsOpen(false);
+        }}>
+          <div className={cn(
+            "flex items-center h-12 rounded-xl transition-all duration-300 group cursor-pointer",
+            pathname === "/dashboard/settings"
+              ? "bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20"
+              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+            isOpen ? "px-4" : "justify-center"
+          )}>
+            <Settings className={cn("w-5 h-5 shrink-0 transition-transform duration-500 group-hover:rotate-90", pathname === "/dashboard/settings" && "fill-primary/20")} />
+            <span className={cn("ml-3 font-medium text-sm whitespace-nowrap transition-all duration-300", isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden")}>Configurações</span>
+          </div>
+        </Link>
         <div className={cn("flex items-center h-12 rounded-xl text-destructive hover:bg-destructive/10 cursor-pointer transition-all", isOpen ? "px-4" : "justify-center")}>
           <LogOut className="w-5 h-5 shrink-0" />
           <span className={cn("ml-3 font-medium text-sm whitespace-nowrap transition-all duration-300", isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden")}>Sair</span>
