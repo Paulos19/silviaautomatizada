@@ -21,3 +21,16 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model AiPersonality {
+  id              String   @id @default(cuid())
+  key             String   @unique @default("default") // Singleton: apenas 1 registro ativo
+  ragPrompt       String   @db.Text
+  doctorId        Int?
+  doctorName      String?
+  doctorCrm       Int?
+  doctorSpecialty String?
+  updatedBy       String? // ID do usuário que atualizou
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

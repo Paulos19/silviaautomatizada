@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useClinicSettings, SelectedDoctor } from "@/components/dashboard/clinic-settings-context";
 import { fetchDoctorsAction } from "@/actions/clinic.actions";
+import { saveRagAction } from "@/actions/rag.actions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +32,7 @@ export default function SettingsPage() {
     const [error, setError] = useState<string | null>(null);
     const [localRag, setLocalRag] = useState(ragPrompt);
     const [ragSaved, setRagSaved] = useState(false);
+    const [ragSaving, setRagSaving] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
 
@@ -74,7 +76,7 @@ export default function SettingsPage() {
         currentPage * DOCTORS_PER_PAGE
     );
 
-    const handleSelectDoctor = (doc: DoctorItem) => {
+    const handleSelectDoctor = async (doc: DoctorItem) => {
         const selected: SelectedDoctor = {
             id: doc.id,
             name: doc.name,
@@ -82,12 +84,22 @@ export default function SettingsPage() {
             specialty: doc.specialty,
         };
         setSelectedDoctor(selected);
+        // Persiste médico no banco também
+        await saveRagAction(localRag || ragPrompt, selected);
     };
 
-    const handleSaveRag = () => {
+    const handleSaveRag = async () => {
+        setRagSaving(true);
         setRagPrompt(localRag);
-        setRagSaved(true);
-        setTimeout(() => setRagSaved(false), 2500);
+        const res = await saveRagAction(localRag, selectedDoctor);
+        console.log("[Settings] saveRagAction response:", res);
+        setRagSaving(false);
+        if (res.success) {
+            setRagSaved(true);
+            setTimeout(() => setRagSaved(false), 2500);
+        } else {
+            alert("Erro ao salvar: " + (res.error || "Desconhecido"));
+        }
     };
 
     return (
@@ -313,8 +325,8 @@ export default function SettingsPage() {
                             />
                         </div>
                         <div className="flex items-center gap-3">
-                            <Button onClick={handleSaveRag} className="gap-2">
-                                <Save className="w-4 h-4" /> Salvar Prompt
+                            <Button onClick={handleSaveRag} className="gap-2" disabled={ragSaving}>
+                                {ragSaving ? <Loader2 className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4" />} Salvar Prompt
                             </Button>
                             {ragSaved && (
                                 <span className="text-sm text-chart-2 font-medium animate-in fade-in slide-in-from-left-2 duration-300">
