@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { ChevronLeft, ChevronRight, LayoutDashboard, CalendarDays, Users, Stethoscope, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -101,7 +102,10 @@ export function DashboardSidebar({ isOpen, setIsOpen }: SidebarProps) {
             <span className={cn("ml-3 font-medium text-sm whitespace-nowrap transition-all duration-300", isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden")}>Configurações</span>
           </div>
         </Link>
-        <div className={cn("flex items-center h-12 rounded-xl text-destructive hover:bg-destructive/10 cursor-pointer transition-all", isOpen ? "px-4" : "justify-center")}>
+        <div
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className={cn("flex items-center h-12 rounded-xl text-destructive hover:bg-destructive/10 cursor-pointer transition-all", isOpen ? "px-4" : "justify-center")}
+        >
           <LogOut className="w-5 h-5 shrink-0" />
           <span className={cn("ml-3 font-medium text-sm whitespace-nowrap transition-all duration-300", isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden")}>Sair</span>
         </div>
