@@ -55,11 +55,27 @@ export async function fetchSinglePatientAction(patientId: string) {
 }
 
 export async function checkPatientExistsAction(nin: string, birthday: string) {
-  if (!nin || !birthday) return { success: false, error: "NIN/Nascimento obrigatórios." };
+  if (!nin) return { success: false, error: "NIN/CPF obrigatório." };
   try {
-    const response = await ClinicService.checkPatientExists(nin, birthday);
-    return { success: true, data: response.result };
+    const response = await ClinicService.getPatients(nin, 1, 100);
+    const items = response.result?.items;
+
+    if (items && items.length > 0) {
+      const patient = items[0];
+      return {
+        success: true,
+        data: {
+          patient_id: patient.id,
+          patient_name: patient.name,
+          patient_mobile: patient.mobile,
+          patient_email: patient.email
+        }
+      };
+    }
+
+    return { success: false, error: "Paciente não encontrado." };
   } catch (error) {
+    console.error("[Clinic API Error] checkPatientExistsAction:", error);
     return { success: false, error: "Falha ao verificar existência." };
   }
 }
@@ -98,7 +114,7 @@ export async function bookSlotAction(doctorId: string, addressId: string, slotSt
 
 export async function cancelBookingAction(doctorId: string, addressId: string, bookingId: string, externalId: string = "1") {
   if (!doctorId || !addressId || !bookingId) return { success: false, error: "Parâmetros incompletos." };
-  
+
   try {
     const response = await ClinicService.cancelBooking(doctorId, addressId, bookingId, externalId);
     return { success: true, data: "Agendamento cancelado com sucesso (204 No Content)." };
