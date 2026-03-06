@@ -3,11 +3,11 @@ import { z } from "zod";
 export const ClinicPatientSchema = z.object({
   id: z.number(),
   // Nome pode vir vazio ou nulo em cadastros incompletos
-  name: z.string().nullish(), 
+  name: z.string().nullish(),
   cpf: z.union([z.string(), z.number()]).nullish(),
   mobile: z.string().nullish(),
   // Removido o .email() para evitar quebra com "emails" como "nao_tem", "-", etc.
-  email: z.string().nullish(), 
+  email: z.string().nullish(),
 }).passthrough();
 
 export const ClinicPatientResponseSchema = z.object({
@@ -115,3 +115,62 @@ export const ClinicBookingsListSchema = z.object({
     }).passthrough()).nullish()
   }).passthrough()
 });
+
+// NOVO: Schema baseado no exemplo de busca por CPF/Birthday do usuário
+export const ClinicBookingsByCpfResponseSchema = z.object({
+  result: z.object({
+    id: z.number(),
+    doctorId: z.number().nullish(),
+    doctor: z.string().nullish(),
+    client: z.string().nullish(),
+    mobile: z.string().nullish(),
+    date_schedule: z.string().nullish(),
+    hour_schedule: z.string().nullish(),
+    healthInsurance: z.string().nullish(),
+    status: z.string().nullish(),
+    confirm: z.string().nullish(),
+    record: z.number().nullish(),
+    cpf: z.union([z.string(), z.number()]).nullish(),
+    birthday: z.string().nullish(),
+  }).passthrough().nullish()
+}).passthrough();
+
+export const ClinicBookingsByPhoneResponseSchema = z.object({
+  result: z.object({
+    items: z.array(z.object({
+      id: z.number(),
+      record: z.number().nullish(),
+      date: z.string().nullish(),
+      hour: z.string().nullish(),
+      name: z.string().nullish(),
+      doctor_id: z.number().nullish(),
+      doctor_name: z.string().nullish(),
+      sector: z.string().nullish(),
+      address_id: z.union([z.number(), z.string()]).nullish(),
+      address_service_id: z.union([z.number(), z.string()]).nullish(),
+    }).passthrough()).nullish()
+  }).passthrough()
+});
+
+export const ClinicSingleBookingResponseSchema = z.object({
+  result: z.object({
+    id: z.number(),
+    status: z.string().nullish(),
+    start_at: z.string().nullish(),
+    end_at: z.string().nullish(),
+    doctor_id: z.number().nullish(),
+    doctor_name: z.string().nullish(),
+    patient: z.object({
+      name: z.string().nullish(),
+      surname: z.string().nullish(),
+      phone: z.union([z.string(), z.number()]).nullish(),
+    }).passthrough().nullish(),
+    address_service: z.object({
+      name: z.string().nullish(),
+    }).passthrough().nullish(),
+    insurance: z.object({
+      name: z.string().nullish(),
+    }).passthrough().nullish(),
+  }).passthrough()
+});
+

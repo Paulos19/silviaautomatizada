@@ -133,3 +133,25 @@ export async function fetchPatientBookingsAction(doctorId: string, addressId: st
     return { success: false, error: "Falha ao buscar agendamentos." };
   }
 }
+
+export async function fetchBookingsByNINAction(nin: string, birthday: string) {
+  if (!nin || !birthday) return { success: false, error: "Parâmetros incompletos." };
+  try {
+    const response = await ClinicService.getBookingsByNIN(nin, birthday);
+    return { success: true, data: response.result };
+  } catch (error: any) {
+    console.error("[Clinic API Error] fetchBookingsByNINAction:", error.message);
+    return { success: false, error: "Falha ao buscar agendamentos por CPF/NIN." };
+  }
+}
+
+export async function fetchBookingByIdAction(doctorId: string, addressId: string, bookingId: string) {
+  if (!doctorId || !addressId || !bookingId) return { success: false, error: "Parâmetros incompletos." };
+  try {
+    const response = await ClinicService.getBookingById(doctorId, addressId, bookingId);
+    return { success: true, data: response.result };
+  } catch (error: any) {
+    console.error("[Clinic API Error] fetchBookingByIdAction:", error.message);
+    return { success: false, error: "Falha ao buscar detalhes do agendamento." };
+  }
+}

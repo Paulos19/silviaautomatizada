@@ -57,7 +57,7 @@ export function LiveWeather() {
                     }
                 },
                 (err) => {
-                    console.error("Geolocation denied or failed", err);
+                    console.warn("Geolocation denied or failed", err);
                     setError(true);
                     setLoading(false);
                 }

@@ -1,5 +1,5 @@
-import { 
-  ClinicDoctorResponseSchema, 
+import {
+  ClinicDoctorResponseSchema,
   ClinicPatientResponseSchema,
   ClinicSingleDoctorResponseSchema,
   ClinicSinglePatientResponseSchema,
@@ -7,7 +7,9 @@ import {
   ClinicFreeSlotsResponseSchema,
   ClinicBookSlotResponseSchema,
   ClinicInsuranceResponseSchema,
-  ClinicBookingsListSchema
+  ClinicBookingsListSchema,
+  ClinicBookingsByCpfResponseSchema,
+  ClinicSingleBookingResponseSchema
 } from "@/schemas/clinic";
 
 const CLINIC_URL = process.env.CLINIC_API_URL;
@@ -29,7 +31,7 @@ async function getAccessToken(): Promise<string> {
       "Authorization": `Basic ${authString}`,
       "Content-Type": "application/json",
     },
-    cache: "no-store", 
+    cache: "no-store",
   });
   if (!response.ok) throw new Error("Falha na autenticação Clinic API");
   const data = await response.json();
@@ -125,8 +127,20 @@ export const ClinicService = {
     // Nota: O cURL dizia POST, mas usa query params e o título é GET.
     // O padrão REST para buscas é GET. Se falhar, podemos mudar o method para POST depois.
     const url = `/api/v1/integration/facilities/${FACILITY_ID}/doctors/${doctorId}/addresses/${addressId}/bookings?start_date=${startDate}&end_date=${endDate}&patient_id=${patientId}`;
-    
+
     const data = await clinicFetch(url, { method: "GET" });
     return ClinicBookingsListSchema.parse(data);
+  },
+
+  async getBookingsByNIN(nin: string, birthday: string) {
+    const url = `/api/v1/integration/facilities/${FACILITY_ID}/bookings?cpf=${nin}&birthday=${birthday}`;
+    const data = await clinicFetch(url, { method: "GET" });
+    return ClinicBookingsByCpfResponseSchema.parse(data);
+  },
+
+  async getBookingById(doctorId: string, addressId: string, bookingId: string) {
+    const url = `/api/v1/integration/facilities/${FACILITY_ID}/doctors/${doctorId}/addresses/${addressId}/bookings/${bookingId}`;
+    const data = await clinicFetch(url, { method: "GET" });
+    return ClinicSingleBookingResponseSchema.parse(data);
   },
 };

@@ -9,6 +9,8 @@ import {
   fetchInsuranceProvidersAction,
   checkPatientExistsAction,
   fetchPatientBookingsAction,
+  fetchBookingsByNINAction,
+  fetchBookingByIdAction,
 } from "@/actions/clinic.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -108,6 +110,20 @@ interface BookingItem {
   insurance?: { name?: string | null } | null;
 }
 
+interface PendingBooking {
+  id: number;
+  date?: string | null;
+  hour?: string | null;
+  doctor_name?: string | null;
+  doctor_id?: number | null;
+  address_id?: number | string | null;
+  sector?: string | null;
+  service?: string | null;
+  status?: string | null;
+  confirm?: string | null;
+  insurance?: string | null;
+}
+
 export default function BookingsPage() {
   const { selectedDoctor, addressId } = useClinicSettings();
   const [loading, setLoading] = useState<string | null>(null);
@@ -119,6 +135,7 @@ export default function BookingsPage() {
   const [selectedInsurance, setSelectedInsurance] = useState<number | null>(null);
   const [patientResult, setPatientResult] = useState<PatientResult | null>(null);
   const [patientSearchError, setPatientSearchError] = useState<string | null>(null);
+  const [pendingBookings, setPendingBookings] = useState<PendingBooking[]>([]);
   const [bookResult, setBookResult] = useState<any>(null);
 
   // Cancelamento state
@@ -168,13 +185,59 @@ export default function BookingsPage() {
     setLoading("patientSearch");
     setPatientResult(null);
     setPatientSearchError(null);
+    setPendingBookings([]);
     const formData = new FormData(e.currentTarget);
     const nin = formData.get("nin") as string;
     const birthdayStr = formData.get("birthday") as string;
     const birthday = parseDateBRToISO(birthdayStr);
     const res = await checkPatientExistsAction(nin, birthday);
     if (res.success && res.data) {
-      setPatientResult(res.data as PatientResult);
+      const patient = res.data as PatientResult;
+      setPatientResult(patient);
+
+      // Buscar agendamentos pendentes por NIN/CPF e Birthday
+      const bookingRes = await fetchBookingsByNINAction(nin, birthday);
+      if (bookingRes.success && bookingRes.data) {
+        const found = bookingRes.data as any;
+
+        // CRÍTICO: Usar o address_id que vem do próprio agendamento (se existir) ou fallback
+        // O exemplo do usuário mostra doctorId, id, etc. no nível raiz do result
+        const bDoctorId = found.doctorId?.toString() || found.doctor_id?.toString() || "";
+        const bAddressId = found.addressId?.toString() || found.address_id?.toString() || addressId;
+        const bBookingId = found.id?.toString() || "";
+
+        if (bBookingId) {
+          const detailRes = await fetchBookingByIdAction(bDoctorId, bAddressId, bBookingId);
+          if (detailRes.success && detailRes.data) {
+            const detail = detailRes.data as any;
+            setPendingBookings([{
+              id: detail.id,
+              date: detail.start_at ? new Date(detail.start_at).toLocaleDateString("pt-BR") : (found.date_schedule || found.date),
+              hour: detail.start_at
+                ? new Date(detail.start_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+                : (found.hour_schedule || found.hour || "").split(':').slice(0, 2).join(':'),
+              doctor_name: detail.doctor_name || found.doctor || found.doctor_name,
+              sector: detail.address_service?.name || found.sector,
+              service: detail.address_service?.name,
+              status: detail.status || found.status,
+              confirm: detail.confirm || found.confirm,
+              insurance: detail.insurance?.name || found.healthInsurance
+            }]);
+          } else {
+            setPendingBookings([{
+              id: found.id,
+              date: found.date_schedule || found.date,
+              hour: (found.hour_schedule || found.hour || "").split(':').slice(0, 2).join(':'),
+              doctor_name: found.doctor || found.doctor_name,
+              sector: found.sector,
+              service: null,
+              status: found.status,
+              confirm: found.confirm,
+              insurance: found.healthInsurance
+            }]);
+          }
+        }
+      }
     } else {
       setPatientSearchError("Paciente não encontrado. Verifique CPF e data de nascimento.");
     }
@@ -211,6 +274,7 @@ export default function BookingsPage() {
     setCancelPatient(null);
     setCancelSearchError(null);
     setPatientBookings([]);
+    setPendingBookings([]);
     setSelectedBooking(null);
     setCancelResult(null);
     const formData = new FormData(e.currentTarget);
@@ -221,6 +285,7 @@ export default function BookingsPage() {
     if (res.success && res.data && (res.data as PatientResult).patient_id) {
       const patient = res.data as PatientResult;
       setCancelPatient(patient);
+      let foundItems: any[] = [];
       // Buscar agendamentos desse paciente
       if (selectedDoctor) {
         const now = new Date();
@@ -237,10 +302,59 @@ export default function BookingsPage() {
         );
         if (bookingsRes.success && bookingsRes.data) {
           const bookingsData = bookingsRes.data as any;
-          const items = bookingsData?.result?.items || [];
-          setPatientBookings(items);
+          foundItems = bookingsData?.result?.items || [];
+          setPatientBookings(foundItems);
         }
       }
+
+      // Buscar agendamentos pendentes por NIN/CPF e por lista doutor
+      const bookingRes = await fetchBookingsByNINAction(nin, birthday);
+      const allFoundRaw: any[] = [];
+      if (bookingRes.success && bookingRes.data) allFoundRaw.push(bookingRes.data);
+      foundItems.forEach(item => {
+        if (!allFoundRaw.some(f => f.id === item.id)) allFoundRaw.push(item);
+      });
+
+      const detailedList: PendingBooking[] = [];
+      for (const found of allFoundRaw) {
+        const bDoctorId = found.doctorId?.toString() || found.doctor_id?.toString() || selectedDoctor?.id?.toString() || "";
+        const bAddressId = found.addressId?.toString() || found.address_id?.toString() || addressId;
+        const bBookingId = found.id?.toString() || "";
+
+        if (bBookingId) {
+          const detailRes = await fetchBookingByIdAction(bDoctorId, bAddressId, bBookingId);
+          if (detailRes.success && detailRes.data) {
+            const detail = detailRes.data as any;
+            detailedList.push({
+              id: detail.id,
+              date: detail.start_at ? new Date(detail.start_at).toLocaleDateString("pt-BR") : (found.date_schedule || found.date),
+              hour: detail.start_at
+                ? new Date(detail.start_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+                : (found.hour_schedule || found.hour || "").split(':').slice(0, 2).join(':'),
+              doctor_name: detail.doctor_name || found.doctor || found.doctor_name,
+              sector: (detail.address_service?.name as string) || (found.sector as string),
+              service: (detail.address_service?.name as string),
+              status: detail.status || found.status,
+              confirm: detail.confirm || found.confirm,
+              insurance: detail.insurance?.name || found.healthInsurance
+            });
+          } else {
+            detailedList.push({
+              id: found.id,
+              date: found.date_schedule || found.date,
+              hour: (found.hour_schedule || found.hour || "").split(':').slice(0, 2).join(':'),
+              doctor_name: found.doctor || found.doctor_name,
+              sector: found.sector,
+              service: null,
+              status: found.status,
+              confirm: found.confirm,
+              insurance: found.healthInsurance
+            });
+          }
+        }
+      }
+      setPendingBookings(detailedList);
+      if (detailedList.length > 0) setSelectedBooking(detailedList[0].id);
     } else {
       setCancelSearchError("Paciente não encontrado. Verifique CPF e data de nascimento.");
     }
@@ -449,6 +563,85 @@ export default function BookingsPage() {
                 </div>
               )}
 
+              {/* Agendamentos Pendentes (Encontrados via Telefone) */}
+              {pendingBookings.length > 0 && (
+                <div className="space-y-2 py-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                  <p className="text-xs font-bold text-chart-4 uppercase tracking-wider flex items-center gap-2">
+                    <AlertCircle className="w-3 h-3 animate-pulse" /> Atenção: Existe um agendamento para este paciente
+                  </p>
+                  <div className="grid gap-2">
+                    {(() => {
+                      const pb = pendingBookings[0];
+                      return (
+                        <div key={pb.id} className="p-5 rounded-2xl border-2 border-chart-4/40 bg-chart-4/5 flex flex-col gap-4 shadow-lg ring-1 ring-chart-4/10 animate-in fade-in zoom-in-95 duration-500 relative overflow-hidden group">
+                          {/* Efeito Visual de Fundo */}
+                          <div className="absolute top-0 right-0 -mr-8 -mt-8 w-24 h-24 bg-chart-4/10 rounded-full blur-3xl group-hover:bg-chart-4/20 transition-colors" />
+
+                          <div className="flex justify-between items-start relative z-10">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2 text-chart-4">
+                                <Clock className="w-4 h-4" />
+                                <p className="text-2xl font-black">{pb.hour}</p>
+                              </div>
+                              <p className="text-xs font-bold text-muted-foreground uppercase tracking-tighter">{pb.date}</p>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="text-[10px] bg-chart-4 text-white px-2.5 py-1 rounded-full font-black uppercase shadow-sm">
+                                {pb.sector || 'CLINIC'}
+                              </span>
+                              {pb.status && (
+                                <span className="text-[9px] bg-background/80 border border-chart-4/20 text-chart-4 px-2 py-0.5 rounded-full font-bold uppercase">
+                                  {pb.status}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="h-px bg-chart-4/10 w-full" />
+
+                          <div className="space-y-3 relative z-10">
+                            <div className="flex items-start gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-chart-4/20 flex items-center justify-center shrink-0">
+                                <Stethoscope className="w-5 h-5 text-chart-4" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[11px] font-bold text-muted-foreground uppercase leading-none mb-1">Médico Responsável</p>
+                                <p className="text-sm font-black text-foreground truncate">{pb.doctor_name}</p>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                              {pb.service && (
+                                <div className="flex flex-col gap-1">
+                                  <p className="text-[9px] font-bold text-muted-foreground uppercase">Local/Serviço</p>
+                                  <p className="text-xs font-bold text-chart-4 flex items-center gap-1">
+                                    <Check className="w-3 h-3" /> {pb.service}
+                                  </p>
+                                </div>
+                              )}
+                              {pb.insurance && (
+                                <div className="flex flex-col gap-1 text-right">
+                                  <p className="text-[9px] font-bold text-muted-foreground uppercase">Convênio</p>
+                                  <p className="text-xs font-bold text-foreground truncate">{pb.insurance}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {pb.confirm && (
+                            <div className="mt-1 pt-3 border-t border-chart-4/5 flex items-center justify-between">
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase italic px-1">
+                                Confirmado: <span className="text-chart-2 not-italic">{pb.confirm}</span>
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
               {patientSearchError && (
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20">
                   <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
@@ -557,39 +750,76 @@ export default function BookingsPage() {
               </div>
             )}
 
-            {/* Listar agendamentos para cancelar */}
-            {patientBookings.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Agendamentos encontrados</p>
-                <div className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar">
-                  {patientBookings.map((booking) => {
-                    const isActive = selectedBooking === booking.id;
-                    const slotInfo = booking.start_at ? formatSlotLabel(booking.start_at) : null;
+            {/* Agendamentos Pendentes (via CPF/NIN) no cancelamento */}
+            {pendingBookings.length > 0 && (
+              <div className="space-y-2 py-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <AlertCircle className="w-3 h-3" /> Selecione o agendamento para cancelar
+                </p>
+                <div className="grid gap-3">
+                  {pendingBookings.map((pb) => {
+                    const isActive = selectedBooking === pb.id;
                     return (
                       <button
-                        key={booking.id}
+                        key={pb.id}
                         type="button"
-                        onClick={() => setSelectedBooking(booking.id)}
+                        onClick={() => setSelectedBooking(pb.id)}
                         className={cn(
-                          "w-full text-left p-3 rounded-xl border transition-all duration-200 cursor-pointer",
-                          "hover:shadow-sm active:scale-[0.99]",
+                          "w-full text-left p-4 rounded-xl border-2 transition-all duration-300 flex flex-col gap-3 relative overflow-hidden",
                           isActive
-                            ? "border-destructive/50 bg-destructive/5 ring-1 ring-destructive/20"
-                            : "border-border/50 bg-background/50 hover:border-destructive/30"
+                            ? "border-destructive bg-destructive/5 ring-1 ring-destructive/20 shadow-lg shadow-destructive/5 scale-[1.01]"
+                            : "border-chart-4/10 bg-chart-4/5 grayscale opacity-70 hover:grayscale-0 hover:opacity-100 hover:border-chart-4/30"
                         )}
                       >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium">
-                              {slotInfo ? slotInfo.full : `Agendamento #${booking.id}`}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {booking.typeDescription || "Consulta"}
-                              {booking.insurance?.name && ` · ${booking.insurance.name}`}
-                              {booking.status && ` · ${booking.status}`}
+                        {isActive && (
+                          <div className="absolute top-0 right-0 p-2">
+                            <Check className="w-4 h-4 text-destructive" />
+                          </div>
+                        )}
+                        <div className="flex justify-between items-start">
+                          <div className="flex flex-col">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-1">{pb.date}</p>
+                            <p className={cn(
+                              "text-xl font-black flex items-center gap-1.5",
+                              isActive ? "text-destructive" : "text-chart-4"
+                            )}>
+                              <Clock className="w-4 h-4" /> {pb.hour}
                             </p>
                           </div>
-                          {isActive && <Check className="w-4 h-4 text-destructive shrink-0" />}
+                          <span className={cn(
+                            "text-[9px] px-2 py-0.5 rounded font-bold uppercase border",
+                            isActive ? "bg-destructive/20 text-destructive border-destructive/30" : "bg-chart-4/20 text-chart-4 border-chart-4/30"
+                          )}>
+                            {pb.sector || 'CLINIC'}
+                          </span>
+                        </div>
+
+                        <div className={cn("h-px w-full", isActive ? "bg-destructive/10" : "bg-chart-4/10")} />
+
+                        <div className="space-y-1.5">
+                          <p className="text-xs font-bold text-foreground flex items-center gap-2">
+                            <Stethoscope className={cn("w-4 h-4", isActive ? "text-destructive" : "text-chart-4")} />
+                            {pb.doctor_name}
+                          </p>
+                          {pb.service && (
+                            <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-2 px-6">
+                              <Check className="w-3 h-3 text-chart-2" />
+                              {pb.service}
+                            </p>
+                          )}
+                          {(pb.status || pb.insurance) && (
+                            <div className="flex items-center gap-2 px-6 pt-1">
+                              {pb.status && (
+                                <span className={cn(
+                                  "text-[8px] px-1.5 py-0.5 rounded font-black uppercase",
+                                  isActive ? "bg-destructive/10 text-destructive" : "bg-chart-4/10 text-chart-4"
+                                )}>{pb.status}</span>
+                              )}
+                              {pb.insurance && (
+                                <span className="text-[8px] text-muted-foreground font-bold uppercase truncate max-w-[100px]">{pb.insurance}</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </button>
                     );
