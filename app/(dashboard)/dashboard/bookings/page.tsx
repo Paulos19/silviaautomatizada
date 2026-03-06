@@ -148,11 +148,13 @@ export default function BookingsPage() {
     setFreeSlots([]);
     setSelectedSlot(null);
     const formData = new FormData(e.currentTarget);
+    const startDate = parseDateBRToISO(formData.get("startDate") as string);
+    const endDate = parseDateBRToISO(formData.get("endDate") as string);
     const res = await fetchFreeSlotsAction(
       selectedDoctor.id.toString(),
       addressId,
-      formData.get("startDate") as string,
-      formData.get("endDate") as string
+      startDate,
+      endDate
     );
     if (res.success && Array.isArray(res.data)) {
       setFreeSlots(res.data);
@@ -313,11 +315,27 @@ export default function BookingsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Data Início</Label>
-                  <Input name="startDate" type="date" required className="bg-background/50" />
+                  <Input
+                    name="startDate"
+                    type="text"
+                    placeholder="DD/MM/AAAA"
+                    maxLength={10}
+                    onChange={(e) => { e.target.value = maskDateBR(e.target.value); }}
+                    required
+                    className="bg-background/50"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Data Fim</Label>
-                  <Input name="endDate" type="date" required className="bg-background/50" />
+                  <Input
+                    name="endDate"
+                    type="text"
+                    placeholder="DD/MM/AAAA"
+                    maxLength={10}
+                    onChange={(e) => { e.target.value = maskDateBR(e.target.value); }}
+                    required
+                    className="bg-background/50"
+                  />
                 </div>
               </div>
               <Button type="submit" className="w-full" disabled={loading === "slots"}>

@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sun, CloudRain, Snowflake, ThermometerSun, Bell, Search, Menu } from "lucide-react";
+import { Bell, Search, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-type WeatherType = "sunny" | "rainy" | "cold" | "hot";
+import { LiveWeather } from "./live-weather";
 
 export function DashboardHeader({ toggleSidebar }: { toggleSidebar: () => void }) {
   const [time, setTime] = useState<Date | null>(null);
-  const [weather, setWeather] = useState<WeatherType>("sunny");
 
   useEffect(() => {
     setTime(new Date());
@@ -21,25 +19,10 @@ export function DashboardHeader({ toggleSidebar }: { toggleSidebar: () => void }
   const seconds = time?.getSeconds().toString().padStart(2, '0');
   const formattedDate = time?.toLocaleDateString("pt-BR", { weekday: 'short', day: 'numeric', month: 'short' }); // Encurtado para caber no telemóvel
 
-  const renderWeather = () => {
-    switch (weather) {
-      case "sunny": return <Sun className="w-5 h-5 text-yellow-500 animate-sun-spin" />;
-      case "rainy": return (
-          <div className="relative flex items-center justify-center w-5 h-5">
-            <CloudRain className="w-5 h-5 text-blue-400 absolute z-10" />
-            <div className="w-1 h-1 bg-blue-300 rounded-full absolute bottom-0 left-0.5 animate-rain-drop" />
-            <div className="w-1 h-1 bg-blue-300 rounded-full absolute bottom-0 right-0.5 animate-rain-drop-delayed" />
-          </div>
-        );
-      case "cold": return <Snowflake className="w-5 h-5 text-cyan-300 animate-snow-float" />;
-      case "hot": return <ThermometerSun className="w-5 h-5 text-orange-500 animate-heat-wave" />;
-    }
-  };
-
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between h-20 px-4 md:px-6 
                        bg-background/70 backdrop-blur-xl border-b border-border/50 shadow-sm transition-all w-full">
-      
+
       {/* Esquerda */}
       <div className="flex items-center gap-2 md:gap-4">
         <Button variant="ghost" size="icon" onClick={toggleSidebar} className="md:hidden shrink-0">
@@ -47,8 +30,8 @@ export function DashboardHeader({ toggleSidebar }: { toggleSidebar: () => void }
         </Button>
         <div className="hidden lg:flex relative group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-          <Input 
-            placeholder="Buscar..." 
+          <Input
+            placeholder="Buscar..."
             className="w-48 xl:w-64 pl-9 bg-muted/50 border-transparent focus-visible:ring-1 focus-visible:bg-background transition-all rounded-full h-9"
           />
         </div>
@@ -56,15 +39,9 @@ export function DashboardHeader({ toggleSidebar }: { toggleSidebar: () => void }
 
       {/* Direita */}
       <div className="flex items-center gap-3 md:gap-6">
-        
-        {/* Clima - Escondido em ecrãs muito pequenos (mobile portrait) */}
-        <div className="hidden sm:flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-muted/40 rounded-full border border-border/50 cursor-pointer hover:bg-muted/60 transition-colors"
-             onClick={() => setWeather(w => w === "sunny" ? "rainy" : w === "rainy" ? "cold" : w === "cold" ? "hot" : "sunny")}>
-          {renderWeather()}
-          <span className="text-xs md:text-sm font-medium tracking-wide whitespace-nowrap">
-            {weather === "sunny" ? "28°C" : weather === "rainy" ? "19°C" : weather === "cold" ? "12°C" : "34°C"}
-          </span>
-        </div>
+
+        {/* Clima - Widget Dinâmico */}
+        <LiveWeather />
 
         {/* Relógio */}
         <div className="flex flex-col items-end min-w-[70px]">
