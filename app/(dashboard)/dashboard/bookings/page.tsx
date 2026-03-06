@@ -63,6 +63,29 @@ function formatDateLabel(dateKey: string): string {
   return `${dayNames[date.getDay()]}, ${date.getDate()} de ${monthNames[date.getMonth()]}`;
 }
 
+function maskDateBR(value: string): string {
+  let v = value.replace(/\D/g, "");
+  if (v.length > 8) v = v.slice(0, 8);
+  if (v.length >= 5) {
+    return `${v.slice(0, 2)}/${v.slice(2, 4)}/${v.slice(4)}`;
+  } else if (v.length >= 3) {
+    return `${v.slice(0, 2)}/${v.slice(2)}`;
+  }
+  return v;
+}
+
+function parseDateBRToISO(dateStr: string): string {
+  if (!dateStr) return "";
+  if (dateStr.includes("-")) return dateStr;
+  const parts = dateStr.split("/");
+  if (parts.length === 3) {
+    const [day, month, year] = parts;
+    return `${year}-${month}-${day}`;
+  }
+  return dateStr;
+}
+
+
 // ─── Interfaces ───
 interface InsuranceOption {
   id: number;
@@ -145,7 +168,8 @@ export default function BookingsPage() {
     setPatientSearchError(null);
     const formData = new FormData(e.currentTarget);
     const nin = formData.get("nin") as string;
-    const birthday = formData.get("birthday") as string;
+    const birthdayStr = formData.get("birthday") as string;
+    const birthday = parseDateBRToISO(birthdayStr);
     const res = await checkPatientExistsAction(nin, birthday);
     if (res.success && res.data) {
       setPatientResult(res.data as PatientResult);
@@ -189,7 +213,8 @@ export default function BookingsPage() {
     setCancelResult(null);
     const formData = new FormData(e.currentTarget);
     const nin = formData.get("nin") as string;
-    const birthday = formData.get("birthday") as string;
+    const birthdayStr = formData.get("birthday") as string;
+    const birthday = parseDateBRToISO(birthdayStr);
     const res = await checkPatientExistsAction(nin, birthday);
     if (res.success && res.data && (res.data as PatientResult).patient_id) {
       const patient = res.data as PatientResult;
@@ -380,7 +405,15 @@ export default function BookingsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Data de Nascimento</Label>
-                    <Input name="birthday" type="date" required className="bg-background/50" />
+                    <Input
+                      name="birthday"
+                      type="text"
+                      placeholder="DD/MM/AAAA"
+                      maxLength={10}
+                      onChange={(e) => { e.target.value = maskDateBR(e.target.value); }}
+                      required
+                      className="bg-background/50"
+                    />
                   </div>
                 </div>
                 <Button type="submit" variant="outline" className="w-full gap-2" disabled={loading === "patientSearch"}>
@@ -476,7 +509,15 @@ export default function BookingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Data de Nascimento</Label>
-                  <Input name="birthday" type="date" required className="bg-background/50" />
+                  <Input
+                    name="birthday"
+                    type="text"
+                    placeholder="DD/MM/AAAA"
+                    maxLength={10}
+                    onChange={(e) => { e.target.value = maskDateBR(e.target.value); }}
+                    required
+                    className="bg-background/50"
+                  />
                 </div>
               </div>
               <Button type="submit" variant="outline" className="w-full gap-2" disabled={loading === "cancelSearch"}>
