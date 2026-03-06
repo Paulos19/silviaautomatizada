@@ -62,4 +62,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   pages: {
     signIn: "/login", // Rota customizada de login que criaremos na UI
   },
+  trustHost: true,
 });
