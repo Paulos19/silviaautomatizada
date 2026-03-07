@@ -12,6 +12,7 @@
   "dependencies": {
     "@prisma/client": "^6.19.2",
     "@react-three/fiber": "^9.5.0",
+    "@splinetool/react-spline": "^4.1.0",
     "@types/three": "^0.183.1",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
