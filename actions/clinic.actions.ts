@@ -83,6 +83,19 @@ export async function checkPatientExistsAction(nin: string, birthday: string) {
 // --- Actions de Agendamento e Criação ---
 export async function createPatientAction(payload: Record<string, any>) {
   try {
+    // Sanitary Check: Legacy Clinic API (SQL SERVER numeric(11,0)) throws Arithmetic Overflow if mobile has > 11 digits
+    if (payload.mobile && typeof payload.mobile === 'string') {
+      let cleanMobile = payload.mobile.replace(/\D/g, '');
+      if (cleanMobile.startsWith('55') && cleanMobile.length === 13) {
+        cleanMobile = cleanMobile.substring(2);
+      }
+      payload.mobile = cleanMobile.substring(0, 11); // Ensure max 11 digits
+    }
+
+    if (payload.nin && typeof payload.nin === 'string') {
+      payload.nin = payload.nin.replace(/\D/g, ''); // Ensure CPF is digits only
+    }
+
     const response = await ClinicService.createOrUpdatePatient(payload);
     return { success: true, data: response };
   } catch (error: any) {
