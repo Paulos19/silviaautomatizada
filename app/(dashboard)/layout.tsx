@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
-import { DashboardHeader } from "@/components/dashboard/header";
 import { ClinicSettingsProvider } from "@/components/dashboard/clinic-settings-context";
+import { Button } from "@/components/ui/button";
+import { Menu } from "lucide-react";
+import { AnimatedGlitterBackground } from "@/components/ui/animated-glitter-bg";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Começa fechado no telemóvel e aberto no desktop
@@ -18,9 +20,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <ClinicSettingsProvider>
-      <div className="flex h-screen overflow-hidden bg-background relative selection:bg-primary/20">
-        {/* Brilho majestoso de fundo */}
-        <div className="ambient-bg" />
+      <div className="flex h-screen overflow-hidden bg-background/50 relative selection:bg-primary/20">
+
+        {/* Animated Glitter Background */}
+        <AnimatedGlitterBackground intensity={3.5} speed={0.8} />
 
         {/* Overlay Escuro para Telemóvel (Fecha a sidebar ao clicar) */}
         {isSidebarOpen && (
@@ -37,12 +40,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Área Principal */}
         <main className="flex-1 flex flex-col relative z-10 w-full overflow-hidden transition-all duration-500">
 
-          {/* Header no topo */}
-          <DashboardHeader toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+          {/* Mobile Hambuger Toggle Fixo no topo direito para caso de ecrã pequeno e sidebar fechada */}
+          {!isSidebarOpen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSidebarOpen(true)}
+              className="md:hidden absolute top-4 left-4 z-50 hover:bg-white/5"
+            >
+              <Menu className="w-6 h-6 text-slate-300" />
+            </Button>
+          )}
 
           {/* Conteúdo Dinâmico */}
-          <div className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 lg:p-8 animate-in fade-in duration-700 slide-in-from-bottom-4 custom-scrollbar">
-            <div className="mx-auto max-w-7xl pb-10">
+          <div className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-10 lg:p-14 xl:p-16 animate-in fade-in duration-700 slide-in-from-bottom-4 custom-scrollbar">
+            <div className="mx-auto max-w-[1400px] pb-10 mt-10 md:mt-0">
               {children}
             </div>
           </div>
@@ -52,3 +64,4 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </ClinicSettingsProvider>
   );
 }
+

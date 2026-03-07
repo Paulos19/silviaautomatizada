@@ -25,57 +25,50 @@ export function DashboardSidebar({ isOpen, setIsOpen }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 md:relative h-screen bg-card/80 md:bg-card/60 backdrop-blur-3xl border-r border-border/50 flex flex-col transition-all duration-500 ease-in-out z-50",
-        // Lógica de Responsividade:
-        // No telemóvel: escondida fora do ecrã (-translate-x-full) ou aberta (translate-x-0 w-64)
-        // No PC: sempre visível (md:translate-x-0), alterna entre w-20 e w-64
+        "fixed inset-y-0 left-0 md:relative h-screen bg-card/40 md:bg-card/30 backdrop-blur-3xl border-r border-border/30 flex flex-col transition-all duration-500 ease-in-out z-50",
         isOpen ? "translate-x-0 w-64" : "-translate-x-full md:translate-x-0 md:w-20"
       )}
     >
-      {/* Botão Retrátil (Apenas Desktop) */}
       <Button
         variant="outline"
         size="icon"
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute -right-4 top-6 w-8 h-8 rounded-full shadow-md bg-background hover:bg-accent border-border/50 hidden md:flex z-50"
+        className="absolute -right-4 top-6 w-8 h-8 rounded-full shadow-lg bg-background/80 backdrop-blur-md hover:bg-accent border-border/50 hidden md:flex z-50 transition-all duration-300 hover:scale-110"
       >
-        {isOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        {isOpen ? <ChevronLeft className="w-4 h-4 text-primary" /> : <ChevronRight className="w-4 h-4 text-primary" />}
       </Button>
 
-      {/* Logo Area */}
-      <div className="h-20 flex items-center justify-center border-b border-border/50 px-4">
-        <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-chart-1 flex items-center justify-center shadow-lg transition-all duration-300",
-          !isOpen && "md:scale-90")}>
-          <span className="text-primary-foreground font-bold text-xl">S</span>
+      <div className="h-24 flex items-center justify-center border-b border-border/30 px-4">
+        <div className={cn("relative flex items-center justify-center transition-all duration-500", isOpen ? "w-32 h-14" : "w-12 h-12 md:scale-90")}>
+          <div className="absolute inset-0 bg-teal-400/20 blur-md rounded-full" />
+          <img
+            src={isOpen ? "/logo.png" : "/logo-retraida.png"}
+            alt="Silvia Logo"
+            className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(20,184,166,0.5)] relative z-10 p-0.5"
+          />
         </div>
-        {/* Mostra o texto se estiver aberta OU se estiver no telemóvel (onde aberta é o único estado visível) */}
-        <span className={cn(
-          "ml-3 font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/60 whitespace-nowrap overflow-hidden transition-all duration-300",
-          isOpen ? "opacity-100 w-auto" : "opacity-0 w-0 md:opacity-0"
-        )}>
-          Silvia AI
-        </span>
       </div>
 
-      {/* Navegação */}
-      <nav className="flex-1 py-6 px-3 space-y-2 overflow-hidden overflow-y-auto custom-scrollbar">
+      <nav className="flex-1 py-8 px-4 space-y-3 overflow-hidden overflow-y-auto custom-scrollbar">
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link key={item.href} href={item.href} onClick={() => {
-              // Fecha a sidebar no telemóvel ao clicar num link
               if (window.innerWidth < 768) setIsOpen(false);
             }}>
               <div className={cn(
-                "flex items-center h-12 rounded-xl transition-all duration-300 group cursor-pointer",
+                "flex items-center h-12 rounded-2xl transition-all duration-300 group cursor-pointer relative overflow-hidden",
                 isActive
-                  ? "bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20"
-                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                  ? "bg-primary/10 text-primary shadow-[0_0_15px_rgba(20,184,166,0.15)] ring-1 ring-primary/30"
+                  : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
                 isOpen ? "px-4" : "justify-center"
               )}>
-                <item.icon className={cn("w-5 h-5 shrink-0 transition-transform duration-300 group-hover:scale-110", isActive && "fill-primary/20")} />
+                {isActive && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                )}
+                <item.icon className={cn("w-5 h-5 shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:drop-shadow-[0_0_8px_rgba(20,184,166,0.5)]", isActive && "fill-primary/20 text-primary drop-shadow-[0_0_8px_rgba(20,184,166,0.5)]")} />
                 <span className={cn(
-                  "ml-3 font-medium text-sm whitespace-nowrap transition-all duration-300",
+                  "ml-3 font-medium font-inter text-sm whitespace-nowrap transition-all duration-300",
                   isOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 w-0 overflow-hidden"
                 )}>
                   {item.label}
@@ -86,28 +79,27 @@ export function DashboardSidebar({ isOpen, setIsOpen }: SidebarProps) {
         })}
       </nav>
 
-      {/* Rodapé da Sidebar */}
-      <div className="p-4 border-t border-border/50 space-y-2">
+      <div className="p-4 border-t border-border/30 space-y-3 mt-auto mb-4">
         <Link href="/dashboard/settings" onClick={() => {
           if (window.innerWidth < 768) setIsOpen(false);
         }}>
           <div className={cn(
-            "flex items-center h-12 rounded-xl transition-all duration-300 group cursor-pointer",
+            "flex items-center h-12 rounded-2xl transition-all duration-300 group cursor-pointer",
             pathname === "/dashboard/settings"
-              ? "bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20"
-              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+              ? "bg-primary/10 text-primary shadow-[0_0_15px_rgba(20,184,166,0.15)] ring-1 ring-primary/30"
+              : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
             isOpen ? "px-4" : "justify-center"
           )}>
-            <Settings className={cn("w-5 h-5 shrink-0 transition-transform duration-500 group-hover:rotate-90", pathname === "/dashboard/settings" && "fill-primary/20")} />
-            <span className={cn("ml-3 font-medium text-sm whitespace-nowrap transition-all duration-300", isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden")}>Configurações</span>
+            <Settings className={cn("w-5 h-5 shrink-0 transition-all duration-500 group-hover:rotate-90 group-hover:text-primary", pathname === "/dashboard/settings" && "fill-primary/20 text-primary")} />
+            <span className={cn("ml-3 font-medium font-inter text-sm whitespace-nowrap transition-all duration-300", isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden")}>Configurações</span>
           </div>
         </Link>
         <div
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className={cn("flex items-center h-12 rounded-xl text-destructive hover:bg-destructive/10 cursor-pointer transition-all", isOpen ? "px-4" : "justify-center")}
+          className={cn("flex items-center h-12 rounded-2xl text-destructive hover:bg-destructive/15 cursor-pointer transition-all duration-300 group", isOpen ? "px-4" : "justify-center")}
         >
-          <LogOut className="w-5 h-5 shrink-0" />
-          <span className={cn("ml-3 font-medium text-sm whitespace-nowrap transition-all duration-300", isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden")}>Sair</span>
+          <LogOut className="w-5 h-5 shrink-0 transition-transform group-hover:-translate-x-1" />
+          <span className={cn("ml-3 font-medium font-inter text-sm whitespace-nowrap transition-all duration-300", isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden")}>Sair</span>
         </div>
       </div>
     </aside>

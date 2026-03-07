@@ -21,7 +21,7 @@ export function DashboardHeader({ toggleSidebar }: { toggleSidebar: () => void }
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between h-20 px-4 md:px-6 
-                       bg-background/70 backdrop-blur-xl border-b border-border/50 shadow-sm transition-all w-full">
+                       bg-card/40 backdrop-blur-3xl border-b border-border/30 shadow-sm transition-all w-full">
 
       {/* Esquerda */}
       <div className="flex items-center gap-2 md:gap-4">
@@ -29,10 +29,10 @@ export function DashboardHeader({ toggleSidebar }: { toggleSidebar: () => void }
           <Menu className="w-6 h-6 text-foreground/80" />
         </Button>
         <div className="hidden lg:flex relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors z-10" />
           <Input
             placeholder="Buscar..."
-            className="w-48 xl:w-64 pl-9 bg-muted/50 border-transparent focus-visible:ring-1 focus-visible:bg-background transition-all rounded-full h-9"
+            className="w-48 xl:w-64 pl-10 bg-background/50 backdrop-blur-md border-border/40 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:bg-background focus-visible:shadow-[0_0_15px_rgba(20,184,166,0.1)] transition-all rounded-full h-10"
           />
         </div>
       </div>
@@ -45,19 +45,19 @@ export function DashboardHeader({ toggleSidebar }: { toggleSidebar: () => void }
 
         {/* Relógio */}
         <div className="flex flex-col items-end min-w-[70px]">
-          <div className="flex items-baseline font-mono text-primary">
+          <div className="flex items-baseline font-outfit text-primary drop-shadow-[0_0_8px_rgba(20,184,166,0.3)]">
             <span className="text-xl md:text-2xl font-bold tracking-tighter">{formattedTime || "00:00"}</span>
             <span className="text-xs md:text-sm font-medium text-muted-foreground animate-pulse ml-0.5">:{seconds || "00"}</span>
           </div>
-          <span className="text-[10px] md:text-xs font-medium text-muted-foreground capitalize whitespace-nowrap">
+          <span className="text-[10px] md:text-xs font-medium font-inter text-muted-foreground capitalize whitespace-nowrap">
             {formattedDate || "..."}
           </span>
         </div>
 
         {/* Notificações */}
-        <Button variant="ghost" size="icon" className="relative rounded-full shrink-0 h-9 w-9 md:h-10 md:w-10">
-          <Bell className="w-5 h-5 md:w-5 md:h-5 text-foreground/80" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.5)]" />
+        <Button variant="ghost" size="icon" className="relative rounded-full shrink-0 h-10 w-10 hover:bg-white/5 transition-colors">
+          <Bell className="w-5 h-5 text-foreground/80" />
+          <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-destructive rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
         </Button>
       </div>
     </header>

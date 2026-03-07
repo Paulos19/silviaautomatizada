@@ -23,10 +23,15 @@ export async function registerAction(
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
 
   // Validação inicial
-  if (!name || !email || !password) {
+  if (!name || !email || !password || !confirmPassword) {
     return { error: "Todos os campos são obrigatórios." };
+  }
+
+  if (password !== confirmPassword) {
+    return { error: "As senhas não coincidem. Tente novamente." };
   }
 
   try {
@@ -38,7 +43,7 @@ export async function registerAction(
 
     // Hash da senha (nunca armazenar em plain text)
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     // Define a role baseado na variável de ambiente
     const isAdmin = email === process.env.ADMIN_EMAIL;
 
@@ -84,7 +89,7 @@ export async function loginAction(
       password,
       redirectTo: "/dashboard", // Rota protegida do painel
     });
-    
+
     return {}; // Apenas para satisfazer a tipagem, a execução não chega aqui em caso de sucesso
   } catch (error) {
     if (error instanceof AuthError) {
@@ -95,7 +100,7 @@ export async function loginAction(
           return { error: "Erro interno ao realizar login." };
       }
     }
-    
+
     // IMPORTANTE: Erros de redirect do Next.js (lançados pelo signIn) devem ser propagados,
     // caso contrário a navegação falha silenciosamente.
     throw error;
