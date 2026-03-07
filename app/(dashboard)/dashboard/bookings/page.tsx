@@ -133,6 +133,7 @@ export default function BookingsPage() {
   // Nova consulta state
   const [insurances, setInsurances] = useState<InsuranceOption[]>([]);
   const [selectedInsurance, setSelectedInsurance] = useState<number | null>(null);
+  const [selectedAppointmentType, setSelectedAppointmentType] = useState<number | null>(null);
   const [patientResult, setPatientResult] = useState<PatientResult | null>(null);
   const [patientSearchError, setPatientSearchError] = useState<string | null>(null);
   const [pendingBookings, setPendingBookings] = useState<PendingBooking[]>([]);
@@ -246,13 +247,13 @@ export default function BookingsPage() {
 
   // ─── Agendar ───
   const handleBookSlot = async () => {
-    if (!selectedDoctor || !selectedSlot || !patientResult?.patient_id || !selectedInsurance) return;
+    if (!selectedDoctor || !selectedSlot || !patientResult?.patient_id || !selectedInsurance || selectedAppointmentType === null) return;
     setLoading("book");
     const payload = {
       patient_id: patientResult.patient_id,
       healthInsuranceCode: selectedInsurance,
       obs: "Agendado via Dashboard",
-      appointmentType: 1,
+      appointmentType: selectedAppointmentType,
       external_id: "",
       address_service_id: 1,
       consultationType: 1,
@@ -670,11 +671,34 @@ export default function BookingsPage() {
               </select>
             </div>
 
+            {/* Etapa 3: Tipo de Consulta */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-bold">3</span>
+                Tipo de Consulta
+              </h4>
+              <select
+                value={selectedAppointmentType ?? ""}
+                onChange={(e) => setSelectedAppointmentType(e.target.value !== "" ? Number(e.target.value) : null)}
+                className="w-full h-10 rounded-xl border border-border/50 bg-background/50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
+              >
+                <option value="">Selecione um tipo...</option>
+                <option value={0}>1ª Consulta</option>
+                <option value={1}>Consulta</option>
+                <option value={2}>Exame</option>
+                <option value={3}>Retorno</option>
+                <option value={4}>Cirurgia</option>
+                <option value={5}>AgendaWEB</option>
+                <option value={6}>Bloqueio Automático</option>
+                <option value={9}>(B)loqueado</option>
+              </select>
+            </div>
+
             {/* Botão Confirmar */}
             <Button
               onClick={handleBookSlot}
               className="w-full gap-2"
-              disabled={!selectedSlot || !patientResult?.patient_id || !selectedInsurance || loading === "book"}
+              disabled={!selectedSlot || !patientResult?.patient_id || !selectedInsurance || selectedAppointmentType === null || loading === "book"}
             >
               {loading === "book" ? (
                 <Loader2 className="animate-spin w-4 h-4" />
