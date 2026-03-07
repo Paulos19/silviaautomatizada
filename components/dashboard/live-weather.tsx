@@ -25,47 +25,50 @@ export function LiveWeather() {
     const [error, setError] = useState(false);
 
     useEffect(() => {
-        if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    try {
-                        const { latitude, longitude } = position.coords;
-                        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
-                        const data = await res.json();
+        async function fetchWeather() {
+            try {
+                setLoading(true);
+                // Step 1: Obter localização por IP (não requer permissão do usuário e é mais resistente a falhas de extensão)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-                        if (data.current_weather) {
-                            setTemp(Math.round(data.current_weather.temperature));
+                const geoRes = await fetch("https://get.geojs.io/v1/ip/geo.json", { signal: controller.signal });
+                clearTimeout(timeoutId);
 
-                            const code = data.current_weather.weathercode;
-                            if (code === 0) setCondition("sunny");
-                            else if (code >= 1 && code <= 3) setCondition("cloudy");
-                            else if (code >= 45 && code <= 48) setCondition("cloudy"); // Fog
-                            else if (code >= 51 && code <= 65) setCondition("rainy");
-                            else if (code >= 80 && code <= 82) setCondition("rainy");
-                            else if (code >= 71 && code <= 77) setCondition("snowy");
-                            else if (code >= 85 && code <= 86) setCondition("snowy");
-                            else if (code >= 95 && code <= 99) setCondition("stormy");
-                            else setCondition("sunny"); // Fallback
-                        } else {
-                            setError(true);
-                        }
-                    } catch (err) {
-                        console.error("Failed to fetch weather", err);
-                        setError(true);
-                    } finally {
-                        setLoading(false);
-                    }
-                },
-                (err) => {
-                    console.warn("Geolocation denied or failed", err);
+                if (!geoRes.ok) throw new Error("Failed to fetch location");
+                const geoData = await geoRes.json();
+                const { latitude, longitude } = geoData;
+
+                // Step 2: Obter clima usando Open-Meteo a partir da latitude/longitude
+                const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
+                if (!weatherRes.ok) throw new Error("Failed to fetch weather");
+                const data = await weatherRes.json();
+
+                if (data.current_weather) {
+                    setTemp(Math.round(data.current_weather.temperature));
+
+                    const code = data.current_weather.weathercode;
+                    if (code === 0) setCondition("sunny");
+                    else if (code >= 1 && code <= 3) setCondition("cloudy");
+                    else if (code >= 45 && code <= 48) setCondition("cloudy"); // Fog
+                    else if (code >= 51 && code <= 65) setCondition("rainy");
+                    else if (code >= 80 && code <= 82) setCondition("rainy");
+                    else if (code >= 71 && code <= 77) setCondition("snowy");
+                    else if (code >= 85 && code <= 86) setCondition("snowy");
+                    else if (code >= 95 && code <= 99) setCondition("stormy");
+                    else setCondition("sunny"); // Fallback
+                } else {
                     setError(true);
-                    setLoading(false);
                 }
-            );
-        } else {
-            setError(true);
-            setLoading(false);
+            } catch (err) {
+                console.error("Failed to fetch weather", err);
+                setError(true);
+            } finally {
+                setLoading(false);
+            }
         }
+
+        fetchWeather();
     }, []);
 
     if (loading) {
