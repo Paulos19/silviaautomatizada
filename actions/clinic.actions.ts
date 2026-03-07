@@ -117,6 +117,10 @@ export async function fetchFreeSlotsAction(doctorId: string, addressId: string, 
 
 export async function bookSlotAction(doctorId: string, addressId: string, slotStart: string, payload: Record<string, any>) {
   try {
+    if (payload.external_id === "") {
+      delete payload.external_id;
+    }
+
     const response = await ClinicService.bookSlot(doctorId, addressId, slotStart, payload);
     return { success: true, data: response.result };
   } catch (error: any) {
