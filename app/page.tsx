@@ -11,8 +11,6 @@ import { BackgroundPaths } from "@/components/ui/background-paths";
 import { Hero3DSection } from "@/components/ui/3d-hero-section-boxes";
 import { SuperFooter } from "@/components/landing/super-footer";
 import { ContactSection } from "@/components/landing/contact-section";
-import Link from "next/link";
-import { Code2, Database, Layout, Server, Shield, Smartphone } from "lucide-react";
 
 export default function Home() {
   return (
