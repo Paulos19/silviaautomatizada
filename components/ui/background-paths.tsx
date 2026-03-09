@@ -19,7 +19,7 @@ function FloatingPaths({ position }: { position: number }) {
     return (
         <div className="absolute inset-0 pointer-events-none">
             <svg
-                className="w-full h-full text-teal-500/20 dark:text-teal-400/10"
+                className="w-full h-full text-primary/10 dark:text-primary/5"
                 viewBox="0 0 696 316"
                 fill="none"
             >
@@ -85,7 +85,7 @@ export function BackgroundPaths({
                                     stiffness: 150,
                                     damping: 25,
                                 }}
-                                className="inline-block mr-4 last:mr-0 text-transparent bg-clip-text bg-gradient-to-r from-neutral-900 to-neutral-700/80 dark:from-white dark:to-white/80"
+                                className="inline-block mr-4 last:mr-0 text-transparent bg-clip-text bg-gradient-to-r from-neutral-900 to-neutral-700/80 dark:from-white dark:to-white/80 font-outfit" // Added font-outfit and kept original gradient for title
                             >
                                 {word}
                             </motion.span>
@@ -102,16 +102,16 @@ export function BackgroundPaths({
                     </motion.p>
 
                     <div
-                        className="inline-block group relative bg-gradient-to-b from-teal-500/20 to-emerald-500/20 
+                        className="inline-block group relative bg-gradient-to-b from-primary/20 to-primary/5 
                         p-px rounded-2xl backdrop-blur-lg 
-                        overflow-hidden shadow-2xl hover:shadow-teal-500/20 transition-all duration-300"
+                        overflow-hidden shadow-2xl hover:shadow-primary/20 transition-all duration-300"
                     >
                         <Button
                             variant="ghost"
                             className="rounded-[1.15rem] px-8 py-7 text-xl font-bold backdrop-blur-md 
                             bg-white/95 hover:bg-white/100 dark:bg-zinc-900/95 dark:hover:bg-zinc-900 
                             text-black dark:text-white transition-all duration-300 
-                            group-hover:-translate-y-0.5 border border-teal-500/20
+                            group-hover:-translate-y-0.5 border border-primary/20
                             hover:shadow-md"
                         >
                             <span className="opacity-90 group-hover:opacity-100 transition-opacity">
@@ -119,7 +119,7 @@ export function BackgroundPaths({
                             </span>
                             <span
                                 className="ml-3 opacity-70 group-hover:opacity-100 group-hover:translate-x-1.5 
-                                transition-all duration-300 text-teal-500"
+                                transition-all duration-300 text-primary"
                             >
                                 →
                             </span>

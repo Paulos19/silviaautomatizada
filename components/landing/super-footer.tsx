@@ -35,15 +35,15 @@ const footerLinks = [
 
 export function SuperFooter() {
     return (
-        <footer className="w-full bg-[#09090B] border-t border-white/5 pt-24 pb-12 px-8 relative z-10">
+        <footer className="w-full bg-background border-t border-white/5 pt-24 pb-12 px-8 relative z-10">
             <div className="max-w-7xl mx-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-20">
 
                     {/* Brand Column */}
                     <div className="lg:col-span-2 space-y-8">
                         <Link href="/" className="flex items-center gap-3 group">
-                            <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20 group-hover:border-teal-500/40 transition-colors">
-                                <Zap className="w-6 h-6 text-teal-400" />
+                            <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 group-hover:border-primary/40 transition-colors">
+                                <Zap className="w-6 h-6 text-primary" />
                             </div>
                             <span className="text-2xl font-outfit font-bold tracking-tight text-white">Silvia</span>
                         </Link>
@@ -71,7 +71,7 @@ export function SuperFooter() {
                     {/* Links Columns */}
                     {footerLinks.map((section) => (
                         <div key={section.title} className="space-y-6">
-                            <h4 className="text-sm font-outfit font-semibold uppercase tracking-widest text-teal-500">
+                            <h4 className="text-sm font-outfit font-bold uppercase tracking-[0.2em] text-primary">
                                 {section.title}
                             </h4>
                             <ul className="space-y-4">
@@ -93,16 +93,16 @@ export function SuperFooter() {
                 {/* Bottom Bar */}
                 <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
                     <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2 text-xs text-slate-500 uppercase tracking-widest font-semibold">
-                            <Cpu className="w-3 h-3 text-teal-500" />
+                        <div className="flex items-center gap-2 text-[10px] text-slate-500 uppercase tracking-widest font-semibold">
+                            <Cpu className="w-3 h-3 text-primary" />
                             Next.js 15
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-500 uppercase tracking-widest font-semibold">
-                            <Shield className="w-3 h-3 text-teal-500" />
+                        <div className="flex items-center gap-2 text-[10px] text-slate-500 uppercase tracking-widest font-semibold">
+                            <Shield className="w-3 h-3 text-primary" />
                             Secure Auth
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-500 uppercase tracking-widest font-semibold">
-                            <MessageSquare className="w-3 h-3 text-teal-500" />
+                        <div className="flex items-center gap-2 text-[10px] text-slate-500 uppercase tracking-widest font-semibold">
+                            <MessageSquare className="w-3 h-3 text-primary" />
                             N8N Pipeline
                         </div>
                     </div>

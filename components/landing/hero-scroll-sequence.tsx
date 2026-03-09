@@ -227,7 +227,7 @@ export function HeroScrollSequence({ className }: HeroScrollSequenceProps) {
                 {imagesLoaded < frameCount && (
                     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md">
                         <div className="flex flex-col items-center">
-                            <div className="w-12 h-12 border-4 border-teal-500/30 border-t-teal-500 rounded-full animate-spin mb-6" />
+                            <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-6" />
                             <p className="font-outfit text-white font-medium text-lg tracking-widest uppercase">Inicializando Motor IA</p>
                             <p className="font-inter text-slate-500 text-sm mt-2">{Math.round((imagesLoaded / frameCount) * 100)}% processado</p>
                         </div>
@@ -279,8 +279,8 @@ export function HeroScrollSequence({ className }: HeroScrollSequenceProps) {
                     {/* Text 4 (Final) */}
                     <div ref={text4Ref} className="absolute opacity-0 flex flex-col items-start translate-y-[30px] will-change-transform">
                         <div className="flex items-center gap-4 mb-2 opacity-80">
-                            <div className="w-8 h-[1px] bg-teal-500"></div>
-                            <span className="text-teal-400 font-inter uppercase tracking-[0.3em] text-xs">AURA OS</span>
+                            <div className="w-8 h-[1px] bg-primary"></div>
+                            <span className="text-primary font-inter uppercase tracking-[0.3em] text-[10px]">AURA OS</span>
                         </div>
                         <h2 className={TitleBaseClass}>
                             Conheça Silvia.

@@ -70,7 +70,7 @@ export function SchedulingSimulation() {
                 {/* Header da Simulação com High Contrast */}
                 <div className="text-center mb-16 space-y-4">
                     <h2 className="text-4xl md:text-6xl font-outfit font-bold text-white tracking-tight">
-                        Experiência <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400">SílviaAI</span>
+                        Experiência <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60">SílviaAI</span>
                     </h2>
                     <p className="text-slate-400 font-inter max-w-lg mx-auto text-lg">
                         Simule um agendamento inteligente com alto desempenho e orquestração em tempo real.
@@ -102,7 +102,7 @@ export function SchedulingSimulation() {
                                     <div className={cn(
                                         "w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-lg border",
                                         m.role === "silvia"
-                                            ? "bg-gradient-to-br from-teal-400 to-emerald-500 text-white border-teal-400/20"
+                                            ? "bg-gradient-to-br from-primary to-primary/60 text-black border-primary/20"
                                             : "bg-zinc-800 text-zinc-400 border-white/5"
                                     )}>
                                         {m.role === "silvia" ? <Sparkles size={18} /> : <User size={18} />}
@@ -129,9 +129,9 @@ export function SchedulingSimulation() {
                             >
                                 <div className="w-10 h-10 rounded-full bg-teal-500/10 flex items-center justify-center border border-teal-500/20">
                                     <div className="flex gap-1.5">
-                                        <span className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                                        <span className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                                        <span className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-bounce"></span>
+                                        <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                                        <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                                        <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"></span>
                                     </div>
                                 </div>
                             </motion.div>

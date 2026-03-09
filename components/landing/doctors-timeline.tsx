@@ -33,14 +33,14 @@ export async function DoctorsTimelineSection() {
             content: (
                 <div>
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="p-3 bg-teal-500/10 rounded-full text-teal-500">
+                        <div className="p-3 bg-primary/10 rounded-full text-primary">
                             <Stethoscope className="w-8 h-8" />
                         </div>
                         <div>
                             <h4 className="text-xl md:text-3xl font-outfit font-medium text-black dark:text-[#F5F5F0]">
                                 {docName}
                             </h4>
-                            <p className="text-sm font-inter text-teal-600 dark:text-teal-400 mt-1 uppercase tracking-wider font-semibold">
+                            <p className="text-sm font-inter text-primary mt-1 uppercase tracking-wider font-semibold">
                                 {docSpecialty}
                             </p>
                         </div>

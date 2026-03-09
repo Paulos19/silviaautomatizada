@@ -32,12 +32,12 @@ export function LandingHeader() {
                     animate={{ y: 0, opacity: 1 }}
                     className="pointer-events-auto"
                 >
-                    <Link href="/" className="relative flex items-center group bg-white/5 backdrop-blur-xl border border-white/10 p-2 rounded-2xl hover:bg-white/10 transition-all duration-300">
-                        <div className="relative w-24 h-8">
+                    <Link href="/" className="relative flex items-center group bg-white/5 backdrop-blur-2xl border border-white/5 p-1.5 rounded-2xl hover:bg-white/10 transition-all duration-500 ease-out">
+                        <div className="relative w-20 h-7 overflow-hidden">
                             <img
                                 src="/logo.png"
                                 alt="Silvia Logo"
-                                className="w-full h-full object-contain relative z-10"
+                                className="w-full h-full object-contain relative z-10 opacity-90 group-hover:opacity-100 transition-opacity duration-500"
                             />
                         </div>
                     </Link>
@@ -48,13 +48,13 @@ export function LandingHeader() {
                     initial={{ y: -20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.1 }}
-                    className="hidden md:flex items-center gap-1 bg-white/5 backdrop-blur-xl border border-white/10 p-1.5 rounded-full pointer-events-auto"
+                    className="hidden md:flex items-center gap-1 bg-white/5 backdrop-blur-2xl border border-white/5 p-1 rounded-full pointer-events-auto shadow-[0_8px_32px_rgba(0,0,0,0.3)]"
                 >
                     {navLinks.map((link) => (
                         <Link
                             key={link.label}
                             href={link.href}
-                            className="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                            className="px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-500"
                         >
                             {link.label}
                         </Link>
@@ -66,18 +66,18 @@ export function LandingHeader() {
                     initial={{ y: -20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="flex items-center gap-3 pointer-events-auto bg-white/5 backdrop-blur-xl border border-white/10 p-1.5 rounded-full"
+                    className="flex items-center gap-2 pointer-events-auto bg-white/5 backdrop-blur-2xl border border-white/5 p-1 rounded-full"
                 >
                     <Link
                         href="/login"
-                        className="px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest text-slate-300 hover:text-white transition-colors"
+                        className="px-5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] text-slate-300 hover:text-white transition-all duration-500"
                     >
                         Acessar
                     </Link>
 
                     <Link
                         href="/register"
-                        className="px-6 py-2 rounded-full bg-teal-500 text-[#042F2E] text-xs font-black uppercase tracking-widest hover:bg-teal-400 hover:scale-105 transition-all shadow-[0_0_15px_rgba(20,184,166,0.3)]"
+                        className="px-6 py-1.5 rounded-full bg-primary text-black text-[10px] font-black uppercase tracking-[0.2em] hover:brightness-110 hover:scale-105 transition-all duration-500 shadow-[0_0_20px_rgba(45,212,191,0.2)]"
                     >
                         Assinar
                     </Link>

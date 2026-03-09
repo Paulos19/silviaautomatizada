@@ -60,8 +60,8 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({
             className={cn(
                 "absolute left-1/2 top-1/2 cursor-pointer border-2 p-8 transition-all duration-500 ease-in-out",
                 isCenter
-                    ? "z-10 bg-teal-600 text-white border-teal-500 shadow-[0_20px_50px_rgba(20,184,166,0.3)]"
-                    : "z-0 bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-teal-500/50"
+                    ? "z-10 bg-primary text-black border-primary shadow-[0_20px_50px_rgba(45,212,191,0.2)]"
+                    : "z-0 bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-primary/50"
             )}
             style={{
                 width: cardSize,
@@ -100,7 +100,7 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({
             </h3>
             <p className={cn(
                 "absolute bottom-8 left-8 right-8 mt-2 text-sm italic font-inter",
-                isCenter ? "text-teal-100" : "text-zinc-500"
+                isCenter ? "text-black/70" : "text-zinc-500"
             )}>
                 - {testimonial.by}
             </p>
@@ -148,7 +148,7 @@ export const StaggerTestimonials: React.FC = () => {
         >
             <div className="absolute top-10 left-1/2 -translate-x-1/2 text-center z-20 space-y-2">
                 <h2 className="text-3xl md:text-5xl font-outfit font-bold text-white tracking-tight">
-                    Voz de quem <span className="text-teal-500">Confia</span>
+                    Voz de quem <span className="text-primary">Confia</span>
                 </h2>
                 <p className="text-zinc-500 font-inter text-sm md:text-base">
                     Líderes do setor de saúde que já orquestram suas clínicas com a Sílvia.

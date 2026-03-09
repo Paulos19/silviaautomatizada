@@ -73,7 +73,7 @@ export function AboutSection() {
                 >
                     <div>Plataforma Médica SP</div>
                     <div className="md:text-center text-[#F5F5F0]">Conceito ↓</div>
-                    <div className="md:text-right">Sincronia Global → 24:00 7D</div>
+                    <div className="md:text-right text-primary">Sincronia Global → 24:00 7D</div>
                 </div>
 
                 {/* Sub Hero Text (Description) */}

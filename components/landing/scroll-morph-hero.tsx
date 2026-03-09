@@ -62,11 +62,11 @@ function FlipCard({ src, index, delay, target }: FlipCardProps) {
                 </div>
 
                 <div
-                    className="absolute inset-0 h-full w-full overflow-hidden rounded-xl shadow-[0_0_20px_rgba(20,184,166,0.3)] bg-[#042F2E] flex flex-col items-center justify-center p-4 border border-teal-500/30"
+                    className="absolute inset-0 h-full w-full overflow-hidden rounded-xl shadow-[0_0_20px_rgba(45,212,191,0.2)] bg-primary/20 backdrop-blur-md flex flex-col items-center justify-center p-4 border border-primary/30"
                     style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
                 >
                     <div className="text-center">
-                        <p className="text-[8px] font-bold text-teal-400 uppercase tracking-widest mb-1">Ver</p>
+                        <p className="text-[8px] font-bold text-primary uppercase tracking-widest mb-1">Ver</p>
                         <p className="text-xs font-medium text-white">Análise</p>
                     </div>
                 </div>
