@@ -5,14 +5,15 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 function FloatingPaths({ position }: { position: number }) {
-    const paths = Array.from({ length: 36 }, (_, i) => ({
+    // Reduces number of SVGs to improve performance (less repaints), increasing the spread step to compensate
+    const paths = Array.from({ length: 12 }, (_, i) => ({
         id: i,
-        d: `M-${380 - i * 5 * position} -${189 + i * 6}C-${380 - i * 5 * position
-            } -${189 + i * 6} -${312 - i * 5 * position} ${216 - i * 6} ${152 - i * 5 * position
-            } ${343 - i * 6}C${616 - i * 5 * position} ${470 - i * 6} ${684 - i * 5 * position
-            } ${875 - i * 6} ${684 - i * 5 * position} ${875 - i * 6}`,
-        color: `rgba(20,184,166,${0.05 + i * 0.02})`, // Usando teal-500
-        width: 0.5 + i * 0.03,
+        d: `M-${380 - i * 15 * position} -${189 + i * 18}C-${380 - i * 15 * position
+            } -${189 + i * 18} -${312 - i * 15 * position} ${216 - i * 18} ${152 - i * 15 * position
+            } ${343 - i * 18}C${616 - i * 15 * position} ${470 - i * 18} ${684 - i * 15 * position
+            } ${875 - i * 18} ${684 - i * 15 * position} ${875 - i * 18}`,
+        color: `rgba(20,184,166,${0.05 + i * 0.04})`,
+        width: 0.5 + i * 0.08,
     }));
 
     return (
@@ -73,31 +74,21 @@ export function BackgroundPaths({
                 >
                     <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold mb-6 tracking-tighter font-outfit">
                         {words.map((word, wordIndex) => (
-                            <span
+                            <motion.span
                                 key={wordIndex}
-                                className="inline-block mr-4 last:mr-0"
+                                initial={{ y: 50, opacity: 0 }}
+                                whileInView={{ y: 0, opacity: 1 }}
+                                viewport={{ once: true, margin: "-100px" }}
+                                transition={{
+                                    delay: wordIndex * 0.1,
+                                    type: "spring",
+                                    stiffness: 150,
+                                    damping: 25,
+                                }}
+                                className="inline-block mr-4 last:mr-0 text-transparent bg-clip-text bg-gradient-to-r from-neutral-900 to-neutral-700/80 dark:from-white dark:to-white/80"
                             >
-                                {word.split("").map((letter, letterIndex) => (
-                                    <motion.span
-                                        key={`${wordIndex}-${letterIndex}`}
-                                        initial={{ y: 50, opacity: 0 }}
-                                        animate={{ y: 0, opacity: 1 }}
-                                        transition={{
-                                            delay:
-                                                wordIndex * 0.1 +
-                                                letterIndex * 0.03,
-                                            type: "spring",
-                                            stiffness: 150,
-                                            damping: 25,
-                                        }}
-                                        className="inline-block text-transparent bg-clip-text 
-                                        bg-gradient-to-r from-neutral-900 to-neutral-700/80 
-                                        dark:from-white dark:to-white/80"
-                                    >
-                                        {letter}
-                                    </motion.span>
-                                ))}
-                            </span>
+                                {word}
+                            </motion.span>
                         ))}
                     </h1>
 

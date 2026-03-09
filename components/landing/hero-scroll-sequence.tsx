@@ -12,42 +12,59 @@ export function HeroScrollSequence({ className }: HeroScrollSequenceProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [imagesLoaded, setImagesLoaded] = useState(0);
 
-    const frameCount = 240;
+    const frameCount = 144;
     const imagesRef = useRef<HTMLImageElement[]>([]);
 
     // Format the number to exactly 3 digits e.g. "001" up to "240"
     const currentFrame = (index: number) =>
-        `/section1/ezgif-frame-${index.toString().padStart(3, "0")}.png`;
+        `/section1/ezgif-frame-${index.toString().padStart(3, "0")}.jpg`;
 
     // Pre-load all frames on mount
     useEffect(() => {
-        let loadedCount = 0;
+        let isMounted = true;
         const preloadImages = async () => {
-            // Create empty array
             const arr: HTMLImageElement[] = new Array(frameCount);
+            let loadedCount = 0;
 
-            for (let i = 1; i <= frameCount; i++) {
-                const img = new Image();
-                img.src = currentFrame(i);
-
-                // Wait for image to load to update state and draw first frame
-                await new Promise((resolve) => {
+            const loadImage = (i: number) => {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.src = currentFrame(i);
                     img.onload = () => {
-                        loadedCount++;
-                        setImagesLoaded(loadedCount);
-                        resolve(true);
+                        if (isMounted) {
+                            loadedCount++;
+                            setImagesLoaded(loadedCount);
+                            // Draw first frame as soon as it's ready
+                            if (i === 1) requestAnimationFrame(() => updateImage(0));
+                        }
+                        resolve(img);
                     };
+                    img.onerror = () => {
+                        console.error(`Failed to load image: ${img.src}`);
+                        resolve(null);
+                    };
+                    arr[i - 1] = img;
                 });
+            };
 
-                arr[i - 1] = img;
+            // Load all images in parallel
+            const promises = [];
+            for (let i = 1; i <= frameCount; i++) {
+                promises.push(loadImage(i));
             }
 
-            imagesRef.current = arr;
-            // Draw first frame immediately
-            requestAnimationFrame(() => updateImage(0));
+            await Promise.all(promises);
+
+            if (isMounted) {
+                imagesRef.current = arr;
+            }
         };
 
         preloadImages();
+
+        return () => {
+            isMounted = false;
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -55,7 +72,6 @@ export function HeroScrollSequence({ className }: HeroScrollSequenceProps) {
     const updateImage = (index: number) => {
         if (!canvasRef.current || imagesRef.current.length === 0) return;
 
-        // Safety check bound
         const safeIndex = Math.min(Math.max(index, 0), frameCount - 1);
         const img = imagesRef.current[safeIndex];
         if (!img) return;
@@ -64,27 +80,34 @@ export function HeroScrollSequence({ className }: HeroScrollSequenceProps) {
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
-        // Use full window matching or object-cover logic
-        // we assume the canvas holds the video 16:9 aspect ratio or covers window
+        const dpr = window.devicePixelRatio || 1;
         const baseWidth = window.innerWidth;
         const baseHeight = window.innerHeight;
 
-        // We can set canvas dimensions identical to window viewport for crisp "cover" render
-        // However, it's better to update canvas.width / height only when resizing to save redraws
-        if (canvas.width !== baseWidth || canvas.height !== baseHeight) {
-            canvas.width = baseWidth;
-            canvas.height = baseHeight;
+        // Update canvas size considering DPR for high-quality rendering
+        if (canvas.width !== baseWidth * dpr || canvas.height !== baseHeight * dpr) {
+            canvas.width = baseWidth * dpr;
+            canvas.height = baseHeight * dpr;
+            ctx.scale(dpr, dpr);
         }
 
-        // Calculamos o aspect ratio para cobrir "object-cover" estilo bg-cover do CSS
-        const hRatio = canvas.width / img.width;
-        const vRatio = canvas.height / img.height;
-        const ratio = Math.max(hRatio, vRatio);
-        const centerShift_x = (canvas.width - img.width * ratio) / 2;
-        const centerShift_y = (canvas.height - img.height * ratio) / 2;
+        // Calculate aspect ratio to fit the screen without upscaling (object-contain behavior + max scale 1)
+        const hRatio = baseWidth / img.width;
+        const vRatio = baseHeight / img.height;
+        // Scale down if image is larger than screen, otherwise keep original size (ratio = 1)
+        const ratio = Math.min(1, hRatio, vRatio);
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // ctx.drawImage(img, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
+        // If desktop, align towards the right side to balance the text on the left
+        // If mobile, center it
+        const isDesktop = baseWidth >= 768;
+
+        const centerShift_x = isDesktop
+            ? baseWidth - (img.width * ratio) - (baseWidth * 0.1) // 10% padding from right
+            : (baseWidth - img.width * ratio) / 2;
+
+        const centerShift_y = (baseHeight - img.height * ratio) / 2;
+
+        ctx.clearRect(0, 0, baseWidth, baseHeight);
         ctx.drawImage(
             img,
             0,

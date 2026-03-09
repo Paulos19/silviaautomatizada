@@ -53,7 +53,8 @@ export function AboutSection() {
                                 transform: isVisible ? "translate3d(0,0,0) scale(1) rotate(0deg)" : `${dirs[i % dirs.length]} scale(0.6) rotate(${i % 2 === 0 ? '15deg' : '-15deg'})`,
                                 opacity: isVisible ? 1 : 0,
                                 transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
-                                transitionDelay: `${i * 80}ms`
+                                transitionDelay: `${i * 80}ms`,
+                                willChange: "transform, opacity"
                             }}
                         >
                             {char}
@@ -66,7 +67,8 @@ export function AboutSection() {
                     className="grid grid-cols-1 md:grid-cols-3 gap-8 text-sm md:text-base font-inter font-light tracking-wide text-[#F5F5F0]/50 transition-all duration-1000 delay-500"
                     style={{
                         opacity: isVisible ? 1 : 0,
-                        transform: isVisible ? "translateY(0)" : "translateY(20px)"
+                        transform: isVisible ? "translateY(0)" : "translateY(20px)",
+                        willChange: "transform, opacity"
                     }}
                 >
                     <div>Plataforma Médica SP</div>
@@ -79,7 +81,8 @@ export function AboutSection() {
                     className="w-full flex justify-start md:justify-end mt-4 transition-all duration-1000 delay-700"
                     style={{
                         opacity: isVisible ? 1 : 0,
-                        transform: isVisible ? "translateY(0)" : "translateY(40px)"
+                        transform: isVisible ? "translateY(0)" : "translateY(40px)",
+                        willChange: "transform, opacity"
                     }}
                 >
                     <p className="max-w-3xl text-3xl md:text-5xl lg:text-6xl font-inter leading-[1.1] tracking-tight text-[#F5F5F0]">

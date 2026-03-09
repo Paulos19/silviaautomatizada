@@ -1,25 +1,51 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
-import Spline from '@splinetool/react-spline';
+import React, { useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
+
+const Spline = dynamic(() => import('@splinetool/react-spline'), {
+    ssr: false,
+    loading: () => (
+        <div className="w-full h-full flex flex-col items-center justify-center bg-black">
+            <div className="w-12 h-12 border-t-2 border-r-2 border-teal-500 rounded-full animate-spin"></div>
+            <p className="text-teal-500 text-xs font-inter mt-4 tracking-widest uppercase">Carregando IA 3D</p>
+        </div>
+    )
+});
 
 function HeroSplineBackground() {
+    const [isInView, setIsInView] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) {
+                setIsInView(true);
+            }
+        }, { rootMargin: "600px" }); // Load 600px before reaching the section
+
+        if (containerRef.current) observer.observe(containerRef.current);
+        return () => observer.disconnect();
+    }, []);
+
     return (
-        <div style={{
+        <div ref={containerRef} style={{
             position: 'relative',
             width: '100%',
             height: '100vh',
             pointerEvents: 'auto',
             overflow: 'hidden',
         }}>
-            <Spline
-                style={{
-                    width: '100%',
-                    height: '100vh',
-                    pointerEvents: 'auto',
-                }}
-                scene="https://prod.spline.design/dJqTIQ-tE3ULUPMi/scene.splinecode"
-            />
+            {isInView && (
+                <Spline
+                    style={{
+                        width: '100%',
+                        height: '100vh',
+                        pointerEvents: 'auto',
+                    }}
+                    scene="https://prod.spline.design/dJqTIQ-tE3ULUPMi/scene.splinecode"
+                />
+            )}
             <div
                 style={{
                     position: 'absolute',
