@@ -2,44 +2,32 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { AreaChart, Area, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { Calendar, ChevronRight, Star, Search, Bell, Menu } from "lucide-react";
+import {
+    BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+    CartesianGrid, Cell, PieChart, Pie,
+} from "recharts";
+import { Calendar, ChevronRight, Search, Bell, Menu, Users, Stethoscope, ShieldCheck, BotMessageSquare, UserRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LiveWeather } from "./live-weather";
-
-// Dados Fictícios
-const patientData = [
-    { day: "0", value: 30 }, { day: "1", value: 45 }, { day: "2", value: 40 },
-    { day: "3", value: 65 }, { day: "4", value: 60 }, { day: "5", value: 85 }
-];
-
-const accuracyData = [
-    { day: "0", value: 50 }, { day: "1", value: 60 }, { day: "2", value: 55 },
-    { day: "3", value: 80 }, { day: "4", value: 75 }, { day: "5", value: 95 }
-];
-
-const vitalsData = [
-    { name: 'Oct 20-26', hr: 60, bp: 90, temp: 30 },
-    { name: 'Mon', hr: 75, bp: 100, temp: 45 },
-    { name: 'Tue', hr: 65, bp: 130, temp: 40 },
-    { name: 'Wed', hr: 110, bp: 95, temp: 65 },
-    { name: 'Thu', hr: 90, bp: 80, temp: 50 },
-    { name: 'Fri', hr: 120, bp: 85, temp: 55 },
-    { name: 'Oct 20-26', hr: 115, bp: 90, temp: 50 },
-];
-
 import { Variants } from "framer-motion";
 
 const container: Variants = {
     hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+    show: { opacity: 1, transition: { staggerChildren: 0.08 } }
 };
 
 const item: Variants = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
 };
+
+// Color palette for charts
+const CHART_COLORS = [
+    "#14B8A6", "#3B82F6", "#8B5CF6", "#F59E0B", "#EF4444",
+    "#06B6D4", "#10B981", "#6366F1", "#EC4899", "#F97316",
+    "#84CC16", "#22D3EE", "#A78BFA", "#FB923C", "#34D399",
+];
 
 interface PremiumAnalyticsProps {
     metrics: {
@@ -48,10 +36,71 @@ interface PremiumAnalyticsProps {
         activeAIs: number;
     };
     userName?: string;
+    doctorsBySpecialty: { specialty: string; count: number }[];
+    insuranceProviders: { id: number; name: string }[];
+    recentPatients: { id: number; name: string }[];
+    totalPatients: number;
 }
 
-export function PremiumAnalytics({ metrics, userName = "Visitante" }: PremiumAnalyticsProps) {
+// Animated counter hook
+function useAnimatedCounter(target: number, duration: number = 1200) {
+    const [value, setValue] = useState(0);
+    useEffect(() => {
+        if (target === 0) return;
+        let start = 0;
+        const step = Math.max(1, Math.ceil(target / (duration / 16)));
+        const timer = setInterval(() => {
+            start += step;
+            if (start >= target) {
+                setValue(target);
+                clearInterval(timer);
+            } else {
+                setValue(start);
+            }
+        }, 16);
+        return () => clearInterval(timer);
+    }, [target, duration]);
+    return value;
+}
+
+// Custom tooltip for bar chart
+function CustomBarTooltip({ active, payload, label }: any) {
+    if (!active || !payload?.length) return null;
+    return (
+        <div className="bg-[#0B121D]/95 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 shadow-2xl shadow-black/30">
+            <p className="text-xs text-slate-400 font-inter mb-1">{label}</p>
+            <p className="text-lg font-outfit font-semibold text-white">
+                {payload[0].value} <span className="text-xs text-teal-400 font-normal">médico{payload[0].value !== 1 ? 's' : ''}</span>
+            </p>
+        </div>
+    );
+}
+
+// Custom tooltip for pie chart
+function CustomPieTooltip({ active, payload }: any) {
+    if (!active || !payload?.length) return null;
+    return (
+        <div className="bg-[#0B121D]/95 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 shadow-2xl shadow-black/30">
+            <p className="text-sm font-outfit font-medium text-white">{payload[0].name}</p>
+        </div>
+    );
+}
+
+export function PremiumAnalytics({
+    metrics,
+    userName = "Visitante",
+    doctorsBySpecialty,
+    insuranceProviders,
+    recentPatients,
+    totalPatients,
+}: PremiumAnalyticsProps) {
     const [time, setTime] = useState<Date | null>(null);
+
+    // Animated counters
+    const animDoctors = useAnimatedCounter(metrics.activeDoctors);
+    const animInsurances = useAnimatedCounter(metrics.activeInsurances);
+    const animAIs = useAnimatedCounter(metrics.activeAIs);
+    const animPatients = useAnimatedCounter(totalPatients);
 
     useEffect(() => {
         setTime(new Date());
@@ -70,13 +119,21 @@ export function PremiumAnalytics({ metrics, userName = "Visitante" }: PremiumAna
         return "Boa noite";
     };
 
+    // Prepare pie chart data for insurances
+    const pieData = insuranceProviders.slice(0, 10).map((ins, i) => ({
+        name: ins.name,
+        value: 1,
+        fill: CHART_COLORS[i % CHART_COLORS.length],
+    }));
+
+    // Max count for specialty bars (for relative sizing in the custom bar chart)
+    const maxSpecCount = Math.max(...doctorsBySpecialty.map(d => d.count), 1);
+
     return (
-        <motion.div variants={container} initial="hidden" animate="show" className="w-full space-y-6 text-slate-200">
+        <motion.div variants={container} initial="hidden" animate="show" className="w-full space-y-8 text-slate-200">
 
-            {/* HEADER INTEGRADO */}
-            <motion.div variants={item} className="w-full flex items-center justify-between h-20 bg-[#0B121D]/40 backdrop-blur-2xl border border-white/5 rounded-3xl px-6 mb-8 group hover:border-teal-500/20 transition-all duration-500 shadow-sm">
-
-                {/* Search Bar & Mobile Menu */}
+            {/* HEADER */}
+            <motion.div variants={item} className="w-full flex items-center justify-between h-20 bg-[#0B121D]/40 backdrop-blur-2xl border border-white/5 rounded-3xl px-6 group hover:border-teal-500/20 transition-all duration-500 shadow-sm">
                 <div className="flex items-center gap-2 md:gap-4">
                     <Button variant="ghost" size="icon" className="md:hidden shrink-0 hover:bg-white/5">
                         <Menu className="w-6 h-6 text-slate-300" />
@@ -89,13 +146,10 @@ export function PremiumAnalytics({ metrics, userName = "Visitante" }: PremiumAna
                         />
                     </div>
                 </div>
-
-                {/* Relógio, Clima e Notificações */}
                 <div className="flex items-center gap-4 md:gap-8">
                     <div className="hidden sm:block">
                         <LiveWeather />
                     </div>
-
                     <div className="flex flex-col items-end min-w-[70px]">
                         <div className="flex items-baseline font-outfit text-teal-400 drop-shadow-[0_0_8px_rgba(20,184,166,0.3)]">
                             <span className="text-xl md:text-3xl font-bold tracking-tighter">{formattedTime || "00:00"}</span>
@@ -105,7 +159,6 @@ export function PremiumAnalytics({ metrics, userName = "Visitante" }: PremiumAna
                             {formattedDate || "..."}
                         </span>
                     </div>
-
                     <Button variant="ghost" size="icon" className="relative rounded-full shrink-0 h-10 w-10 hover:bg-white/5 transition-colors border border-transparent hover:border-white/10">
                         <Bell className="w-5 h-5 text-slate-300" />
                         <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
@@ -113,194 +166,223 @@ export function PremiumAnalytics({ metrics, userName = "Visitante" }: PremiumAna
                 </div>
             </motion.div>
 
-            {/* LINHA 1: Welcome Message */}
-            <motion.div variants={item} className="flex justify-between items-end mb-8 pl-2">
+            {/* GREETING */}
+            <motion.div variants={item} className="flex justify-between items-end pl-2">
                 <div>
                     <h1 className="text-4xl font-outfit font-semibold text-white tracking-tight">{getGreeting()}, {userName}</h1>
                     <p className="text-sm font-inter text-slate-400 mt-2">AI-powered medical platform</p>
                 </div>
             </motion.div>
 
-            {/* LINHA 2: Top 3 Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-auto md:h-44 mb-8">
-                {/* Card 1: Patient Overview */}
-                <motion.div variants={item} className="bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-5 flex flex-col relative overflow-hidden group hover:border-teal-500/30 transition-all duration-300">
-                    <div className="absolute inset-0 bg-gradient-to-b from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="flex justify-between items-center z-10">
-                        <h3 className="font-inter text-sm font-medium text-slate-300">Corpo Clínico</h3>
-                        <ChevronRight className="w-4 h-4 text-slate-500" />
-                    </div>
-                    <div className="flex justify-between items-end mt-2 z-10">
-                        <div>
-                            <span className="text-4xl font-outfit font-semibold text-white">{metrics.activeDoctors}</span>
-                            <p className="text-xs text-slate-500 font-inter mt-1">Especialistas Ativos</p>
+            {/* TOP 4 METRIC CARDS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                {/* Card 1: Corpo Clínico */}
+                <motion.div variants={item} className="bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-6 flex flex-col relative overflow-hidden group hover:border-teal-500/30 transition-all duration-300">
+                    <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex justify-between items-center z-10 mb-4">
+                        <div className="p-2.5 rounded-2xl bg-teal-500/10 border border-teal-500/20">
+                            <Stethoscope className="w-5 h-5 text-teal-400" />
                         </div>
-                        <div className="bg-teal-500/20 text-teal-400 text-[10px] font-bold px-2 py-1 rounded-md flex items-center mb-5">
+                        <div className="bg-teal-500/15 text-teal-400 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
                             Online
                         </div>
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 h-16 z-0 mix-blend-screen">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={patientData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="colorPv" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#14B8A6" stopOpacity={0.8} />
-                                        <stop offset="95%" stopColor="#14B8A6" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <Area type="monotone" dataKey="value" stroke="#2DD4BF" strokeWidth={3} fillOpacity={1} fill="url(#colorPv)" />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
+                    <span className="text-3xl font-outfit font-bold text-white z-10">{animDoctors}</span>
+                    <p className="text-xs text-slate-500 font-inter mt-1 z-10">Especialistas Ativos</p>
                 </motion.div>
 
-                {/* Card 2: AI Predictions */}
-                <motion.div variants={item} className="bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-5 flex flex-col relative overflow-hidden group hover:border-[#3B82F6]/30 transition-all duration-300">
-                    <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="flex justify-between items-center z-10">
-                        <h3 className="font-inter text-sm font-medium text-slate-300">Planos de Saúde</h3>
+                {/* Card 2: Planos de Saúde */}
+                <motion.div variants={item} className="bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-6 flex flex-col relative overflow-hidden group hover:border-blue-500/30 transition-all duration-300">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex justify-between items-center z-10 mb-4">
+                        <div className="p-2.5 rounded-2xl bg-blue-500/10 border border-blue-500/20">
+                            <ShieldCheck className="w-5 h-5 text-blue-400" />
+                        </div>
                         <ChevronRight className="w-4 h-4 text-slate-500" />
                     </div>
-                    <div className="mt-2 z-10">
-                        <span className="text-4xl font-outfit font-semibold text-white">{metrics.activeInsurances}</span>
-                        <p className="text-xs text-slate-500 font-inter mt-1">Convênios Operantes</p>
-                    </div>
-                    <div className="absolute bottom-3 left-0 right-0 h-20 z-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={accuracyData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-                                <Line type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={3} dot={false} style={{ filter: 'drop-shadow(0px 0px 8px rgba(59, 130, 246, 0.6))' }} />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
+                    <span className="text-3xl font-outfit font-bold text-white z-10">{animInsurances}</span>
+                    <p className="text-xs text-slate-500 font-inter mt-1 z-10">Convênios Operantes</p>
                 </motion.div>
 
-                {/* Card 3: Upcoming Appointments */}
-                <motion.div variants={item} className="bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-5 flex flex-col group hover:border-slate-500/30 transition-all duration-300">
-                    <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-inter text-sm font-medium text-slate-300">Agentes de IA</h3>
+                {/* Card 3: Agentes de IA */}
+                <motion.div variants={item} className="bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-6 flex flex-col relative overflow-hidden group hover:border-violet-500/30 transition-all duration-300">
+                    <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex justify-between items-center z-10 mb-4">
+                        <div className="p-2.5 rounded-2xl bg-violet-500/10 border border-violet-500/20">
+                            <BotMessageSquare className="w-5 h-5 text-violet-400" />
+                        </div>
+                        <div className="bg-white/5 text-slate-300 text-[10px] px-2.5 py-1 rounded-full border border-white/10">Sincr. Hoje</div>
+                    </div>
+                    <span className="text-3xl font-outfit font-bold text-white z-10">{animAIs}</span>
+                    <p className="text-xs text-slate-500 font-inter mt-1 z-10">Agentes Configurados</p>
+                </motion.div>
+
+                {/* Card 4: Total Pacientes */}
+                <motion.div variants={item} className="bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-6 flex flex-col relative overflow-hidden group hover:border-amber-500/30 transition-all duration-300">
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex justify-between items-center z-10 mb-4">
+                        <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+                            <Users className="w-5 h-5 text-amber-400" />
+                        </div>
                         <ChevronRight className="w-4 h-4 text-slate-500" />
                     </div>
-                    <div className="flex justify-between items-center mb-4 border-b border-white/5 pb-3">
-                        <span className="text-4xl font-outfit font-semibold text-white">{metrics.activeAIs}</span>
-                        <div className="bg-white/5 text-slate-300 text-xs px-2 py-1 rounded-md border border-white/10">Sincr. Hoje</div>
-                    </div>
-                    <div className="space-y-2 flex-1 overflow-hidden">
-                        {[
-                            { name: "James Noris", time: "3:00 AM" },
-                            { name: "Elara Vance", time: "9:00 AM" },
-                            { name: "Clara Vancin", time: "Consults" }
-                        ].map((pt, i) => (
-                            <div key={i} className="flex justify-between items-center text-sm font-inter">
-                                <span className="text-slate-400">{pt.name}</span>
-                                <span className="text-slate-500">{pt.time}</span>
-                            </div>
-                        ))}
-                    </div>
+                    <span className="text-3xl font-outfit font-bold text-white z-10">{animPatients}</span>
+                    <p className="text-xs text-slate-500 font-inter mt-1 z-10">Pacientes Cadastrados</p>
                 </motion.div>
             </div>
 
-            {/* LINHA 3: Master Chart & Predictive Analysis */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-auto lg:h-[400px] mb-8">
-                {/* BIG CHART */}
-                <motion.div variants={item} className="lg:col-span-2 bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-5 md:p-6 flex flex-col group hover:border-teal-500/20 transition-all duration-500">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="font-outfit text-lg font-medium text-white">AI Health Diagnostics</h3>
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2 text-xs font-inter text-slate-400">
-                                <span className="w-2 h-2 rounded-full bg-[#14B8A6] shadow-[0_0_8px_#14B8A6]"></span> HR
-                                <span className="w-2 h-2 rounded-full bg-[#3B82F6] shadow-[0_0_8px_#3B82F6] ml-2"></span> BP
-                                <span className="w-2 h-2 rounded-full bg-[#6366F1] shadow-[0_0_8px_#6366F1] ml-2"></span> Temp
-                            </div>
-                            <div className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-slate-300 cursor-pointer hover:bg-white/10 flex items-center gap-2">
-                                <Calendar className="w-3 h-3" /> Consults ˅
-                            </div>
+            {/* CHART ROW: Specialties + Insurance Distribution */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+                {/* BIG CHART: Médicos por Especialidade */}
+                <motion.div variants={item} className="lg:col-span-3 bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-6 md:p-8 flex flex-col group hover:border-teal-500/20 transition-all duration-500">
+                    <div className="flex justify-between items-center mb-8">
+                        <div>
+                            <h3 className="font-outfit text-lg font-medium text-white">Médicos por Especialidade</h3>
+                            <p className="text-xs text-slate-500 font-inter mt-1">Distribuição do corpo clínico ativo</p>
+                        </div>
+                        <div className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-slate-300 flex items-center gap-2">
+                            <Stethoscope className="w-3.5 h-3.5 text-teal-400" />
+                            {metrics.activeDoctors} total
                         </div>
                     </div>
 
-                    <div className="flex-1 w-full min-h-[250px] relative">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={vitalsData} margin={{ top: 20, right: 30, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} />
-                                <XAxis dataKey="name" stroke="#64748B" fontSize={11} tickLine={false} axisLine={false} dy={10} />
-                                <YAxis stroke="#64748B" fontSize={11} tickLine={false} axisLine={false} dx={-10} ticks={[0, 30, 60, 90, 120, 140]} />
-                                <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#1E293B', borderRadius: '12px' }} />
-
-                                <Line type="monotone" dataKey="hr" stroke="#14B8A6" strokeWidth={3} dot={{ stroke: '#14B8A6', strokeWidth: 2, fill: '#0F172A', r: 5 }} activeDot={{ r: 7 }} style={{ filter: 'drop-shadow(0px 0px 8px rgba(20, 184, 166, 0.4))' }} />
-                                <Line type="monotone" dataKey="bp" stroke="#3B82F6" strokeWidth={3} dot={{ stroke: '#3B82F6', strokeWidth: 2, fill: '#0F172A', r: 5 }} activeDot={{ r: 7 }} style={{ filter: 'drop-shadow(0px 0px 8px rgba(59, 130, 246, 0.4))' }} />
-                                <Line type="monotone" dataKey="temp" stroke="#6366F1" strokeWidth={3} dot={{ stroke: '#6366F1', strokeWidth: 2, fill: '#0F172A', r: 5 }} activeDot={{ r: 7 }} style={{ filter: 'drop-shadow(0px 0px 8px rgba(99, 102, 241, 0.4))' }} />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
+                    {doctorsBySpecialty.length > 0 ? (
+                        <div className="flex-1 w-full min-h-[280px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart
+                                    data={doctorsBySpecialty.slice(0, 12)}
+                                    layout="vertical"
+                                    margin={{ top: 0, right: 30, left: 10, bottom: 0 }}
+                                    barCategoryGap="20%"
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" horizontal={false} />
+                                    <XAxis
+                                        type="number"
+                                        stroke="#475569"
+                                        fontSize={11}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        allowDecimals={false}
+                                    />
+                                    <YAxis
+                                        type="category"
+                                        dataKey="specialty"
+                                        stroke="#64748B"
+                                        fontSize={11}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        width={140}
+                                        tick={{ fill: '#94A3B8' }}
+                                    />
+                                    <Tooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(20,184,166,0.05)', radius: 8 }} />
+                                    <defs>
+                                        <linearGradient id="barGradient" x1="0" y1="0" x2="1" y2="0">
+                                            <stop offset="0%" stopColor="#14B8A6" stopOpacity={0.9} />
+                                            <stop offset="100%" stopColor="#06B6D4" stopOpacity={1} />
+                                        </linearGradient>
+                                    </defs>
+                                    <Bar
+                                        dataKey="count"
+                                        fill="url(#barGradient)"
+                                        radius={[0, 8, 8, 0]}
+                                        maxBarSize={28}
+                                        style={{ filter: 'drop-shadow(0px 0px 6px rgba(20,184,166,0.3))' }}
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center text-slate-500 text-sm font-inter">
+                            Nenhum dado de especialidade disponível
+                        </div>
+                    )}
                 </motion.div>
 
-                {/* Predictive Analysis List */}
-                <motion.div variants={item} className="bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-6 flex flex-col group hover:border-[#8B5CF6]/30 transition-all duration-300">
-                    <h3 className="font-inter text-sm font-medium text-slate-300 mb-5">Predictive Analysis</h3>
-                    <div className="flex flex-col gap-3 flex-1">
-                        {[
-                            { id: "341A", risk: "Low", color: "bg-teal-500", glow: "shadow-[0_0_10px_rgba(20,184,166,0.5)]" },
-                            { id: "341B", risk: "Low", color: "bg-amber-500", glow: "shadow-[0_0_10px_rgba(245,158,11,0.5)]" },
-                            { id: "342A", risk: "Low", color: "bg-teal-500", glow: "shadow-[0_0_10px_rgba(20,184,166,0.5)]" },
-                            { id: "345E", risk: "Low", color: "bg-teal-500", glow: "shadow-[0_0_10px_rgba(20,184,166,0.5)]" }
-                        ].map((p, i) => (
-                            <div key={i} className="flex justify-between items-center bg-[#0B121D] border border-white/5 rounded-2xl p-4 relative overflow-hidden group/card hover:bg-white/5 cursor-pointer transition-colors">
-                                <div className={`absolute left-0 top-0 bottom-0 w-1 ${p.color} ${p.glow}`} />
-                                <div>
-                                    <h4 className="text-white text-sm font-outfit">Patient ID: {p.id}</h4>
-                                    <p className="text-xs text-slate-500 font-inter mt-0.5">Risk: <span className="text-teal-400">{p.risk}</span></p>
-                                </div>
-                                <div className="bg-teal-500/10 text-teal-400 border border-teal-500/20 px-3 py-1.5 rounded-full text-xs flex items-center gap-1 group-hover/card:bg-teal-500/20 transition-all">
-                                    Status um <ChevronRight className="w-3 h-3" />
-                                </div>
-                            </div>
-                        ))}
+                {/* SIDEBAR: Convênios Ativos */}
+                <motion.div variants={item} className="lg:col-span-2 bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-6 md:p-8 flex flex-col group hover:border-blue-500/20 transition-all duration-500">
+                    <div className="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 className="font-outfit text-lg font-medium text-white">Convênios Ativos</h3>
+                            <p className="text-xs text-slate-500 font-inter mt-1">{insuranceProviders.length} planos integrados</p>
+                        </div>
+                        <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                            <ShieldCheck className="w-4 h-4 text-blue-400" />
+                        </div>
                     </div>
-                </motion.div>
-            </div>
 
-            {/* LINHA 4: Bottom Widgets */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-auto md:h-32 pt-2">
-                {/* Feedback */}
-                <motion.div variants={item} className="bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-6 flex flex-col justify-center relative overflow-hidden group hover:border-teal-500/30 transition-all">
-                    <div className="flex justify-between items-center">
-                        <h3 className="font-inter text-base font-medium text-slate-300">Patient Feedback</h3>
-                        <ChevronRight className="w-4 h-4 text-slate-500" />
-                    </div>
-                    <div className="flex items-center gap-4 mt-3">
-                        <span className="text-4xl font-outfit font-semibold text-white">4.9<span className="text-xl text-slate-500">/5</span></span>
-                        <div className="flex gap-1.5">
-                            {[1, 2, 3, 4, 5].map(i => (
-                                <Star key={i} className={`w-6 h-6 ${i === 5 ? 'text-teal-500/40' : 'text-teal-400 fill-teal-400'} drop-shadow-[0_0_8px_rgba(20,184,166,0.4)]`} />
+                    {insuranceProviders.length > 0 ? (
+                        <div className="flex flex-col gap-3 flex-1 overflow-y-auto custom-scrollbar pr-1">
+                            {insuranceProviders.slice(0, 12).map((ins, i) => (
+                                <motion.div
+                                    key={ins.id}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: i * 0.05 }}
+                                    className="flex items-center gap-3 bg-[#0B121D]/60 border border-white/5 rounded-2xl px-4 py-3 group/item hover:bg-white/5 hover:border-white/10 transition-all cursor-default"
+                                >
+                                    <div
+                                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                                        style={{
+                                            backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+                                            boxShadow: `0 0 8px ${CHART_COLORS[i % CHART_COLORS.length]}80`,
+                                        }}
+                                    />
+                                    <span className="text-sm text-slate-300 font-inter truncate flex-1">{ins.name}</span>
+                                    <span className="text-[10px] text-slate-600 font-mono">#{ins.id}</span>
+                                </motion.div>
                             ))}
                         </div>
-                    </div>
-                </motion.div>
-
-                {/* Active Tasks */}
-                <motion.div variants={item} className="bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-6 flex flex-col justify-center relative overflow-hidden group hover:border-[#3B82F6]/30 transition-all">
-                    <h3 className="font-inter text-base font-medium text-slate-300 mb-4">Active Tasks</h3>
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-slate-700/50 flex-shrink-0" />
-                            <div className="flex-1">
-                                <div className="flex justify-between text-xs text-slate-400 mb-1"><span>Progress</span></div>
-                                <div className="w-full bg-[#0B1521] h-1.5 rounded-full overflow-hidden border border-white/5">
-                                    <div className="bg-teal-400 w-[60%] h-full rounded-full shadow-[0_0_10px_rgba(20,184,166,0.8)]" />
-                                </div>
-                            </div>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center text-slate-500 text-sm font-inter">
+                            Nenhum convênio disponível
                         </div>
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-slate-700/50 flex-shrink-0" />
-                            <div className="flex-1">
-                                <div className="flex justify-between text-xs text-slate-400 mb-1"><span>Progress</span></div>
-                                <div className="w-full bg-[#0B1521] h-1.5 rounded-full overflow-hidden border border-white/5">
-                                    <div className="bg-blue-500 w-[85%] h-full rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    )}
                 </motion.div>
             </div>
+
+            {/* BOTTOM ROW: Recent Patients */}
+            <motion.div variants={item} className="bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-6 md:p-8 group hover:border-amber-500/20 transition-all duration-500">
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 className="font-outfit text-lg font-medium text-white">Pacientes Recentes</h3>
+                        <p className="text-xs text-slate-500 font-inter mt-1">Últimos pacientes cadastrados na plataforma</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-1.5 text-xs text-amber-400 font-inter flex items-center gap-2">
+                            <Users className="w-3.5 h-3.5" />
+                            {totalPatients} total
+                        </div>
+                    </div>
+                </div>
+
+                {recentPatients.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                        {recentPatients.map((patient, i) => (
+                            <motion.div
+                                key={patient.id}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: i * 0.04 }}
+                                className="flex items-center gap-3 bg-[#0B121D]/60 border border-white/5 rounded-2xl px-4 py-3 group/card hover:bg-white/5 hover:border-amber-500/20 transition-all cursor-default"
+                            >
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                                    <UserRound className="w-4 h-4 text-amber-400" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm text-white font-inter truncate">{patient.name}</p>
+                                    <p className="text-[10px] text-slate-600 font-mono">ID {patient.id}</p>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="py-8 flex items-center justify-center text-slate-500 text-sm font-inter">
+                        Nenhum paciente encontrado
+                    </div>
+                )}
+            </motion.div>
 
         </motion.div>
     );
