@@ -4,65 +4,44 @@ import { AboutSection } from "@/components/landing/about-section";
 import { VideoSection } from "@/components/landing/video-section";
 import { CreatorSection } from "@/components/landing/creator-section";
 import { ScrollMorphHero } from "@/components/landing/scroll-morph-hero";
-import { DoctorsTimelineSection } from "@/components/landing/doctors-timeline";
-import { SchedulingSimulation } from "@/components/landing/scheduling-simulation";
-import { StaggerTestimonials } from "@/components/ui/stagger-testimonials";
-import { BackgroundPaths } from "@/components/ui/background-paths";
-import { Hero3DSection } from "@/components/ui/3d-hero-section-boxes";
-import { SuperFooter } from "@/components/landing/super-footer";
 import { ContactSection } from "@/components/landing/contact-section";
+import { SuperFooter } from "@/components/landing/super-footer";
+import { ForceDarkTheme } from "@/components/force-dark-theme";
 
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-black font-sans selection:bg-teal-500/30">
 
-      {/* 0. Header Desconstruído (Fixo por cima de tudo) */}
+      <ForceDarkTheme />
+
+      {/* Fixed Header */}
       <LandingHeader />
 
-      {/* 1. Secção Hero (Scroll/Flipbook de Vídeo) */}
+      {/* 1. Hero — Dive Scroll Video Frames */}
       <HeroScrollSequence />
 
-      {/* 2. Secção About (Brutalist Typography & Blur Transition) */}
+      {/* 2. Manifesto — "Inteligência que cuida." */}
       <div id="about">
         <AboutSection />
       </div>
 
-      {/* 3. Secção Vídeo Cinemático */}
+      {/* 3. Features — 4 Funções da Silvia */}
+      <div id="features">
+        <CreatorSection />
+      </div>
+
+      {/* 4. Product — Cinematic Video Section */}
       <VideoSection />
 
-      {/* 4. Secção Creator (White Theme) */}
-      <CreatorSection />
-
-      {/* 5. Secção Scroll Morph (Visão do Ecossistema) */}
+      {/* 5. Trust Strip — Stats & Social Proof */}
       <ScrollMorphHero />
 
-      {/* 6. Secção Timeline de Médicos (Client + Server Data Fetching) */}
-      <div id="doctors">
-        <DoctorsTimelineSection />
-      </div>
-
-      {/* 7. Simulação de Agendamento AI */}
-      <div id="simulation">
-        <SchedulingSimulation />
-      </div>
-
-      {/* 8. Depoimentos de Médicos e Gestores */}
-      <div id="testimonials">
-        <StaggerTestimonials />
-      </div>
-
-      {/* 9. Call to Action Final - Fale com a Silvia */}
-      <BackgroundPaths />
-
-      {/* 10. Nova Seção 3D Hero para Contato */}
-      <Hero3DSection />
-
-      {/* 11. Seção de Contato Zen */}
+      {/* 6. CTA — Final Call to Action */}
       <div id="contact">
         <ContactSection />
       </div>
 
-      {/* 12. Super Footer Final */}
+      {/* 7. Footer */}
       <SuperFooter />
     </div>
   );

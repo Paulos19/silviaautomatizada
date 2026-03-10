@@ -1,85 +1,98 @@
 "use client";
 
 import Link from "next/link";
-import { Github, Instagram, Linkedin, Twitter, MessageSquare, Zap, Shield, Cpu } from "lucide-react";
+import { Instagram, Linkedin, Github } from "lucide-react";
 
 const footerLinks = [
     {
         title: "Plataforma",
         links: [
-            { label: "Tecnologia AI", href: "#hero" },
-            { label: "Corpo Clínico", href: "#doctors" },
-            { label: "Simulação", href: "#simulation" },
-            { label: "Segurança", href: "#security" },
+            { label: "Agentes IA", href: "#features" },
+            { label: "Agenda", href: "#features" },
+            { label: "Analytics", href: "#features" },
+            { label: "Segurança", href: "#" },
         ],
     },
     {
         title: "Recursos",
         links: [
-            { label: "Casos de Estudo", href: "#" },
-            { label: "Biblioteca", href: "#" },
             { label: "Documentação", href: "#" },
-            { label: "Blog", href: "#" },
+            { label: "Integrações", href: "#" },
+            { label: "API", href: "#" },
+            { label: "Status", href: "#" },
         ],
     },
     {
-        title: "Institucional",
+        title: "Empresa",
         links: [
-            { label: "A Silvia", href: "#" },
-            { label: "Carreiras", href: "#" },
-            { label: "Contato", href: "/contact" },
-            { label: "Legal", href: "#" },
+            { label: "Sobre", href: "#about" },
+            { label: "Contato", href: "#contact" },
+            { label: "Privacidade", href: "#" },
+            { label: "Termos", href: "#" },
         ],
     },
 ];
 
+const socialLinks = [
+    { icon: Instagram, href: "#", label: "Instagram" },
+    { icon: Linkedin, href: "#", label: "LinkedIn" },
+    { icon: Github, href: "#", label: "GitHub" },
+];
+
 export function SuperFooter() {
     return (
-        <footer className="w-full bg-background border-t border-white/5 pt-24 pb-12 px-8 relative z-10">
-            <div className="max-w-7xl mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-20">
+        <footer className="w-full bg-black border-t border-white/[0.04] pt-20 pb-10 px-6 md:px-12 select-none">
+            <div className="max-w-[1100px] mx-auto">
 
-                    {/* Brand Column */}
-                    <div className="lg:col-span-2 space-y-8">
-                        <Link href="/" className="flex items-center gap-3 group">
-                            <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 group-hover:border-primary/40 transition-colors">
-                                <Zap className="w-6 h-6 text-primary" />
+                {/* Top Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 md:gap-8 mb-16">
+
+                    {/* Brand */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <Link href="/" className="flex items-center gap-2 group">
+                            <div className="relative w-24 h-8 overflow-hidden">
+                                <img
+                                    src="/logo.png"
+                                    alt="Silvia"
+                                    className="w-full h-full object-contain opacity-80 group-hover:opacity-100 transition-opacity duration-500"
+                                />
                             </div>
-                            <span className="text-2xl font-outfit font-bold tracking-tight text-white">Silvia</span>
                         </Link>
 
-                        <p className="text-lg text-slate-400 max-w-sm font-inter leading-relaxed">
-                            Orquestrando o futuro da gestão clínica com inteligência artificial generativa e automação de alto nível.
+                        <p className="text-sm font-inter font-light text-white/25 max-w-xs leading-relaxed">
+                            Inteligência artificial generativa para gestão clínica.
+                            Agendamento, prontuários e analytics — tudo orquestrado.
                         </p>
 
-                        <div className="flex items-center gap-4">
-                            <Link href="#" className="p-3 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-all">
-                                <Instagram className="w-5 h-5" />
-                            </Link>
-                            <Link href="#" className="p-3 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-all">
-                                <Linkedin className="w-5 h-5" />
-                            </Link>
-                            <Link href="#" className="p-3 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-all">
-                                <Twitter className="w-5 h-5" />
-                            </Link>
-                            <Link href="#" className="p-3 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-all">
-                                <Github className="w-5 h-5" />
-                            </Link>
+                        <div className="flex items-center gap-3">
+                            {socialLinks.map((social) => {
+                                const Icon = social.icon;
+                                return (
+                                    <Link
+                                        key={social.label}
+                                        href={social.href}
+                                        aria-label={social.label}
+                                        className="p-2.5 rounded-full bg-white/[0.03] border border-white/[0.05] text-white/25 hover:text-white/60 hover:bg-white/[0.06] transition-all duration-500"
+                                    >
+                                        <Icon className="w-4 h-4" strokeWidth={1.5} />
+                                    </Link>
+                                );
+                            })}
                         </div>
                     </div>
 
-                    {/* Links Columns */}
+                    {/* Link Columns */}
                     {footerLinks.map((section) => (
-                        <div key={section.title} className="space-y-6">
-                            <h4 className="text-sm font-outfit font-bold uppercase tracking-[0.2em] text-primary">
+                        <div key={section.title} className="space-y-5">
+                            <h4 className="text-[11px] font-inter font-medium uppercase tracking-[0.15em] text-white/30">
                                 {section.title}
                             </h4>
-                            <ul className="space-y-4">
+                            <ul className="space-y-3">
                                 {section.links.map((link) => (
                                     <li key={link.label}>
                                         <Link
                                             href={link.href}
-                                            className="text-slate-400 hover:text-white transition-colors font-inter text-base"
+                                            className="text-sm font-inter text-white/20 hover:text-white/50 transition-colors duration-500"
                                         >
                                             {link.label}
                                         </Link>
@@ -91,27 +104,15 @@ export function SuperFooter() {
                 </div>
 
                 {/* Bottom Bar */}
-                <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
-                    <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2 text-[10px] text-slate-500 uppercase tracking-widest font-semibold">
-                            <Cpu className="w-3 h-3 text-primary" />
-                            Next.js 15
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-500 uppercase tracking-widest font-semibold">
-                            <Shield className="w-3 h-3 text-primary" />
-                            Secure Auth
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-500 uppercase tracking-widest font-semibold">
-                            <MessageSquare className="w-3 h-3 text-primary" />
-                            N8N Pipeline
-                        </div>
-                    </div>
-
-                    <p className="text-sm text-slate-500 font-inter">
+                <div className="pt-8 border-t border-white/[0.04] flex flex-col md:flex-row justify-between items-center gap-4">
+                    <p className="text-[11px] font-inter text-white/15">
                         © {new Date().getFullYear()} Silvia AI. Todos os direitos reservados.
-                        <span className="ml-2 text-slate-600">Built by Paulo Henrique.</span>
+                    </p>
+                    <p className="text-[11px] font-inter text-white/10">
+                        Built by Paulo Henrique.
                     </p>
                 </div>
+
             </div>
         </footer>
     );

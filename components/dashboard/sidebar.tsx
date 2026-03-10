@@ -6,6 +6,7 @@ import { signOut } from "next-auth/react";
 import { ChevronLeft, ChevronRight, LayoutDashboard, CalendarDays, Users, Stethoscope, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { AnimatedThemeToggle } from "@/components/animated-theme-toggle";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -80,6 +81,9 @@ export function DashboardSidebar({ isOpen, setIsOpen }: SidebarProps) {
       </nav>
 
       <div className="p-4 border-t border-border/30 space-y-3 mt-auto mb-4">
+        {/* Theme Toggle */}
+        <AnimatedThemeToggle collapsed={!isOpen} />
+
         <Link href="/dashboard/settings" onClick={() => {
           if (window.innerWidth < 768) setIsOpen(false);
         }}>

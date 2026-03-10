@@ -17,19 +17,13 @@ export function VideoSection({ className }: { className?: string }) {
                         const { top, bottom, height } = containerRef.current.getBoundingClientRect();
                         const windowHeight = window.innerHeight;
 
-                        // Check if section is somewhat in viewport
                         if (top <= windowHeight && bottom >= 0) {
-                            // Calculate progression (0 when hitting bottom of screen, 1 when leaving top)
                             const totalDistance = windowHeight + height;
                             const scrolledDistance = windowHeight - top;
                             const progress = Math.max(0, Math.min(scrolledDistance / totalDistance, 1));
-
-                            // Parallax offset: shift the video slightly Y as we scroll
-                            // Using a scale(1.1) to avoid showing edges when shifting
-                            const maxOffset = height * 0.25; // 25% parallax intensity
+                            const maxOffset = height * 0.2;
                             const offset = (progress - 0.5) * maxOffset;
-
-                            videoWrapperRef.current.style.transform = `translate3d(0, ${offset}px, 0) scale(1.15)`;
+                            videoWrapperRef.current.style.transform = `translate3d(0, ${offset}px, 0) scale(1.1)`;
                         }
                     }
                     ticking = false;
@@ -40,8 +34,6 @@ export function VideoSection({ className }: { className?: string }) {
 
         window.addEventListener("scroll", handleScroll, { passive: true });
         window.addEventListener("resize", handleScroll, { passive: true });
-
-        // Setup inicial
         handleScroll();
 
         return () => {
@@ -55,7 +47,7 @@ export function VideoSection({ className }: { className?: string }) {
             ref={containerRef}
             className={cn("relative w-full h-screen overflow-hidden bg-black flex flex-col justify-center items-center select-none", className)}
         >
-            {/* Parallax Video Wrapper */}
+            {/* Parallax Video */}
             <div
                 ref={videoWrapperRef}
                 className="absolute inset-0 w-full h-full will-change-transform"
@@ -70,24 +62,28 @@ export function VideoSection({ className }: { className?: string }) {
                 />
             </div>
 
-            {/* Filtros Apple-style (Dark & Professional) */}
-            {/* 1. Base Darkening */}
-            <div className="absolute inset-0 bg-black/40 pointer-events-none z-10" />
+            {/* Overlays */}
+            <div className="absolute inset-0 bg-black/50 pointer-events-none z-10" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.9)_100%)] pointer-events-none z-10" />
 
-            {/* 2. Vignette Premium (Bordas mais escuras voltando a atenção para o centro) */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.85)_100%)] pointer-events-none z-10" />
-
-            {/* Copywriting / Texto sobreposto (Opcional para dar a face) */}
-            <div className="relative z-20 flex flex-col items-center text-center px-6 mix-blend-screen drop-shadow-[0_10px_20px_rgba(0,0,0,1)]">
-                <h3 className="text-4xl md:text-6xl lg:text-7xl font-outfit font-light tracking-tight text-white mb-6">
-                    A Excelência é Visível.
+            {/* Content */}
+            <div className="relative z-20 flex flex-col items-center text-center px-6 max-w-3xl">
+                <p className="text-[11px] font-inter font-medium uppercase tracking-[0.2em] text-teal-400/60 mb-8">
+                    Produto
+                </p>
+                <h3 className="text-3xl md:text-5xl lg:text-[3.5rem] font-outfit font-extralight tracking-[-0.03em] text-white leading-[1.1] mb-6">
+                    Construída para clínicas<br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-300">
+                        que pensam no futuro.
+                    </span>
                 </h3>
-                <p className="text-lg md:text-2xl font-inter font-light text-slate-300 max-w-3xl">
-                    Cada micro-interação, cada frame, focado 100% em engatar e converter pacientes de alto padrão.
+                <p className="text-base md:text-lg font-inter font-light text-white/30 max-w-xl leading-relaxed">
+                    Cada detalhe da Silvia foi projetado para eliminar fricção operacional
+                    e devolver tempo ao que importa: cuidar de pessoas.
                 </p>
 
-                {/* Linha Fina Decorativa Branca */}
-                <div className="w-px h-24 bg-gradient-to-b from-white to-transparent mt-12 opacity-60" />
+                {/* Decorative Line */}
+                <div className="w-px h-20 bg-gradient-to-b from-white/20 to-transparent mt-12" />
             </div>
         </section>
     );

@@ -7,12 +7,12 @@ const prisma = new PrismaClient();
 
 export async function getDashboardMetricsAction() {
     try {
-        // Fetch all data in parallel for performance
+        // Fetch all data in parallel — each wrapped individually so one failure doesn't break all
         const [doctorsRes, insurancesRes, aiCount, patientsRes] = await Promise.all([
-            ClinicService.getDoctors(),
-            ClinicService.getInsuranceProviders(),
-            prisma.aiPersonality.count(),
-            ClinicService.getPatients(undefined, 1, 20),
+            ClinicService.getDoctors().catch(() => ({ result: { items: [] } })),
+            ClinicService.getInsuranceProviders().catch(() => ({ result: { items: [] } })),
+            prisma.aiPersonality.count().catch(() => 0),
+            ClinicService.getPatients(undefined, 1, 20).catch(() => ({ result: { items: [] } })),
         ]);
 
         const doctors = doctorsRes.result?.items || [];

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
 
 export function AboutSection() {
     const sectionRef = useRef<HTMLElement>(null);
@@ -9,86 +8,66 @@ export function AboutSection() {
 
     useEffect(() => {
         const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setIsVisible(true);
-                }
-            },
-            { threshold: 0.1 }
+            ([entry]) => { if (entry.isIntersecting) setIsVisible(true); },
+            { threshold: 0.15 }
         );
-
-        if (sectionRef.current) {
-            observer.observe(sectionRef.current);
-        }
-
+        if (sectionRef.current) observer.observe(sectionRef.current);
         return () => observer.disconnect();
     }, []);
-
-    const titleText = "SílviaAI";
-    const dirs = [
-        "translate3d(0, -200px, 0)",
-        "translate3d(0, 200px, 0)",
-        "translate3d(-200px, 100px, 0)",
-        "translate3d(200px, 0, 0)",
-        "translate3d(-100px, -200px, 0)",
-        "translate3d(200px, 200px, 0)",
-        "translate3d(0, -300px, 0)",
-        "translate3d(-200px, 0, 0)"
-    ];
 
     return (
         <section
             ref={sectionRef}
-            className="w-full min-h-screen bg-black text-[#F5F5F0] overflow-hidden flex flex-col justify-center select-none pt-24 pb-32"
+            className="w-full min-h-screen bg-black text-white overflow-hidden flex flex-col justify-center select-none"
         >
-            <div className="w-full max-w-[1700px] mx-auto px-6 md:px-12 flex flex-col gap-16 md:gap-32">
+            <div className="w-full max-w-[1100px] mx-auto px-6 md:px-12 flex flex-col gap-16 py-32 md:py-48">
 
-                {/* Huge Convergent Top Title */}
-                <h2 className="font-outfit font-bold tracking-tighter w-full flex justify-between overflow-visible">
-                    {titleText.split("").map((char, i) => (
-                        <span
-                            key={i}
-                            className="inline-block text-[20vw] md:text-[22vw] leading-[0.75] transition-all duration-[1500ms]"
-                            style={{
-                                transform: isVisible ? "translate3d(0,0,0) scale(1) rotate(0deg)" : `${dirs[i % dirs.length]} scale(0.6) rotate(${i % 2 === 0 ? '15deg' : '-15deg'})`,
-                                opacity: isVisible ? 1 : 0,
-                                transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
-                                transitionDelay: `${i * 80}ms`,
-                                willChange: "transform, opacity"
-                            }}
-                        >
-                            {char}
-                        </span>
-                    ))}
-                </h2>
-
-                {/* Info Bar a la Reference */}
+                {/* Micro Label */}
                 <div
-                    className="grid grid-cols-1 md:grid-cols-3 gap-8 text-sm md:text-base font-inter font-light tracking-wide text-[#F5F5F0]/50 transition-all duration-1000 delay-500"
+                    className="transition-all duration-1000"
                     style={{
-                        opacity: isVisible ? 1 : 0,
-                        transform: isVisible ? "translateY(0)" : "translateY(20px)",
-                        willChange: "transform, opacity"
+                        opacity: isVisible ? 0.4 : 0,
+                        transform: isVisible ? "translateY(0)" : "translateY(12px)",
                     }}
                 >
-                    <div>Plataforma Médica SP</div>
-                    <div className="md:text-center text-[#F5F5F0]">Conceito ↓</div>
-                    <div className="md:text-right text-primary">Sincronia Global → 24:00 7D</div>
+                    <p className="text-[11px] font-inter font-medium uppercase tracking-[0.2em] text-teal-400">
+                        Plataforma Médica Inteligente
+                    </p>
                 </div>
 
-                {/* Sub Hero Text (Description) */}
-                <div
-                    className="w-full flex justify-start md:justify-end mt-4 transition-all duration-1000 delay-700"
+                {/* Main Headline */}
+                <h2
+                    className="font-outfit font-extralight text-[clamp(2.5rem,7vw,5.5rem)] leading-[1.05] tracking-[-0.03em] text-white transition-all duration-[1200ms]"
                     style={{
                         opacity: isVisible ? 1 : 0,
                         transform: isVisible ? "translateY(0)" : "translateY(40px)",
-                        willChange: "transform, opacity"
+                        transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
                     }}
                 >
-                    <p className="max-w-3xl text-3xl md:text-5xl lg:text-6xl font-inter leading-[1.1] tracking-tight text-[#F5F5F0]">
-                        Convergindo estratégia, precisão clínica e vanguarda tecnológica para arquitetar soluções que elevam a performance de médicos e instituições.
-                    </p>
-                </div>
+                    Inteligência<br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-300">
+                        que cuida.
+                    </span>
+                </h2>
+
+                {/* Sub-paragraph */}
+                <p
+                    className="max-w-2xl text-lg md:text-xl font-inter font-light leading-relaxed text-white/40 transition-all duration-1000 delay-300"
+                    style={{
+                        opacity: isVisible ? 1 : 0,
+                        transform: isVisible ? "translateY(0)" : "translateY(30px)",
+                        transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+                    }}
+                >
+                    A Silvia orquestra agendamentos, prontuários e atendimento com IA generativa —
+                    para que sua clínica opere com a precisão e elegância que seus pacientes merecem.
+                </p>
+
+                {/* Decorative Line */}
+                <div
+                    className="w-px h-20 bg-gradient-to-b from-teal-500/40 to-transparent transition-all duration-1000 delay-500"
+                    style={{ opacity: isVisible ? 1 : 0 }}
+                />
 
             </div>
         </section>
