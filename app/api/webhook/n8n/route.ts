@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
-import { 
-  checkPatientExistsAction, 
-  createPatientAction, 
-  fetchFreeSlotsAction, 
-  bookSlotAction, 
+import {
+  checkPatientExistsAction,
+  createPatientAction,
+  fetchFreeSlotsAction,
+  bookSlotAction,
   cancelBookingAction,
   fetchInsuranceProvidersAction,
   fetchSingleDoctorAction,
   fetchDoctorsAction,
-  fetchPatientBookingsAction // <-- Nova action importada aqui
+  fetchPatientBookingsAction,
+  fetchBookingsByNINAction // <-- Nova action importada aqui
 } from "@/actions/clinic.actions";
 
 // Validação de segurança: Só o n8n pode chamar essa rota
@@ -31,20 +32,20 @@ export async function POST(request: Request) {
     switch (action) {
       case "CHECK_PATIENT":
         return NextResponse.json(await checkPatientExistsAction(payload.nin, payload.birthday));
-        
+
       case "CREATE_PATIENT":
         return NextResponse.json(await createPatientAction(payload));
-        
+
       case "GET_SLOTS":
         return NextResponse.json(await fetchFreeSlotsAction(
           payload.doctorId, payload.addressId, payload.startDate, payload.endDate
         ));
-        
+
       case "BOOK_SLOT":
         return NextResponse.json(await bookSlotAction(
           payload.doctorId, payload.addressId, payload.slotStart, payload.bookingData
         ));
-        
+
       case "CANCEL_BOOKING":
         return NextResponse.json(await cancelBookingAction(
           payload.doctorId, payload.addressId, payload.bookingId, payload.externalId
@@ -59,14 +60,21 @@ export async function POST(request: Request) {
       case "GET_DOCTORS":
         return NextResponse.json(await fetchDoctorsAction());
 
-      // --- NOVA ROTA: CONSULTAR AGENDAMENTOS DO PACIENTE ---
+      // --- CONSULTAR AGENDAMENTOS ESPECÍFICOS DO PACIENTE ---
       case "GET_BOOKINGS":
         return NextResponse.json(await fetchPatientBookingsAction(
-          payload.doctorId, 
-          payload.addressId, 
-          payload.patientId, 
-          payload.startDate, 
+          payload.doctorId,
+          payload.addressId,
+          payload.patientId,
+          payload.startDate,
           payload.endDate
+        ));
+
+      // --- NOVA ROTA: CONSULTAR TODOS AGENDAMENTOS POR CPF ---
+      case "GET_BOOKINGS_BY_CPF":
+        return NextResponse.json(await fetchBookingsByNINAction(
+          payload.nin,
+          payload.birthday
         ));
 
       default:
