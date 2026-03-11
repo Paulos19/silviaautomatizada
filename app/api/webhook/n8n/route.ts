@@ -9,8 +9,9 @@ import {
   fetchSingleDoctorAction,
   fetchDoctorsAction,
   fetchPatientBookingsAction,
-  fetchBookingsByNINAction // <-- Nova action importada aqui
+  fetchBookingsByNINAction
 } from "@/actions/clinic.actions";
+import { loadRagAction } from "@/actions/rag.actions";
 
 // Validação de segurança: Só o n8n pode chamar essa rota
 function verifyN8nAuth(request: Request) {
@@ -70,12 +71,16 @@ export async function POST(request: Request) {
           payload.endDate
         ));
 
-      // --- NOVA ROTA: CONSULTAR TODOS AGENDAMENTOS POR CPF ---
+      // --- CONSULTAR TODOS AGENDAMENTOS POR CPF ---
       case "GET_BOOKINGS_BY_CPF":
         return NextResponse.json(await fetchBookingsByNINAction(
           payload.nin,
           payload.birthday
         ));
+
+      // --- PERSONALIDADE DA IA + MÉDICO CONFIGURADO ---
+      case "GET_PERSONALITY":
+        return NextResponse.json(await loadRagAction());
 
       default:
         return NextResponse.json({ success: false, error: `Action '${action}' not supported.` }, { status: 400 });
