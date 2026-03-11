@@ -9,7 +9,8 @@ import {
   fetchSingleDoctorAction,
   fetchDoctorsAction,
   fetchPatientBookingsAction,
-  fetchBookingsByNINAction
+  fetchBookingsByNINAction,
+  createPrescriptionRequestAction // <-- Nova action importada aqui
 } from "@/actions/clinic.actions";
 import { loadRagAction } from "@/actions/rag.actions";
 
@@ -77,6 +78,10 @@ export async function POST(request: Request) {
           payload.nin,
           payload.birthday
         ));
+
+      // --- NOVA ROTA: SALVAR SOLICITAÇÃO DE RECEITA ---
+      case "CREATE_PRESCRIPTION":
+        return NextResponse.json(await createPrescriptionRequestAction(payload));
 
       // --- PERSONALIDADE DA IA + MÉDICO CONFIGURADO ---
       case "GET_PERSONALITY":

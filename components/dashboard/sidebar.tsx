@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { ChevronLeft, ChevronRight, LayoutDashboard, CalendarDays, Users, Stethoscope, Settings, LogOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, LayoutDashboard, CalendarDays, Users, Stethoscope, Pill, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AnimatedThemeToggle } from "@/components/animated-theme-toggle";
@@ -21,6 +21,7 @@ export function DashboardSidebar({ isOpen, setIsOpen }: SidebarProps) {
     { icon: CalendarDays, label: "Agendamentos", href: "/dashboard/bookings" },
     { icon: Users, label: "Pacientes", href: "/dashboard/patients" },
     { icon: Stethoscope, label: "Corpo Clínico", href: "/dashboard/doctors" },
+    { icon: Pill, label: "Receitas", href: "/dashboard/prescriptions" },
   ];
 
   return (

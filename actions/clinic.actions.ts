@@ -1,5 +1,6 @@
 "use server";
 
+import prisma from "@/lib/prisma";
 import { ClinicService } from "@/services/clinic.service";
 
 // --- Actions de Listagem ---
@@ -170,5 +171,54 @@ export async function fetchBookingByIdAction(doctorId: string, addressId: string
   } catch (error: any) {
     console.error("[Clinic API Error] fetchBookingByIdAction:", error.message);
     return { success: false, error: "Falha ao buscar detalhes do agendamento." };
+  }
+}
+
+export async function createPrescriptionRequestAction(data: {
+  patientName: string;
+  birthDate: string;
+  unimedCard: string;
+  address: string;
+  medications: string;
+}) {
+  try {
+    const request = await prisma.prescriptionRequest.create({
+      data: {
+        patientName: data.patientName,
+        birthDate: data.birthDate,
+        unimedCard: data.unimedCard,
+        address: data.address,
+        medications: data.medications,
+      }
+    });
+    return { success: true, data: request };
+  } catch (error: any) {
+    console.error("Erro ao criar solicitação de receita:", error);
+    return { success: false, error: "Falha ao salvar a solicitação de receita." };
+  }
+}
+
+export async function fetchPrescriptionRequestsAction() {
+  try {
+    const requests = await prisma.prescriptionRequest.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    return { success: true, data: requests };
+  } catch (error: any) {
+    console.error("Erro ao buscar solicitações de receita:", error);
+    return { success: false, error: "Falha ao buscar solicitações." };
+  }
+}
+
+export async function updatePrescriptionStatusAction(id: string, status: string) {
+  try {
+    const updated = await prisma.prescriptionRequest.update({
+      where: { id },
+      data: { status },
+    });
+    return { success: true, data: updated };
+  } catch (error: any) {
+    console.error("Erro ao atualizar status da receita:", error);
+    return { success: false, error: "Falha ao atualizar status." };
   }
 }

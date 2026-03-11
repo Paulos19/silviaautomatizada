@@ -34,3 +34,15 @@ model AiPersonality {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+model PrescriptionRequest {
+  id          String   @id @default(cuid())
+  patientName String
+  birthDate   String
+  unimedCard  String
+  address     String
+  medications String
+  status      String   @default("PENDENTE") // PENDENTE, CONCLUIDO, REJEITADO
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
