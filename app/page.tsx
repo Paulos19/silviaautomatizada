@@ -1,48 +1,51 @@
-import { HeroScrollSequence } from "@/components/landing/hero-scroll-sequence";
 import { LandingHeader } from "@/components/landing/landing-header";
-import { AboutSection } from "@/components/landing/about-section";
+import { HeroFuturistic } from "@/components/landing/hero-futuristic";
+import { DeconstructedFeatures } from "@/components/landing/deconstructed-features";
+import { N8nFeaturesGrid } from "@/components/landing/n8n-features-grid";
+import { ScrollDiveShowcase } from "@/components/landing/scroll-dive-showcase";
 import { VideoSection } from "@/components/landing/video-section";
-import { CreatorSection } from "@/components/landing/creator-section";
 import { ScrollMorphHero } from "@/components/landing/scroll-morph-hero";
 import { ContactSection } from "@/components/landing/contact-section";
 import { SuperFooter } from "@/components/landing/super-footer";
-import { ForceDarkTheme } from "@/components/force-dark-theme";
+import { LandingScrollWrapper } from "@/components/landing/landing-scroll-wrapper";
 
 export default function Home() {
   return (
-    <div className="flex flex-col min-h-screen bg-black font-sans selection:bg-teal-500/30">
-
-      <ForceDarkTheme />
-
-      {/* Fixed Header */}
+    <LandingScrollWrapper>
+      {/* Dynamic Header */}
       <LandingHeader />
 
-      {/* 1. Hero — Dive Scroll Video Frames */}
-      <HeroScrollSequence />
+      {/* 1. Light Theme Hero */}
+      <HeroFuturistic />
 
-      {/* 2. Manifesto — "Inteligência que cuida." */}
-      <div id="about">
-        <AboutSection />
-      </div>
-
-      {/* 3. Features — 4 Funções da Silvia */}
+      {/* 2. Deconstructed Modules - Light */}
       <div id="features">
-        <CreatorSection />
+        <DeconstructedFeatures />
       </div>
 
-      {/* 4. Product — Cinematic Video Section */}
+      {/* 3. n8n Integrations - Light Bento Grid */}
+      <div id="n8n-features">
+        <N8nFeaturesGrid />
+      </div>
+
+      {/* 4. The Dive - Dark Cinematic Showcase */}
+      <div id="core">
+        <ScrollDiveShowcase />
+      </div>
+
+      {/* 5. Product — Cinematic Video Section */}
       <VideoSection />
 
-      {/* 5. Trust Strip — Stats & Social Proof */}
+      {/* 6. Trust Strip — Stats & Social Proof */}
       <ScrollMorphHero />
 
-      {/* 6. CTA — Final Call to Action */}
+      {/* 7. CTA — Final Call to Action */}
       <div id="contact">
         <ContactSection />
       </div>
 
-      {/* 7. Footer */}
+      {/* 8. Footer */}
       <SuperFooter />
-    </div>
+    </LandingScrollWrapper>
   );
 }
