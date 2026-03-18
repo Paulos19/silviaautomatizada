@@ -20,6 +20,7 @@ import {
     FileText,
     Sparkles,
     AlertCircle,
+    Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, Variants } from "framer-motion";
@@ -340,6 +341,7 @@ export default function PrescriptionsPage() {
     const [loading, setLoading] = useState(true);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [filter, setFilter] = useState<"ALL" | "PENDENTE" | "CONCLUIDO" | "REJEITADO">("ALL");
+    const [searchTerm, setSearchTerm] = useState("");
 
     useEffect(() => {
         loadRequests();
@@ -365,13 +367,20 @@ export default function PrescriptionsPage() {
         setUpdatingId(null);
     };
 
-    const filtered = filter === "ALL" ? requests : requests.filter((r) => r.status === filter);
+    const searchFilteredRequests = searchTerm === ""
+        ? requests
+        : requests.filter((r) =>
+            r.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            r.unimedCard.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+    const filtered = filter === "ALL" ? searchFilteredRequests : searchFilteredRequests.filter((r) => r.status === filter);
 
     const counts = {
-        ALL: requests.length,
-        PENDENTE: requests.filter((r) => r.status === "PENDENTE").length,
-        CONCLUIDO: requests.filter((r) => r.status === "CONCLUIDO").length,
-        REJEITADO: requests.filter((r) => r.status === "REJEITADO").length,
+        ALL: searchFilteredRequests.length,
+        PENDENTE: searchFilteredRequests.filter((r) => r.status === "PENDENTE").length,
+        CONCLUIDO: searchFilteredRequests.filter((r) => r.status === "CONCLUIDO").length,
+        REJEITADO: searchFilteredRequests.filter((r) => r.status === "REJEITADO").length,
     };
 
     return (
@@ -382,7 +391,7 @@ export default function PrescriptionsPage() {
             className="w-full space-y-8 text-slate-200"
         >
             {/* ═══ HEADER ═══ */}
-            <motion.div variants={item} className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <motion.div variants={item} className="flex flex-col gap-6">
                 <div>
                     <h1 className="text-3xl font-outfit font-semibold text-white tracking-tight">
                         Receitas
@@ -391,52 +400,68 @@ export default function PrescriptionsPage() {
                         Solicitações de renovação de receita recebidas via WhatsApp.
                     </p>
                 </div>
-                <div className="flex items-center gap-1.5 bg-[#111A28]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-1">
-                    {(["ALL", "PENDENTE", "CONCLUIDO", "REJEITADO"] as const).map((f) => {
-                        const labels: Record<string, string> = {
-                            ALL: "Todas",
-                            PENDENTE: "Pendentes",
-                            CONCLUIDO: "Concluídas",
-                            REJEITADO: "Rejeitadas",
-                        };
-                        const colors: Record<string, string> = {
-                            ALL: "teal",
-                            PENDENTE: "amber",
-                            CONCLUIDO: "emerald",
-                            REJEITADO: "rose",
-                        };
-                        const isActive = filter === f;
-                        const c = colors[f];
-                        return (
-                            <button
-                                key={f}
-                                onClick={() => setFilter(f)}
-                                className={cn(
-                                    "px-3 py-1.5 rounded-xl text-xs font-inter font-medium transition-all duration-300 flex items-center gap-1.5",
-                                    isActive
-                                        ? `bg-${c}-500/15 text-${c}-400 border border-${c}-500/30`
-                                        : "text-slate-500 hover:text-slate-300 border border-transparent"
-                                )}
-                                style={
-                                    isActive
-                                        ? {
-                                            backgroundColor: `color-mix(in srgb, var(--color-${c}-500, ${c === "teal" ? "#14b8a6" : c === "amber" ? "#f59e0b" : c === "emerald" ? "#10b981" : "#f43f5e"}) 15%, transparent)`,
-                                            color: c === "teal" ? "#2dd4bf" : c === "amber" ? "#fbbf24" : c === "emerald" ? "#34d399" : "#fb7185",
-                                            borderColor: `color-mix(in srgb, var(--color-${c}-500, ${c === "teal" ? "#14b8a6" : c === "amber" ? "#f59e0b" : c === "emerald" ? "#10b981" : "#f43f5e"}) 30%, transparent)`,
-                                        }
-                                        : undefined
-                                }
-                            >
-                                {labels[f]}
-                                <span className={cn(
-                                    "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
-                                    isActive ? "bg-white/10" : "bg-white/5"
-                                )}>
-                                    {counts[f]}
-                                </span>
-                            </button>
-                        );
-                    })}
+
+                {/* ═══ CONTROLS (SEARCH & FILTERS) ═══ */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="relative w-full sm:w-80">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="h-4 w-4 text-slate-500" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Buscar paciente ou carteirinha..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2.5 bg-[#111A28]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-sm font-inter text-slate-200 placeholder-slate-500 focus:outline-none focus:border-teal-500/30 transition-all font-medium"
+                        />
+                    </div>
+                    <div className="flex items-center self-start sm:self-auto gap-1.5 bg-[#111A28]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-1 overflow-x-auto max-w-full">
+                        {(["ALL", "PENDENTE", "CONCLUIDO", "REJEITADO"] as const).map((f) => {
+                            const labels: Record<string, string> = {
+                                ALL: "Todas",
+                                PENDENTE: "Pendentes",
+                                CONCLUIDO: "Concluídas",
+                                REJEITADO: "Rejeitadas",
+                            };
+                            const colors: Record<string, string> = {
+                                ALL: "teal",
+                                PENDENTE: "amber",
+                                CONCLUIDO: "emerald",
+                                REJEITADO: "rose",
+                            };
+                            const isActive = filter === f;
+                            const c = colors[f];
+                            return (
+                                <button
+                                    key={f}
+                                    onClick={() => setFilter(f)}
+                                    className={cn(
+                                        "px-3 py-1.5 rounded-xl text-xs font-inter font-medium transition-all duration-300 flex items-center gap-1.5",
+                                        isActive
+                                            ? `bg-${c}-500/15 text-${c}-400 border border-${c}-500/30`
+                                            : "text-slate-500 hover:text-slate-300 border border-transparent"
+                                    )}
+                                    style={
+                                        isActive
+                                            ? {
+                                                backgroundColor: `color-mix(in srgb, var(--color-${c}-500, ${c === "teal" ? "#14b8a6" : c === "amber" ? "#f59e0b" : c === "emerald" ? "#10b981" : "#f43f5e"}) 15%, transparent)`,
+                                                color: c === "teal" ? "#2dd4bf" : c === "amber" ? "#fbbf24" : c === "emerald" ? "#34d399" : "#fb7185",
+                                                borderColor: `color-mix(in srgb, var(--color-${c}-500, ${c === "teal" ? "#14b8a6" : c === "amber" ? "#f59e0b" : c === "emerald" ? "#10b981" : "#f43f5e"}) 30%, transparent)`,
+                                            }
+                                            : undefined
+                                    }
+                                >
+                                    {labels[f]}
+                                    <span className={cn(
+                                        "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                                        isActive ? "bg-white/10" : "bg-white/5"
+                                    )}>
+                                        {counts[f]}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
             </motion.div>
 
