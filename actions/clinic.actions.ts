@@ -107,9 +107,20 @@ export async function createPatientAction(payload: Record<string, any>) {
 
 export async function fetchFreeSlotsAction(doctorId: string, addressId: string, startDate: string, endDate: string) {
   if (!doctorId || !addressId || !startDate || !endDate) return { success: false, error: "Parâmetros incompletos." };
+
   try {
     const response = await ClinicService.getFreeSlots(doctorId, addressId, startDate, endDate);
-    return { success: true, data: response.result.items || [] };
+    let slots = response.result.items || [];
+
+    // 1. Opcional, mas recomendado: Garantir que estão em ordem cronológica
+    // Assumindo que o slot tenha uma propriedade como 'start' ou 'time' (ajuste conforme o seu schema)
+    // slots.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+
+    // 2. CORTE DE SEGURANÇA (ANTI-ALUCINAÇÃO):
+    // Só enviamos os 10 primeiros horários livres para a IA não se perder no texto longo.
+    const limitedSlots = slots.slice(0, 10);
+
+    return { success: true, data: limitedSlots };
   } catch (error: any) {
     console.error("[Clinic API Error] getFreeSlots:", error.message);
     return { success: false, error: "Falha ao buscar horários livres." };
