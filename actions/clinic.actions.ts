@@ -132,12 +132,11 @@ export async function fetchFreeSlotsAction(doctorId: string, addressId: string, 
     let slots = response.result.items || [];
 
     // 1. Opcional, mas recomendado: Garantir que estão em ordem cronológica
-    // Assumindo que o slot tenha uma propriedade como 'start' ou 'time' (ajuste conforme o seu schema)
-    // slots.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+    // slots.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
-    // 2. CORTE DE SEGURANÇA (ANTI-ALUCINAÇÃO):
-    // Só enviamos os 10 primeiros horários livres para a IA não se perder no texto longo.
-    const limitedSlots = slots.slice(0, 10);
+    // 2. CORTE AJUSTADO: 30 horários garantem bons dias de agenda 
+    // sem estourar a janela de contexto (tokens) da IA.
+    const limitedSlots = slots.slice(0, 30);
 
     return { success: true, data: limitedSlots };
   } catch (error: any) {
