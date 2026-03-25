@@ -98,7 +98,7 @@ export async function createPatientAction(payload: Record<string, any>) {
       payload.nin = payload.nin.replace(/\D/g, '');
     }
 
-    // 3. NOVO: Tratamento de Data de Nascimento (Garante o formato YYYY-MM-DD)
+    // 3. Tratamento de Data de Nascimento (Garante o formato YYYY-MM-DD)
     if (payload.birthday && payload.birthday.includes('/')) {
       const [day, month, year] = payload.birthday.split('/');
       // Converte DD/MM/YYYY para YYYY-MM-DD
@@ -107,13 +107,23 @@ export async function createPatientAction(payload: Record<string, any>) {
       }
     }
 
-    // 4. NOVO: Tratamento do Convênio e Carteirinha
-    // Se a IA enviar a carteirinha (ex: cardNumber), precisamos alocar no campo correto da API.
-    // *Verifique com o suporte da Clinic API se eles usam 'cns', 'healthInsurancePlan' ou 'obs' para a carteirinha Unimed.
+    // 4. Tratamento do Convênio e Carteirinha (Atualizado)
+    // O n8n agora envia diretamente a chave "registration" quando o paciente pede para atualizar.
+    // A API Legacy receberá o campo "registration" nativamente no payload e deverá salvá-lo.
+
+    // Caso a API da clínica exija que esse número vá mapeado em outro campo na hora do POST 
+    // (por exemplo, dentro de healthInsurancePlan), você pode descomentar o bloco abaixo:
+    /*
+    if (payload.registration) {
+      payload.healthInsurancePlan = payload.registration;
+      // delete payload.registration; // Descomente apenas se a API der erro com 'registration'
+    }
+    */
+
+    // Removemos resquícios do 'cardNumber' antigo para garantir que não quebre a API
+    // caso a IA acabe enviando esse campo por engano devido ao histórico.
     if (payload.cardNumber) {
-      payload.healthInsurancePlan = payload.cardNumber; // Exemplo: mapeando para o campo do plano
-      // payload.obs = `Carteirinha Unimed: ${payload.cardNumber}`; // (Alternativa se a API não aceitar no campo acima)
-      delete payload.cardNumber; // Removemos o campo virtual para não quebrar a API
+      delete payload.cardNumber;
     }
 
     const response = await ClinicService.createOrUpdatePatient(payload);
