@@ -39,7 +39,11 @@ export async function POST(request: Request) {
         return NextResponse.json(await createPatientAction(payload));
 
       case "GET_SLOTS": {
-        const startDateObj = new Date(payload.startDate || new Date());
+        // Garante que se a IA não mandar startDate, usemos hoje
+        const todayStr = new Date().toISOString().split('T')[0];
+        const startDate = payload.startDate?.trim() ? payload.startDate : todayStr;
+        const startDateObj = new Date(startDate);
+
         let finalEndDate = payload.endDate;
 
         // Se a IA NÃO enviou uma data final (ou enviou vazio), calculamos 90 dias de segurança
@@ -50,25 +54,24 @@ export async function POST(request: Request) {
         }
 
         // 1. Fazemos a busca original solicitada pela IA
-        let result = await fetchFreeSlotsAction(
+        let result: any = await fetchFreeSlotsAction(
           payload.doctorId,
           payload.addressId,
-          payload.startDate,
+          startDate,
           finalEndDate
         );
 
         // 2. INTERVENÇÃO ANTI-ALUCINAÇÃO:
-        // Se a busca voltou vazia E o paciente tinha pedido um período específico (endDate preenchido)
-        // Nós mesmos fazemos a 2ª busca por ela e já devolvemos as próximas vagas!
-        if (result && result.data && result.data.length === 0 && payload.endDate && payload.endDate.trim() !== "") {
+        // Se a busca voltou vazia E o paciente tinha pedido um período específico (endDate original estava preenchido)
+        if (result?.success && Array.isArray(result?.data) && result.data.length === 0 && payload.endDate?.trim()) {
           const fallbackStartDateObj = new Date(); // Começa a buscar de hoje
           const fallbackEndDateObj = new Date();
-          fallbackEndDateObj.setDate(fallbackEndDateObj.getDate() + 90); // Até 90 dias
+          fallbackEndDateObj.setDate(fallbackEndDateObj.getDate() + 90); // Até 90 dias para frente
 
           const fallbackStartDate = fallbackStartDateObj.toISOString().split('T')[0];
           const fallbackEndDate = fallbackEndDateObj.toISOString().split('T')[0];
 
-          const fallbackResult = await fetchFreeSlotsAction(
+          const fallbackResult: any = await fetchFreeSlotsAction(
             payload.doctorId,
             payload.addressId,
             fallbackStartDate,
@@ -77,8 +80,8 @@ export async function POST(request: Request) {
 
           return NextResponse.json({
             success: true,
-            data: fallbackResult.data,
-            _aviso_sistema: "Não há vagas no período exato solicitado. O sistema fez uma busca estendida e retornou as vagas disponíveis para os próximos 90 dias."
+            data: fallbackResult?.data || [],
+            _aviso_sistema: "ATENÇÃO IA: Não há vagas disponíveis para o período exato que o paciente solicitou. O sistema realizou uma busca estendida e retornou as vagas mais próximas. Informe isso ao paciente gentilmente e ofereça estas novas opções."
           });
         }
 
