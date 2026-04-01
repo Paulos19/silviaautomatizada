@@ -49,12 +49,40 @@ export async function POST(request: Request) {
           finalEndDate = endDateObj.toISOString().split('T')[0];
         }
 
-        return NextResponse.json(await fetchFreeSlotsAction(
+        // 1. Fazemos a busca original solicitada pela IA
+        let result = await fetchFreeSlotsAction(
           payload.doctorId,
           payload.addressId,
           payload.startDate,
           finalEndDate
-        ));
+        );
+
+        // 2. INTERVENÇÃO ANTI-ALUCINAÇÃO:
+        // Se a busca voltou vazia E o paciente tinha pedido um período específico (endDate preenchido)
+        // Nós mesmos fazemos a 2ª busca por ela e já devolvemos as próximas vagas!
+        if (result && result.data && result.data.length === 0 && payload.endDate && payload.endDate.trim() !== "") {
+          const fallbackStartDateObj = new Date(); // Começa a buscar de hoje
+          const fallbackEndDateObj = new Date();
+          fallbackEndDateObj.setDate(fallbackEndDateObj.getDate() + 90); // Até 90 dias
+
+          const fallbackStartDate = fallbackStartDateObj.toISOString().split('T')[0];
+          const fallbackEndDate = fallbackEndDateObj.toISOString().split('T')[0];
+
+          const fallbackResult = await fetchFreeSlotsAction(
+            payload.doctorId,
+            payload.addressId,
+            fallbackStartDate,
+            fallbackEndDate
+          );
+
+          return NextResponse.json({
+            success: true,
+            data: fallbackResult.data,
+            _aviso_sistema: "Não há vagas no período exato solicitado. O sistema fez uma busca estendida e retornou as vagas disponíveis para os próximos 90 dias."
+          });
+        }
+
+        return NextResponse.json(result);
       }
 
       case "BOOK_SLOT":
