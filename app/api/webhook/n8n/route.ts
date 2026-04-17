@@ -122,7 +122,8 @@ export async function POST(request: Request) {
         return NextResponse.json(await fetchBookingsByNINAction(
           payload.nin,
           payload.birthday,
-          payload.doctorId // <- Adicionado aqui
+          payload.doctorId,
+          payload.addressId // <-- ADICIONADO AQUI
         ));
 
       // --- NOVA ROTA: SALVAR SOLICITAÇÃO DE RECEITA ---

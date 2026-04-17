@@ -173,11 +173,13 @@ export async function fetchPatientBookingsAction(doctorId: string, addressId: st
 }
 
 // 🔥 A ACTION BLINDADA DE BUSCA POR CPF
-export async function fetchBookingsByNINAction(nin: string, birthday: string, doctorId: string) {
-  if (!nin || !birthday || !doctorId) return { success: false, error: "CPF, Data e ID do Médico são obrigatórios." };
+export async function fetchBookingsByNINAction(nin: string, birthday: string, doctorId: string, addressId: string) {
+  // 1. Validação incluindo o addressId agora
+  if (!nin || !birthday || !doctorId || !addressId) {
+    return { success: false, error: "CPF, Data, ID do Médico e ID do Endereço são obrigatórios." };
+  }
 
   try {
-    // 1. Limpeza rigorosa
     const cleanNin = nin.replace(/\D/g, '');
 
     let cleanBirthday = birthday;
@@ -186,7 +188,7 @@ export async function fetchBookingsByNINAction(nin: string, birthday: string, do
       if (day && month && year) cleanBirthday = `${year}-${month}-${day}`;
     }
 
-    // 2. Consulta usando getPatients (O método mais seguro que não dá erro 404)
+    // 2. Buscar o ID do paciente (como você validou ser necessário)
     const patientRes = await ClinicService.getPatients(cleanNin, 1, 10);
     const patientItems = patientRes.result?.items || [];
 
@@ -196,7 +198,7 @@ export async function fetchBookingsByNINAction(nin: string, birthday: string, do
 
     const patientId = patientItems[0].id.toString();
 
-    // 3. Monta a janela de datas (Hoje até 90 dias para frente)
+    // 3. Montar janela de 90 dias
     const today = new Date();
     const start_date = today.toISOString().split('T')[0];
 
@@ -204,28 +206,26 @@ export async function fetchBookingsByNINAction(nin: string, birthday: string, do
     end.setDate(end.getDate() + 90);
     const end_date = end.toISOString().split('T')[0];
 
-    // 4. Busca os agendamentos usando a rota oficial que exige o patient_id
-    const bookingsRes = await ClinicService.getPatientBookings(doctorId, "1", patientId, start_date, end_date);
+    // 4. A BUSCA CORRIGIDA: Agora usamos o 'addressId' dinâmico em vez de "1"
+    const bookingsRes = await ClinicService.getPatientBookings(doctorId, addressId, patientId, start_date, end_date);
     const bookings = bookingsRes.result?.items || [];
 
-    // 5. Injeta o aviso (Anti-Alucinação) para a IA caso a lista venha vazia
+    // 5. Tratamento para a IA
     if (bookings.length === 0) {
       return {
         success: true,
         data: [],
-        _aviso_sistema: `ATENÇÃO IA: O paciente foi encontrado no sistema (ID: ${patientId}), mas NÃO há consultas agendadas para ele nos próximos 90 dias com este médico. Envie uma mensagem simpática avisando isso e pergunte qual foi o dia/mês aproximado que ele agendou para pesquisarmos novamente.`
+        _aviso_sistema: `ATENÇÃO IA: O paciente foi encontrado (ID: ${patientId}), mas NÃO há consultas nos próximos 90 dias neste médico/endereço. Avise educadamente e pergunte qual foi o dia/mês que ele agendou para pesquisarmos novamente.`
       };
     }
 
-    // Se tem agendamento, retorna a lista
     return { success: true, data: bookings };
 
   } catch (error: any) {
     console.error("[Clinic API Error] fetchBookingsByNINAction:", error);
-    // Repassa o erro exato para o n8n
     return {
       success: false,
-      error: `Falha interna: ${error.message || "Erro desconhecido ao falar com a Clinic."}`
+      error: `Falha interna: ${error.message}`
     };
   }
 }
