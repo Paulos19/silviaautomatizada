@@ -163,12 +163,33 @@ export async function cancelBookingAction(doctorId: string, addressId: string, b
 }
 
 export async function fetchPatientBookingsAction(doctorId: string, addressId: string, patientId: string, startDate: string, endDate: string) {
+  // 1. Validação estrita
+  if (!doctorId || !addressId || !patientId || !startDate || !endDate) {
+    return { success: false, error: "Parâmetros incompletos. doctorId, addressId, patientId, startDate e endDate são obrigatórios." };
+  }
+
   try {
+    // 2. Chama a API da clínica
     const response = await ClinicService.getPatientBookings(doctorId, addressId, patientId, startDate, endDate);
-    return { success: true, data: response };
+    const bookings = response.result?.items || [];
+
+    // 3. Fallback inteligente (Anti-alucinação)
+    if (bookings.length === 0) {
+      return {
+        success: true,
+        data: [],
+        _aviso_sistema: "ATENÇÃO IA: A busca foi realizada com sucesso, mas NÃO existem agendamentos para este paciente neste período. Informe isso ao paciente de forma amigável."
+      };
+    }
+
+    return { success: true, data: bookings };
+
   } catch (error: any) {
-    console.error("[Clinic API Error] getPatientBookings:", error.message);
-    return { success: false, error: "Falha ao buscar agendamentos." };
+    console.error("[Clinic API Error] fetchPatientBookingsAction:", error);
+    return {
+      success: false,
+      error: `Erro na busca de agendamentos: ${error.message}`
+    };
   }
 }
 
