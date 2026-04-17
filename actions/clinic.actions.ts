@@ -84,7 +84,7 @@ export async function checkPatientExistsAction(nin: string, birthday: string) {
 // --- Actions de Agendamento e Criação ---
 export async function createPatientAction(payload: Record<string, any>) {
   try {
-    // 1. Limpeza de Celular
+    // 1. Limpeza de Celular (Já estava no seu código)
     if (payload.mobile && typeof payload.mobile === 'string') {
       let cleanMobile = payload.mobile.replace(/\D/g, '');
       if (cleanMobile.startsWith('55') && cleanMobile.length === 13) {
@@ -93,20 +93,35 @@ export async function createPatientAction(payload: Record<string, any>) {
       payload.mobile = cleanMobile.substring(0, 11);
     }
 
-    // 2. Limpeza de CPF
+    // 2. Limpeza de CPF (Já estava no seu código)
     if (payload.nin && typeof payload.nin === 'string') {
       payload.nin = payload.nin.replace(/\D/g, '');
     }
 
-    // 3. Tratamento de Data de Nascimento (Garante YYYY-MM-DD)
+    // 3. Tratamento de Data de Nascimento (Garante o formato YYYY-MM-DD)
     if (payload.birthday && payload.birthday.includes('/')) {
       const [day, month, year] = payload.birthday.split('/');
+      // Converte DD/MM/YYYY para YYYY-MM-DD
       if (day && month && year) {
         payload.birthday = `${year}-${month}-${day}`;
       }
     }
 
-    // Limpeza de campos legados que quebram a API
+    // 4. Tratamento do Convênio e Carteirinha (Atualizado)
+    // O n8n agora envia diretamente a chave "registration" quando o paciente pede para atualizar.
+    // A API Legacy receberá o campo "registration" nativamente no payload e deverá salvá-lo.
+
+    // Caso a API da clínica exija que esse número vá mapeado em outro campo na hora do POST 
+    // (por exemplo, dentro de healthInsurancePlan), você pode descomentar o bloco abaixo:
+    /*
+    if (payload.registration) {
+      payload.healthInsurancePlan = payload.registration;
+      // delete payload.registration; // Descomente apenas se a API der erro com 'registration'
+    }
+    */
+
+    // Removemos resquícios do 'cardNumber' antigo para garantir que não quebre a API
+    // caso a IA acabe enviando esse campo por engano devido ao histórico.
     if (payload.cardNumber) {
       delete payload.cardNumber;
     }
@@ -126,7 +141,11 @@ export async function fetchFreeSlotsAction(doctorId: string, addressId: string, 
     const response = await ClinicService.getFreeSlots(doctorId, addressId, startDate, endDate);
     let slots = response.result.items || [];
 
-    // Limite de 30 horários para proteger a janela de contexto da IA
+    // 1. Opcional, mas recomendado: Garantir que estão em ordem cronológica
+    // slots.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+    // 2. CORTE AJUSTADO: 30 horários garantem bons dias de agenda 
+    // sem estourar a janela de contexto (tokens) da IA.
     const limitedSlots = slots.slice(0, 30);
 
     return { success: true, data: limitedSlots };
@@ -163,91 +182,23 @@ export async function cancelBookingAction(doctorId: string, addressId: string, b
 }
 
 export async function fetchPatientBookingsAction(doctorId: string, addressId: string, patientId: string, startDate: string, endDate: string) {
-  // 1. Validação estrita
-  if (!doctorId || !addressId || !patientId || !startDate || !endDate) {
-    return { success: false, error: "Parâmetros incompletos. doctorId, addressId, patientId, startDate e endDate são obrigatórios." };
-  }
-
   try {
-    // 2. Chama a API da clínica
     const response = await ClinicService.getPatientBookings(doctorId, addressId, patientId, startDate, endDate);
-    const bookings = response.result?.items || [];
-
-    // 3. Fallback inteligente (Anti-alucinação)
-    if (bookings.length === 0) {
-      return {
-        success: true,
-        data: [],
-        _aviso_sistema: "ATENÇÃO IA: A busca foi realizada com sucesso, mas NÃO existem agendamentos para este paciente neste período. Informe isso ao paciente de forma amigável."
-      };
-    }
-
-    return { success: true, data: bookings };
-
+    return { success: true, data: response };
   } catch (error: any) {
-    console.error("[Clinic API Error] fetchPatientBookingsAction:", error);
-    return {
-      success: false,
-      error: `Erro na busca de agendamentos: ${error.message}`
-    };
+    console.error("[Clinic API Error] getPatientBookings:", error.message);
+    return { success: false, error: "Falha ao buscar agendamentos." };
   }
 }
 
-// 🔥 A ACTION BLINDADA DE BUSCA POR CPF
-export async function fetchBookingsByNINAction(nin: string, birthday: string, doctorId: string, addressId: string) {
-  // 1. Validação incluindo o addressId agora
-  if (!nin || !birthday || !doctorId || !addressId) {
-    return { success: false, error: "CPF, Data, ID do Médico e ID do Endereço são obrigatórios." };
-  }
-
+export async function fetchBookingsByNINAction(nin: string, birthday: string) {
+  if (!nin || !birthday) return { success: false, error: "Parâmetros incompletos." };
   try {
-    const cleanNin = nin.replace(/\D/g, '');
-
-    let cleanBirthday = birthday;
-    if (cleanBirthday.includes('/')) {
-      const [day, month, year] = cleanBirthday.split('/');
-      if (day && month && year) cleanBirthday = `${year}-${month}-${day}`;
-    }
-
-    // 2. Buscar o ID do paciente (como você validou ser necessário)
-    const patientRes = await ClinicService.getPatients(cleanNin, 1, 10);
-    const patientItems = patientRes.result?.items || [];
-
-    if (patientItems.length === 0) {
-      return { success: false, error: "Paciente não encontrado no sistema da clínica com este CPF." };
-    }
-
-    const patientId = patientItems[0].id.toString();
-
-    // 3. Montar janela de 90 dias
-    const today = new Date();
-    const start_date = today.toISOString().split('T')[0];
-
-    const end = new Date();
-    end.setDate(end.getDate() + 90);
-    const end_date = end.toISOString().split('T')[0];
-
-    // 4. A BUSCA CORRIGIDA: Agora usamos o 'addressId' dinâmico em vez de "1"
-    const bookingsRes = await ClinicService.getPatientBookings(doctorId, addressId, patientId, start_date, end_date);
-    const bookings = bookingsRes.result?.items || [];
-
-    // 5. Tratamento para a IA
-    if (bookings.length === 0) {
-      return {
-        success: true,
-        data: [],
-        _aviso_sistema: `ATENÇÃO IA: O paciente foi encontrado (ID: ${patientId}), mas NÃO há consultas nos próximos 90 dias neste médico/endereço. Avise educadamente e pergunte qual foi o dia/mês que ele agendou para pesquisarmos novamente.`
-      };
-    }
-
-    return { success: true, data: bookings };
-
+    const response = await ClinicService.getBookingsByNIN(nin, birthday);
+    return { success: true, data: response.result };
   } catch (error: any) {
-    console.error("[Clinic API Error] fetchBookingsByNINAction:", error);
-    return {
-      success: false,
-      error: `Falha interna: ${error.message}`
-    };
+    console.error("[Clinic API Error] fetchBookingsByNINAction:", error.message);
+    return { success: false, error: "Falha ao buscar agendamentos por CPF/NIN." };
   }
 }
 

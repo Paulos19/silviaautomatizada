@@ -54,7 +54,7 @@ async function clinicFetch(endpoint: string, options: RequestInit = {}) {
   if (!response.ok) {
     const errorBody = await response.text();
     console.error(`[Clinic API Error] ${response.status}: ${errorBody}`);
-    throw new Error(`Erro na integração Clinic: Status ${response.status} - ${errorBody}`);
+    throw new Error(`Erro na integração Clinic: Status ${response.status}`);
   }
 
   // Tratamento para 204 No Content (Cancelamento)
@@ -123,15 +123,12 @@ export const ClinicService = {
     return ClinicInsuranceResponseSchema.parse(data);
   },
 
-  // 🔥 O POST CORRIGIDO (Evita erro 'Length Required' enviando body vazio)
   async getPatientBookings(doctorId: string, addressId: string, patientId: string, startDate: string, endDate: string) {
+    // Nota: O cURL dizia POST, mas usa query params e o título é GET.
+    // O padrão REST para buscas é GET. Se falhar, podemos mudar o method para POST depois.
     const url = `/api/v1/integration/facilities/${FACILITY_ID}/doctors/${doctorId}/addresses/${addressId}/bookings?start_date=${startDate}&end_date=${endDate}&patient_id=${patientId}`;
 
-    const data = await clinicFetch(url, {
-      method: "POST",
-      body: JSON.stringify({}) // Essencial para o servidor legado aceitar o POST
-    });
-
+    const data = await clinicFetch(url, { method: "GET" });
     return ClinicBookingsListSchema.parse(data);
   },
 

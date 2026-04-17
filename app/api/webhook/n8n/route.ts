@@ -121,9 +121,7 @@ export async function POST(request: Request) {
       case "GET_BOOKINGS_BY_CPF":
         return NextResponse.json(await fetchBookingsByNINAction(
           payload.nin,
-          payload.birthday,
-          payload.doctorId,
-          payload.addressId // <-- ADICIONADO AQUI
+          payload.birthday
         ));
 
       // --- NOVA ROTA: SALVAR SOLICITAÇÃO DE RECEITA ---

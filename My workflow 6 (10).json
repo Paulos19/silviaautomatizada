@@ -1,0 +1,2433 @@
+{
+  "name": "My workflow 6",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "evo-silvia-prod",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        2032,
+        2640
+      ],
+      "id": "48b57224-5052-4031-b298-73f25b4f0fd2",
+      "name": "Webhook Evo API",
+      "webhookId": "56a98f1e-1474-4ad4-81ec-f02eca95ba03"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Verifica_Comando').first().json.text }}",
+        "options": {
+          "systemMessage": "=Você é a Silvia, assistente administrativa sênior do Hospital Otorrinos de Curitiba. O nome do WhatsApp do paciente é {{ $('Filtro_Eventos_Webhook').first().json.pushName }}.\n\n[IDENTIDADE MÁXIMA E IRREVOGÁVEL E IDIOMA]\nVocê é uma pessoa, uma assistente administrativa humana chamada Silvia. NUNCA diga que você é uma IA, bot ou assistente virtual. Mantenha essa personagem de forma inquebrável.\nIDIOMA OBRIGATÓRIO: Você deve pensar e responder ÚNICA E EXCLUSIVAMENTE em Português do Brasil (pt-BR). É ESTRITAMENTE PROIBIDO usar qualquer palavra, frase de despedida ou jargão em inglês (como \"Bye\", \"Okay\", \"You're welcome\" ou \"Done\"). Se o paciente falar em outro idioma, responda educadamente em Português.\n\n[MÉDICO RESPONSÁVEL — OBRIGATÓRIO]\nVocê é a assistente do(a) {{ $('Buscar_Personalidade').first().json.data.doctorName }}{{ $('Buscar_Personalidade').first().json.data.doctorSpecialty ? ' (' + $('Buscar_Personalidade').first().json.data.doctorSpecialty + ')' : '' }}. ID: {{ $('Buscar_Personalidade').first().json.data.doctorId }}.\nNUNCA escreva o nome do médico em Caps Lock. Use sempre \"Dr.\" ou \"Dra.\" seguido do primeiro nome. \nVocê NÃO PODE oferecer outros médicos. NUNCA pergunte qual médico o paciente deseja.\n\n{{ $('Buscar_Personalidade').first().json.data.ragPrompt ? '[REGRAS ESPECÍFICAS DESTE MÉDICO]\\nATENÇÃO SILVIA: Siga RIGOROSAMENTE as regras abaixo definidas pelo médico atual para este atendimento:\\n' + $('Buscar_Personalidade').first().json.data.ragPrompt + '\\n\\n' : '' }}[REGRAS TEMPORAIS VITAIS]\nData/hora atual: {{ $now.setZone('America/Sao_Paulo').toFormat('dd/MM/yyyy HH:mm:ss') }}. Ano: {{ $now.setZone('America/Sao_Paulo').toFormat('yyyy') }}. É PROIBIDO mencionar datas passadas.\n\n{{ $('Ler_Contexto_Humano').first().json.value ? '[HISTÓRICO DE ATENDIMENTO HUMANO RECENTE]\\nAtenção: O bot esteve pausado e o humano conversou com o paciente. Resumo para continuar sem repetir perguntas:\\n' + $('Ler_Contexto_Humano').first().json.value + '\\n\\n' : '' }}[TOM DE VOZ E OBJETIVIDADE]\nSeja humana, simpática, mas EXTREMAMENTE concisa (máximo 2-3 frases curtas por interação). Use emojis com moderação. \nElimine frases de espera (\"Vou checar\", \"Só um instante\"). Se precisar usar uma ferramenta, use-a imediatamente sem avisar o paciente antes.\n\n[VISÃO COMPUTACIONAL E IMAGENS]\nSe receber um aviso \"[SISTEMA (LEITURA VISUAL): ...]\", o paciente enviou uma foto. Use os dados extraídos IMEDIATAMENTE. NÃO pergunte dados que já vieram na foto.\n\n[ENDEREÇO DO HOSPITAL E FINANCEIRO]\nHospital Otorrinos Curitiba: Rua Dr. Roberto Barroso, 1379 - Bairro Mercês.\nNUNCA envie links de pagamento ou Pix. Diga que a Ana entrará em contato para o financeiro.\n\n[FORMATAÇÃO DE MENSAGENS]\nDivida suas respostas em frases curtas usando o caractere | (pipe) como separador. Exemplo: \"Olá! 😊 | Como posso ajudar?\"\n\n[REGRA DE OURO RIGOROSA (ANTI-ALUCINAÇÃO)]\nNUNCA invente horários. Se a Tool_Buscar_Horarios retornar VAZIO, os horários não existem.\nSempre leia o JSON retornado. Se houver a propriedade \"_aviso_sistema\", leia o recado e ofereça gentilmente as novas opções de horários que voltaram na propriedade \"data\".\n\n[COLETA E FORMATAÇÃO DE DADOS DA API]\n- Data de Nascimento: Sempre YYYY-MM-DD.\n- Convênio Unimed: Envie healthInsuranceCode como 260. \n- Estado Civil: Nunca mostre os números da API (0, 2, 3) ao paciente. \n\n[REGRA PARA CONSULTAR OU CANCELAR AGENDAMENTOS]\nQuando o paciente pedir para ver suas consultas marcadas ou pedir para cancelar, siga EXATAMENTE este fluxo mental:\n1. Peça o CPF e Data de Nascimento do paciente.\n2. Use a ferramenta `Tool_Verificar_Paciente_Existe` para obter o patient_id.\n3. Gere dinamicamente as datas (startDate = hoje, endDate = hoje + 90 dias, no formato YYYY-MM-DD).\n4. Use a ferramenta `Tool_Consultar_Agendamentos` enviando o doctorId, o addressId correto da unidade, o patientId que você acabou de descobrir e as datas.\nNunca invente o patientId nem o addressId. Se o paciente não tiver cadastro, avise-o e pare a busca por aqui.\n\n[FLUXO DE ATENDIMENTO ORDENADO]\n\nFase 1: Triagem e Horários\n1. Pergunte a preferência de data (NÃO peça CPF ou Nome aqui).\n2. Chame Tool_Buscar_Horarios. (Se não especificar data, envie startDate de hoje e endDate vazio).\n3. Ofereça EXATAMENTE os 3 primeiros horários do JSON.\n4. Aguarde a escolha para ir à Fase 2.\n\nFase 2: Identificação e Cadastro\n1. Com o horário escolhido, peça Nome, CPF e Data de Nascimento.\n2. Use Tool_Verificar_Paciente_Existe.\n3. Se NÃO EXISTIR, colete os dados restantes que as regras do médico exigirem.\n4. Use Tool_Criar_Atualizar_Paciente.\n\nFase 3: Efetivação\n-> AGENDAMENTO: Use Tool_Agendar_Consulta.\n-> CANCELAMENTO E CONSULTA DE AGENDA: Siga RIGOROSAMENTE a \"Regra para Consultar ou Cancelar Agendamentos\" acima. Para cancelar, após listar as consultas, use Tool_Cancelar_Agendamento na consulta escolhida.\n-> RECEITAS: Reúna os dados exigidos nas regras do médico e chame Tool_Gerar_Receita.\n   Ao finalizar receita, envie EXATAMENTE: \"Prontinho! 😊 Sua solicitação foi para a Ana, que avisará se vai por e-mail ou se precisa retirar na recepção. | 🚨 Prazo de liberação: até 48h *úteis*. [ETIQUETA_RECEITA]\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        8048,
+        2736
+      ],
+      "id": "3361d541-3d48-415f-958c-1e29ef9d9028",
+      "name": "Agente Silvia"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        7184,
+        3280
+      ],
+      "id": "93aa7f4b-95f9-4555-aada-f49690d226cc",
+      "name": "IA_Gemini_Principal",
+      "retryOnFail": true,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "O5Fz5jVPmuR0EOt2",
+          "name": "Silvia - Ana - PAGA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Filtro_Eventos_Webhook').first().json.sessionId }}",
+        "sessionTTL": 86400,
+        "contextWindowLength": 15
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+      "typeVersion": 1.5,
+      "position": [
+        7344,
+        3280
+      ],
+      "id": "01b80a93-5d45-47c9-b5b7-d9c33a65f1b6",
+      "name": "Redis Memory",
+      "credentials": {
+        "redis": {
+          "id": "20Ko8c2VoYoVUaCs",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use esta ferramenta para verificar se um paciente já tem cadastro no hospital. Você DEVE fornecer o CPF (apenas números) e a Data de Nascimento (formato YYYY-MM-DD).",
+        "method": "POST",
+        "url": "https://silviaautomatizada.vercel.app/api/webhook/n8n",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"CHECK_PATIENT\",\n  \"payload\": {\n    \"nin\": \"{{$fromAI('cpf', 'Obrigatório: Apenas os 11 números do CPF, sem pontos ou traços')}}\",\n\"birthday\": \"{{$fromAI('data_nascimento', 'Obrigatório: Data convertida ESTRITAMENTE para o formato YYYY-MM-DD')}}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        8368,
+        3280
+      ],
+      "id": "9bb702af-a3b3-4b1b-9afe-10989d125f9a",
+      "name": "Tool_Verificar_Paciente_Existe",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PycrqXmgkX8UKU9y",
+          "name": "Silvia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const returnItems = [];\n\nfor (const item of $input.all()) {\n  const body = item.json.body || {};\n  const data = body.data || {};\n  \n  if (body.event !== \"messages.upsert\") continue;\n  \n  // 🚨 CORREÇÃO DEFINITIVA: ANTI-DUPLICAÇÃO HUMANA\n  // A Evolution pode mandar a mensagem já com status \"SERVER_ACK\".\n  // Por isso, vamos bloquear APENAS os status de confirmação (Entrega, Leitura ou Play).\n  // Assim, a sua mensagem digitada (SERVER_ACK ou PENDING) passa perfeitamente!\n  if (data.key?.fromMe === true && data.status) {\n      if ([\"DELIVERY_ACK\", \"READ\", \"PLAYED\"].includes(data.status)) {\n          continue; \n      }\n  }\n\n  if (!data.message) continue;\n\n  let remoteJid = data.key?.remoteJid || \"\";\n  let phoneNumber = remoteJid.split('@')[0]; \n  \n  if (remoteJid.includes('@lid')) {\n    remoteJid = `${phoneNumber}@s.whatsapp.net`;\n  }\n\n  // 🚨 BARREIRA DE RESTRIÇÃO DE NÚMEROS 🚨\n  const numerosBloqueados = [\n      \"554191194738\", \"5541991194738\", // Primeiro número\n      \"554195718577\", \"5541995718577\"  // Segundo número\n  ];\n\n  if (numerosBloqueados.includes(phoneNumber)) {\n      continue;\n  }\n  // --------------------------------------\n\n  const msg = data.message?.ephemeralMessage?.message || data.message;\n  \n  let messageText = \"\";\n  let isAudio = false;\n  let isImage = false;\n  let imageBase64 = \"\";\n\n  // CAÇADOR DE TEXTOS, ÁUDIOS E IMAGENS\n  if (msg?.conversation) {\n    messageText = msg.conversation;\n  } else if (msg?.extendedTextMessage?.text) {\n    messageText = msg.extendedTextMessage.text;\n  } else if (msg?.audioMessage) {\n    isAudio = true;\n  } else if (msg?.reactionMessage?.text) {\n    // 🚨 BLOQUEIO DE REAÇÕES: Mata o fluxo aqui para economizar tokens\n    continue; \n  } else if (msg?.imageMessage) {\n    isImage = true;\n    messageText = msg.imageMessage.caption || \"\"; \n    imageBase64 = data.message.base64 || data.base64 || \"\"; \n  } else if (msg?.documentMessage) {\n      messageText = `[O paciente enviou um arquivo PDF/Documento chamado: ${msg.documentMessage.title}]`;\n  }\n\n  // Se não tem texto, nem áudio, nem imagem, aborta\n  if (!messageText && !isAudio && !isImage) continue; \n\n  const fromMe = data.key?.fromMe === true;\n  const isSilvia = messageText.includes('\\u200D'); \n\n  let tipoRota = \"paciente\";\n  \n  if (fromMe) {\n      if (isSilvia) {\n          // É a Silvia respondendo ou um Disparo automático. IGNORA.\n          continue;\n      } else if (messageText === '/retomar') {\n          // Humano mandou o comando de religar o bot\n          tipoRota = \"retomar\"; \n      } else {\n          // Humano digitou uma mensagem real (ex: \"silvia, cade vc?\"). Rota para PAUSAR o bot!\n          tipoRota = \"pausar\"; \n      }\n  }\n\n  returnItems.push({\n    json: {\n      sessionId: phoneNumber,             \n      remoteJid: remoteJid,               \n      senderNumber: phoneNumber,         \n      pushName: data.pushName || \"Paciente\",                 \n      text: messageText,                  \n      isAudio: isAudio,\n      isImage: isImage, \n      imageBase64: imageBase64, \n      evoKey: data.key,\n      evoMessage: data.message,\n      fromMe: fromMe,\n      tipoRota: tipoRota \n    }\n  });\n}\n\nreturn returnItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        2640
+      ],
+      "id": "ac65e6b9-de56-4e8b-a0a6-a4887e80c95b",
+      "name": "Filtro_Eventos_Webhook"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Retorna a lista de médicos do hospital, suas especialidades e o ID de cada um. Use esta ferramenta quando o paciente não souber qual médico escolher ou para validar se um médico existe.",
+        "method": "POST",
+        "url": "https://silviaautomatizada.vercel.app/api/webhook/n8n",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"action\": \"GET_DOCTORS\",\n  \"payload\": {}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        8192,
+        3280
+      ],
+      "id": "c143b204-7186-4f0e-9269-54fa3442adfc",
+      "name": "Tool_Listar_Medicos",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PycrqXmgkX8UKU9y",
+          "name": "Silvia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Retorna a lista de planos de saúde (convênios) aceitos pelo hospital e seus IDs. Use esta ferramenta sempre que o paciente informar o nome do seu plano, para descobrir qual é o ID correto (healthInsuranceCode) necessário para o agendamento",
+        "method": "POST",
+        "url": "https://silviaautomatizada.vercel.app/api/webhook/n8n",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"GET_INSURANCES\",\n  \"payload\": {}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        7504,
+        3280
+      ],
+      "id": "f1721c40-7234-469e-9603-78775a78c5fe",
+      "name": "Tool_Listar_Convenios",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PycrqXmgkX8UKU9y",
+          "name": "Silvia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "OBRIGATÓRIO: Use para consultar os horários disponíveis. Se o paciente quiser os horários mais próximos (ou não especificar data), preencha startDate com a data de hoje e deixe endDate VAZIO. Se o paciente pedir um período específico, preencha startDate e endDate.\nREGRA DE OURO: Você NUNCA deve inventar horários. Ofereça SOMENTE os horários exatos retornados na propriedade 'data' desta ferramenta. Se o retorno da ferramenta contiver a propriedade '_aviso_sistema', leia com atenção e siga as instruções dele para explicar a situação ao paciente de forma gentil.",
+        "method": "POST",
+        "url": "https://silviaautomatizada.vercel.app/api/webhook/n8n",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"GET_SLOTS\",\n  \"payload\": {\n    \"doctorId\": \"{{ $fromAI('doctorId') }}\",\n    \"addressId\": \"1\",\n    \"startDate\": \"{{ $fromAI('startDate', 'Formato YYYY-MM-DD') }}\",\n    \"endDate\": \"{{ $fromAI('endDate', 'Formato YYYY-MM-DD. Deixe vazio se quiser os próximos 90 dias.') }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        7680,
+        3280
+      ],
+      "id": "99807fdb-3af8-403a-a316-5f3bf81b5f33",
+      "name": "Tool_Buscar_Horarios",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PycrqXmgkX8UKU9y",
+          "name": "Silvia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Efetiva o agendamento no sistema. Requer o doctorId, slotStart (Data e hora do horário escolhido no formato ISO completo), patient_id (o ID numérico do paciente), healthInsuranceCode (ID numérico do convênio) e o appointmentType (ID numérico do tipo da consulta definido no passo anterior). Use '1' para o addressId. Use esta ferramenta apenas após o paciente confirmar o horário.\n",
+        "method": "POST",
+        "url": "https://silviaautomatizada.vercel.app/api/webhook/n8n",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"BOOK_SLOT\",\n  \"payload\": {\n    \"doctorId\": \"{{ $fromAI('doctorId') }}\",\n    \"addressId\": \"1\",\n    \"slotStart\": \"{{ $fromAI('slotStart') }}\",\n    \"bookingData\": {\n      \"patient_id\": {{ $fromAI('patient_id') }},\n      \"healthInsuranceCode\": {{ $fromAI('healthInsuranceCode') }},\n      \"obs\": \"Agendado via IA Silvia\",\n      \"appointmentType\": 1,\n      \"address_service_id\": 1,\n      \"consultationType\": 1\n    }\n  }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        7856,
+        3280
+      ],
+      "id": "c7d7b094-8cb6-4095-a82d-92aef0e91825",
+      "name": "Tool_Agendar_Consulta",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PycrqXmgkX8UKU9y",
+          "name": "Silvia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Cancela uma consulta existente no sistema. Requer o doctorId e o bookingId (ID do agendamento). Use '1' para addressId.",
+        "method": "POST",
+        "url": "https://silviaautomatizada.vercel.app/api/webhook/n8n",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"CANCEL_BOOKING\",\n  \"payload\": {\n    \"doctorId\": \"{{ $fromAI('doctorId') }}\",\n    \"addressId\": \"1\",\n    \"bookingId\": \"{{ $fromAI('bookingId') }}\",\n    \"externalId\": \"1\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        8032,
+        3280
+      ],
+      "id": "f43ef53b-e97e-4129-8749-cdc08aebbb3f",
+      "name": "Tool_Cancelar_Agendamento",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PycrqXmgkX8UKU9y",
+          "name": "Silvia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evo.yyuhkk.easypanel.host/message/sendText/Silvia",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  (() => {\n    let payload = {\n      \"number\": $('Filtro_Eventos_Webhook').first().json.remoteJid,\n      \"text\": $json.text + \"\\u200D\",\n      \"delay\": 1500\n    };\n\n    if ($runIndex === 0) {\n      payload.options = {\n        \"quoted\": {\n          \"key\": $('Filtro_Eventos_Webhook').first().json.evoKey,\n          \"message\": $('Filtro_Eventos_Webhook').first().json.evoMessage\n        }\n      };\n    }\n\n    return payload;\n  })()\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        9952,
+        2752
+      ],
+      "id": "153d09ca-acc9-40e8-bdec-27a082250700",
+      "name": "Enviar_Resposta_WhatsApp",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "maxTries": 4,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "no6WpCEjVN9AgeqY",
+          "name": "API KEY SILVIA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "99484645-0956-4b15-9cc1-cd83db01e226",
+              "leftValue": "={{ $json.text }}",
+              "rightValue": "/limpar",
+              "operator": {
+                "type": "string",
+                "operation": "startsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        7392,
+        2736
+      ],
+      "id": "5ab7d362-1e29-4d5f-9a59-c168734b71bb",
+      "name": "Verifica_Comando"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ $('Filtro_Eventos_Webhook').first().json.sessionId }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        7840,
+        2496
+      ],
+      "id": "588a3047-6817-4883-b3a7-ceabf1b812f2",
+      "name": "Limpar_Memoria_Redis",
+      "credentials": {
+        "redis": {
+          "id": "20Ko8c2VoYoVUaCs",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2bc6c703-d8e8-4e73-81b3-1c160309947c",
+              "name": "output",
+              "value": "Contexto limpo com sucesso! 🧹 Vamos recomeçar. Qual o seu CPF e Data de Nascimento?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8128,
+        2496
+      ],
+      "id": "ea6c87d0-c0c3-482f-ade1-66a1e6dc7ccc",
+      "name": "Mensagem_Contexto_Limpo"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Cria um novo cadastro de paciente ou atualiza um existente no sistema do hospital. Só use esta ferramenta DEPOIS de ter coletado TODOS os seguintes dados do paciente: Nome Completo, CPF, Data de Nascimento, Celular, Email, Sexo (M ou F), Estado Civil e o ID do Convênio (obtido na Tool_Listar_Convenios)",
+        "method": "POST",
+        "url": "https://silviaautomatizada.vercel.app/api/webhook/n8n",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"CREATE_PATIENT\",\n  \"payload\": {\n    \"name\": \"{{ $fromAI('nomeCompleto', 'Nome completo do paciente') }}\",\n    \"nin\": \"{{ $fromAI('cpf', 'APENAS 11 números, sem pontos, sem traços') }}\",\n    \"birthday\": \"{{ $fromAI('dataNascimento', 'Formato YYYY-MM-DD') }}\",\n    \"mobile\": \"{{ $fromAI('celular', 'APENAS 11 números, ex: 61988887777') }}\",\n    \"email\": \"{{ $fromAI('email') }}\",\n    \"sex\": \"{{ $fromAI('sexo', 'M ou F') }}\",\n    \"maritalStatus\": {{ $fromAI('estadoCivil', 'Número: 0=Casado, 2=Divorciado, 3=Solteiro, 4=Viúvo, 5=Outros') }},\n    \"healthInsuranceCode\": {{ $fromAI('healthInsuranceCode', 'ID numérico do convênio') }},\n    \"registration\": \"{{ $fromAI('registration', 'Número da carteirinha, ENVIAR APENAS SE o paciente tiver fornecido para atualização') }}\",\n    \"external_id\": \"\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        8544,
+        3280
+      ],
+      "id": "49f5a3ad-72f7-4d5c-8775-a614cb3019d7",
+      "name": "Tool_Criar_Atualizar_Paciente",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PycrqXmgkX8UKU9y",
+          "name": "Silvia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "90decd29-00ab-469e-a4d2-db1f93bf39a8",
+              "leftValue": "={{ $json.isAudio }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        6048,
+        2720
+      ],
+      "id": "da4cb0b4-2baa-49d3-9713-365298908203",
+      "name": "É_Audio?"
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  let b64 = item.json.base64 || \"\";\n  \n  // Remove o prefixo \"data:audio/ogg;base64,\" se ele vier da Evo\n  if (b64.includes(',')) {\n    b64 = b64.split(',')[1];\n  }\n\n  item.binary = {\n    audio: {\n      data: b64,\n      mimeType: \"audio/ogg\",\n      fileName: \"audio.ogg\"\n    }\n  };\n}\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6592,
+        2544
+      ],
+      "id": "212cac91-37e6-4496-8baf-299118856611",
+      "name": "Base64_para_Binario"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "inputType": "binary",
+        "binaryPropertyName": "audio",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        6816,
+        2544
+      ],
+      "id": "94bac1e6-e205-46b6-840a-dab1f466b457",
+      "name": "Transcritor_Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "O5Fz5jVPmuR0EOt2",
+          "name": "Silvia - Ana - PAGA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evo.yyuhkk.easypanel.host/chat/getBase64FromMediaMessage/Silvia",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    \"message\": {\n      \"key\": $json.evoKey,\n      \"message\": $json.evoMessage\n    }\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        6384,
+        2544
+      ],
+      "id": "2f5c92b7-9777-469e-8e28-27413411c699",
+      "name": "Baixar_Audio_Evo",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "no6WpCEjVN9AgeqY",
+          "name": "API KEY SILVIA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Resgata os dados originais do primeiro nó\nconst original = $('Filtro_Eventos_Webhook').first().json;\nconst geminiOutput = $input.first().json;\n\n// Busca o texto na estrutura bruta do Gemini ou na propriedade text normal\nlet transcribedText = \"\";\n\nif (geminiOutput.content?.parts?.[0]?.text) {\n  transcribedText = geminiOutput.content.parts[0].text;\n} else if (geminiOutput.text) {\n  transcribedText = geminiOutput.text;\n}\n\n// Remove quebras de linha ou espaços invisíveis que a IA possa colocar no final do áudio\ntranscribedText = transcribedText.trim();\n\nreturn [{\n  json: {\n    // Injeta a transcrição perfeitamente formatada\n    text: transcribedText, \n    sessionId: original.sessionId,\n    remoteJid: original.remoteJid,\n    pushName: original.pushName\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7008,
+        2544
+      ],
+      "id": "1954ab7f-6247-425f-aebf-aa689e20805f",
+      "name": "Montar_Texto_Transcrito"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Busca a lista de consultas agendadas de um paciente. OBRIGATÓRIO: Você deve usar a Tool_Verificar_Paciente antes desta para descobrir o patientId.",
+        "method": "POST",
+        "url": "https://silviaautomatizada.vercel.app/api/webhook/n8n",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"GET_BOOKINGS\",\n  \"payload\": {\n    \"doctorId\": \"{{$fromAI('doctorId', 'Obrigatório: ID do médico')}}\",\n    \"addressId\": \"{{$fromAI('addressId', 'Obrigatório: ID do endereço/unidade da clínica (Ex: 103)')}}\",\n    \"patientId\": \"{{$fromAI('patientId', 'Obrigatório: ID interno do paciente, obtido na verificação anterior')}}\",\n    \"startDate\": \"{{$fromAI('startDate', 'Obrigatório: Data inicial (YYYY-MM-DD)')}}\",\n    \"endDate\": \"{{$fromAI('endDate', 'Obrigatório: Data final (YYYY-MM-DD)')}}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        8720,
+        3280
+      ],
+      "id": "48062f5b-9aa7-4b80-8a88-8289593104a6",
+      "name": "Tool_Consultar_Agendamentos",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PycrqXmgkX8UKU9y",
+          "name": "Silvia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pega o texto gerado pela Silvia\nconst textoOriginal = $input.first().json.output || \"\";\n\n// 🚨 FILTRO ANTI-VAZAMENTO LANGCHAIN E TAGS DE SISTEMA 🚨\n// Remove as strings END_OF_TURN e [TICKET_CLOSE] (e qualquer outra que queira adicionar no futuro)\nlet textoTratado = textoOriginal\n    .replace(/END_OF_TURN/g, '')\n    .replace(/\\[TICKET_CLOSE\\]/g, '')\n    .trim();\n\n// Se, após limpar a \"sujeira\", não sobrar texto nenhum (ex: ela só ia mandar a tag),\n// retornamos um array vazio para o Loop_Items não rodar e não mandar nada no WhatsApp.\nif (textoTratado === \"\") {\n    return [];\n}\n\n// Divide o texto onde houver o caractere \"|\"\nconst blocos = textoTratado.split('|');\n\nconst mensagensQuebradas = [];\n\n// Limpa espaços vazios e cria um item novo para cada balão\nfor (let bloco of blocos) {\n  let textoLimpo = bloco.trim();\n  if (textoLimpo.length > 0) {\n    mensagensQuebradas.push({\n      json: {\n        text: textoLimpo\n      }\n    });\n  }\n}\n\n// Retorna a LISTA de itens para o n8n processar no Loop\nreturn mensagensQuebradas;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8496,
+        2736
+      ],
+      "id": "8d1d82ab-2028-43bd-bd3c-7e0a94514c7b",
+      "name": "Dividir_Mensagens"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        8912,
+        2736
+      ],
+      "id": "9f941089-972f-492b-a1aa-851f122efab6",
+      "name": "Loop_Items"
+    },
+    {
+      "parameters": {
+        "amount": 1.5
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        10144,
+        2752
+      ],
+      "id": "5079b755-4b3a-445d-a79a-c95afce22a3e",
+      "name": "Espera_Processamento",
+      "webhookId": "106b95c9-12cb-4063-a1c2-1d3dea2050c9"
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "={{ $('Filtro_Eventos_Webhook').first().json.remoteJid }}_fila",
+        "messageData": "={{ $('Filtro_Eventos_Webhook').first().json.isImage ? $('Tratar_Analise_Imagem').first().json.text : $('Filtro_Eventos_Webhook').first().json.text }}"
+      },
+      "type": "@vicenterusso/n8n-nodes-redis-enhanced.redisEnhanced",
+      "typeVersion": 1,
+      "position": [
+        5232,
+        2720
+      ],
+      "id": "86f3e7e3-d432-432e-99e4-cb8212ace1c2",
+      "name": "Add_Fila_Mensagens",
+      "credentials": {
+        "redis": {
+          "id": "20Ko8c2VoYoVUaCs",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 24
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        5424,
+        2720
+      ],
+      "id": "29f45364-37d2-419d-8f9d-17b2e7c127bb",
+      "name": "Espera 12 Segundos",
+      "webhookId": "cbe354aa-1111-2222-3333-e18e27c12345"
+    },
+    {
+      "parameters": {
+        "operation": "eval",
+        "script": "local queue = redis.call('LRANGE', KEYS[1], 0, -1); if #queue > 0 then redis.call('DEL', KEYS[1]) end; return queue",
+        "keys": "={{ $('Filtro_Eventos_Webhook').first().json.remoteJid }}_fila"
+      },
+      "type": "@vicenterusso/n8n-nodes-redis-enhanced.redisEnhanced",
+      "typeVersion": 1,
+      "position": [
+        5632,
+        2720
+      ],
+      "id": "29c92d67-47b7-4448-b5a5-4b0490f99aff",
+      "name": "Extrair e Limpar Fila Múltipla",
+      "credentials": {
+        "redis": {
+          "id": "20Ko8c2VoYoVUaCs",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// O resultado da query Lua\nconst filaTextos = $json.result || $json; \n\n// Se o Redis não retornou um Array válido de textos (o banco estava vazio), \n// nós simplesmente MORREMOS a execução aqui voltando array vazio [].\nif (!Array.isArray(filaTextos) || filaTextos.length === 0) {\n    return [];\n}\n\n// O cofre estava cheio! Vamos unir os textos\nconst textoCompleto = filaTextos.join(\" | \");\n\n// Clonamos os atributos originais lá do começo do fluxo do paciente\nconst originalData = $('Filtro_Eventos_Webhook').first().json;\nreturn [{\n  json: {\n    ...originalData,\n    text: textoCompleto\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5840,
+        2720
+      ],
+      "id": "c7fb18f6-1077-4647-99dc-3f3b844beba1",
+      "name": "Montar Textão"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use esta ferramenta para reagir à última mensagem do paciente com um emoji. Faça isso apenas quando apropriado (ex: agradecer, confirmar) e de forma esporádica para não parecer artificial.",
+        "method": "POST",
+        "url": "https://evolution-evo.yyuhkk.easypanel.host/message/sendReaction/Silvia",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"key\": {{ JSON.stringify($('Filtro_Eventos_Webhook').first().json.evoKey) }},\n  \"reaction\": \"{{ $fromAI('emoji', 'Um único emoji para reagir, exemplo: ❤️, 👍, 😂, 🙏') }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        8912,
+        3280
+      ],
+      "id": "81e95431-9102-47a5-8ff1-3a741af652bc",
+      "name": "Tool_Reagir_Mensagem",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "no6WpCEjVN9AgeqY",
+          "name": "API KEY SILVIA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use esta ferramenta quando o paciente perguntar se tem consultas agendadas, qual o dia da sua consulta, ou quiser ver sua agenda geral. Ela retorna todas as consultas usando apenas o CPF e Data de Nascimento.",
+        "method": "POST",
+        "url": "https://silviaautomatizada.vercel.app/api/webhook/n8n",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"GET_BOOKINGS_BY_CPF\",\n  \"payload\": {\n    \"nin\": \"{{$fromAI('cpf', 'Obrigatório: Apenas os 11 números')}}\",\n    \"birthday\": \"{{$fromAI('data_nascimento', 'Obrigatório: YYYY-MM-DD')}}\",\n    \"doctorId\": \"{{$fromAI('doctorId', 'Obrigatório: ID do médico')}}\",\n    \"addressId\": \"{{$fromAI('addressId', 'Obrigatório: ID do endereço/unidade')}}\"\n  }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        9104,
+        3280
+      ],
+      "id": "e7a8d4d3-6884-46ac-a61b-2d07db1dde98",
+      "name": "Tool_Buscar_Agendamentos_CPF",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PycrqXmgkX8UKU9y",
+          "name": "Silvia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=silvia_pause:{{ $json.remoteJid }}",
+        "value": "pausado",
+        "expire": true,
+        "ttl": 86400
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        3648,
+        2160
+      ],
+      "id": "016c5580-329e-467a-a62e-985d7d4db685",
+      "name": "Bloquear_Bot_Pausa",
+      "credentials": {
+        "redis": {
+          "id": "20Ko8c2VoYoVUaCs",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=silvia_pause:{{ $json.remoteJid }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        3648,
+        2352
+      ],
+      "id": "118ba504-d044-43c5-953e-fedac2a723ab",
+      "name": "Desbloquear_Bot_Pausa",
+      "credentials": {
+        "redis": {
+          "id": "20Ko8c2VoYoVUaCs",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "status_pausa",
+        "key": "=silvia_pause:{{ $json.remoteJid }}",
+        "options": {}
+      },
+      "type": "@vicenterusso/n8n-nodes-redis-enhanced.redisEnhanced",
+      "typeVersion": 1,
+      "position": [
+        4784,
+        2704
+      ],
+      "id": "fffc24a4-2ee3-4839-84fe-fbd1c915355f",
+      "name": "Verificar_Pausa_Ativa",
+      "credentials": {
+        "redis": {
+          "id": "20Ko8c2VoYoVUaCs",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "04bb0923-d46a-4be5-ae7d-f3c3e3e12a7a",
+              "leftValue": "={{ $json.status_pausa }}",
+              "rightValue": "pausado",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4992,
+        2704
+      ],
+      "id": "32c164a6-daf6-4093-8e21-24ce767164aa",
+      "name": "Assistente_Pausada?"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.tipoRota }}",
+                    "rightValue": "pausar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "1f99f4b5-2984-4b01-83ac-a23b5773f4bf"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "cf02b78f-4091-4b04-b30d-71e6565b63d0",
+                    "leftValue": "={{ $json.tipoRota }}",
+                    "rightValue": "retomar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        3376,
+        2640
+      ],
+      "id": "1fbce993-f4c9-4c00-91bb-5b571292dcb4",
+      "name": "Roteador_Comandos"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://silviaautomatizada.vercel.app/api/webhook/n8n",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"action\": \"GET_PERSONALITY\",\n  \"payload\": {}\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        7840,
+        2736
+      ],
+      "id": "13bff7f5-fe0d-4939-bdc6-c66f7d84276a",
+      "name": "Buscar_Personalidade",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PycrqXmgkX8UKU9y",
+          "name": "Silvia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=silvia_pause:{{ $('Filtro_Eventos_Webhook').first().json.remoteJid }}",
+        "value": "pausado",
+        "expire": true,
+        "ttl": 86400
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        5232,
+        2576
+      ],
+      "id": "252a7796-6ae5-478c-8dab-535d4105eb22",
+      "name": "Pausar_Bot_Novamente",
+      "credentials": {
+        "redis": {
+          "id": "20Ko8c2VoYoVUaCs",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use esta ferramenta EXCLUSIVAMENTE para enviar solicitações de receitas médicas ou prescrições. Você SÓ PODE chamá-la após coletar com o paciente: Nome, Data de Nascimento, Carteirinha da Unimed, Endereço e as Medicações/Doses.",
+        "method": "POST",
+        "url": "https://silviaautomatizada.vercel.app/api/webhook/n8n",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"CREATE_PRESCRIPTION\",\n  \"payload\": {\n    \"patientName\": \"{{ $fromAI('nomeCompleto', 'Nome completo do paciente') }}\",\n    \"birthDate\": \"{{ $fromAI('dataNascimento', 'Data de nascimento do paciente') }}\",\n    \"unimedCard\": \"{{ $fromAI('carteiraUnimed', 'Número da carteirinha da Unimed') }}\",\n    \"address\": \"{{ $fromAI('endereco', 'Endereço completo fornecido pelo paciente') }}\",\n    \"medications\": \"{{ $fromAI('medicacoes', 'Lista de medicamentos e suas respectivas doses') }}\"\n  }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        9296,
+        3280
+      ],
+      "id": "00e474c8-66ab-4f1a-8304-f2aad4910f69",
+      "name": "Tool_Gerar_Receita",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PycrqXmgkX8UKU9y",
+          "name": "Silvia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "92c14cad-ae7b-4c39-9057-c6994258123a",
+              "leftValue": "={{ $json.isImage }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3616,
+        2688
+      ],
+      "id": "0d41cf0d-3345-433c-81fd-375d79d8dbbd",
+      "name": "Tem_Imagem?"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "Você é os \"olhos\" da assistente virtual Silvia. O paciente acabou de enviar esta imagem no WhatsApp. Sua tarefa é ler TUDO o que está escrito. Se for uma carteirinha de plano de saúde, extraia o nome e o número da carteirinha. Se for receita médica, liste os medicamentos. Resuma os dados de forma muito clara em formato de texto para que a IA Silvia possa ler depois e prosseguir com o atendimento.",
+        "inputType": "binary",
+        "binaryPropertyName": "imageBase64",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        4192,
+        2528
+      ],
+      "id": "cfb93902-d452-4a89-829d-655f52f83ab5",
+      "name": "Analisar_Imagem_Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "O5Fz5jVPmuR0EOt2",
+          "name": "Silvia - Ana - PAGA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pega todos os dados originais lá do começo (WhatsApp, JID, Nome, etc)\nconst originalData = $('Filtro_Eventos_Webhook').first().json;\n\n// Caçador robusto da resposta do Gemini\nlet geminiAnalysis = \"Imagem analisada, mas sem texto detectado.\";\n\nif ($json.content && $json.content.parts && $json.content.parts.length > 0) {\n    geminiAnalysis = $json.content.parts[0].text;\n} else if ($json.text) {\n    geminiAnalysis = $json.text;\n} else if ($json.output) {\n    geminiAnalysis = $json.output;\n}\n\n// Montamos o \"pensamento interno\" da Silvia\nlet novoTexto = `[SISTEMA (LEITURA VISUAL): O paciente enviou uma imagem. Dados extraídos:]\\n${geminiAnalysis}`;\n\n// Se o paciente digitou alguma legenda junto com a foto, adicionamos ao contexto\nif (originalData.text && originalData.text !== \"\") {\n    novoTexto += `\\n\\n[Mensagem digitada pelo paciente junto com a imagem:]\\n\"${originalData.text}\"`;\n}\n\n// Retornamos o item completo pro n8n colocar na Fila de 12 Segundos\nreturn {\n    json: {\n        ...originalData, \n        text: novoTexto  \n    }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4416,
+        2528
+      ],
+      "id": "57822193-e800-4555-9f8a-a6411fc1df01",
+      "name": "Tratar_Analise_Imagem"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verifica se há base64 vindo do JSON (como text/string)\nconst base64Str = $json.imageBase64;\n\nif (!base64Str) {\n  // Se por algum motivo a imagem veio vazia, repassa o item\n  return [{ json: $json }];\n}\n\n// O base64 da Evolution às vezes vem com prefixo (ex: \"data:image/jpeg;base64,...\"). \n// Precisamos limpar isso para o Buffer não quebrar.\nconst base64Data = base64Str.replace(/^data:image\\/\\w+;base64,/, \"\");\n\n// Converte a string base64 num Buffer (binário nativo do Node.js)\nconst binaryData = Buffer.from(base64Data, 'base64');\n\nreturn [{\n  json: $json, // Mantém todos os dados originais\n  // Cria o arquivo binário na estrutura interna do n8n\n  binary: {\n    // O nome da chave precisa ser EXATAMENTE 'imageBase64' para o Gemini achar\n    imageBase64: {\n      data: binaryData.toString('base64'),\n      mimeType: 'image/jpeg', // Assumimos JPEG por padrão para envio\n      fileName: 'imagem_paciente.jpg'\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3920,
+        2528
+      ],
+      "id": "ceb3fca7-0b39-4027-9975-80d58fb72e57",
+      "name": "Pre_Processar_Imagem"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verifica se a Silvia colocou a tag secreta de receita\nconst precisaEtiquetar = $json.text.includes('[ETIQUETA_RECEITA]');\n\n// Limpa a tag da mensagem para o paciente não ver\nconst textoLimpo = $json.text.replace('[ETIQUETA_RECEITA]', '').trim();\n\nreturn {\n  json: {\n    ...$json,\n    text: textoLimpo,         // A mensagem limpa pronta para enviar\n    addLabel: precisaEtiquetar // Um aviso \"True\" ou \"False\" para o n8n\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9200,
+        2752
+      ],
+      "id": "c0bf4eec-7f29-419b-9ff2-ba653c9d5aee",
+      "name": "Checar_Etiqueta_Receita"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "384f030a-a8a8-4497-94d6-ac5d060ceac9",
+              "leftValue": "={{ $json.addLabel }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        9408,
+        2752
+      ],
+      "id": "42388c3f-27f8-4aaf-9784-39dade7dcaac",
+      "name": "Precisa_Etiquetar?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evo.yyuhkk.easypanel.host//label/handleLabel/Silvia",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $('Filtro_Eventos_Webhook').first().json.remoteJid }}\",\n  \"labelId\": \"7\",\n  \"action\": \"add\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        9664,
+        2576
+      ],
+      "id": "382e85a8-6614-47e0-8dad-dd2eddf59320",
+      "name": "App_AddLabel",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "no6WpCEjVN9AgeqY",
+          "name": "API KEY SILVIA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "key": "=contexto_{{ $('Filtro_Eventos_Webhook').first().json.sessionId }}",
+        "value": "=[Atendente Humano]: {{ $('Filtro_Eventos_Webhook').first().json.text }}"
+      },
+      "type": "@vicenterusso/n8n-nodes-redis-enhanced.redisEnhanced",
+      "typeVersion": 1,
+      "position": [
+        3920,
+        2160
+      ],
+      "id": "8f0638c8-e89a-48be-9309-acd638a37d58",
+      "name": "Add_Contexto_Humano",
+      "credentials": {
+        "redis": {
+          "id": "20Ko8c2VoYoVUaCs",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "key": "=contexto_{{ $('Filtro_Eventos_Webhook').first().json.sessionId }}",
+        "value": "=[Paciente]: {{ $('Filtro_Eventos_Webhook').first().json.text }}"
+      },
+      "type": "@vicenterusso/n8n-nodes-redis-enhanced.redisEnhanced",
+      "typeVersion": 1,
+      "position": [
+        5440,
+        2576
+      ],
+      "id": "8d2ea854-74ad-44d5-b5a1-1e3ef341ed83",
+      "name": "Add_Contexto_Paciente",
+      "credentials": {
+        "redis": {
+          "id": "20Ko8c2VoYoVUaCs",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "=contexto_{{ $('Filtro_Eventos_Webhook').first().json.sessionId }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        7632,
+        2736
+      ],
+      "id": "7238ab00-5937-4652-aedf-ad9015c61a77",
+      "name": "Ler_Contexto_Humano",
+      "credentials": {
+        "redis": {
+          "id": "20Ko8c2VoYoVUaCs",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=contexto_{{ $('Filtro_Eventos_Webhook').first().json.sessionId }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        3920,
+        2352
+      ],
+      "id": "6d73ec49-e2d4-47ad-b84c-5cdbae56c97e",
+      "name": "Limpar_Contexto_App",
+      "credentials": {
+        "redis": {
+          "id": "20Ko8c2VoYoVUaCs",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intentClassified }}",
+                    "rightValue": "CONFIRMADO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "d554f221-3f2b-440b-81c6-aa7af7cdc2bf"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a9e2d4dc-a7c8-4fd8-9f16-664f6e4d5253",
+                    "leftValue": "={{ $json.intentClassified }}",
+                    "rightValue": "CANCELADO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        4320,
+        1744
+      ],
+      "id": "376548c6-3117-4837-99c9-064decc29d62",
+      "name": "Analisar Intenção"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://confirme-phi.vercel.app/api/webhooks/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $('Extrair Dados').item.json.phone }}\",\n  \"status\": \"CONFIRMED\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        4608,
+        1648
+      ],
+      "id": "d1a50954-0170-492c-9dc4-ebf33061153a",
+      "name": "Next.js - Confirmar",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "W7ULixxR4Zu4FIVb",
+          "name": "confirme"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://confirme-phi.vercel.app/api/webhooks/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $('Extrair Dados').item.json.phone }}\",\n  \"status\": \"CANCELLED\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        4608,
+        1840
+      ],
+      "id": "30a527c4-622c-40c0-86f8-6bbc5f9238ea",
+      "name": "Next.js - Cancelar",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "W7ULixxR4Zu4FIVb",
+          "name": "confirme"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evo.yyuhkk.easypanel.host/message/sendText/Silvia",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "544AA063B68F-49A1-BEF5-6AF3E5185639"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $json.remoteJid }}\",\n  \"text\": \"❌ *Agendamento Cancelado.*\\n\\nSua consulta foi desmarcada. Se desejar reagendar futuramente, basta entrar em contato. Obrigado por nos avisar!\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        4816,
+        1840
+      ],
+      "id": "836e5a84-7964-4b4a-8eb1-a50b1bd245d9",
+      "name": "Evo - Msg Cancelado"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evo.yyuhkk.easypanel.host/message/sendText/Silvia",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "544AA063B68F-49A1-BEF5-6AF3E5185639"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"554191194738@s.whatsapp.net\",\n  \"text\": \"⚠️ *ALERTA DE DESISTÊNCIA*\\n\\nO paciente *{{ $json.patientName }}* (Tel: {{ $json.phone }}) acabou de *CANCELAR* a consulta.\\n\\nO horário já consta como 'Cancelado' no Dashboard. Por favor, libere a agenda no sistema Clinic.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        5248,
+        1840
+      ],
+      "id": "721874c4-12e5-49aa-ad13-e285468fcc3a",
+      "name": "Evo - Notificar Assistente"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "Você é um classificador semântico para uma clínica médica. Sua única função é ler a mensagem do paciente e classificar sua intenção.\nRetorne ESTritamente e APENAS uma das três palavras abaixo, sem pontuação ou explicações:\nCONFIRMADO (se ele der certeza que vai)\nCANCELADO (se ele desmarcar ou disser que não pode ir)\nOUTROS (se for uma dúvida, se ele pedir para reagendar sem dar certeza, ou se a mensagem for ininteligível)."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        3632,
+        1760
+      ],
+      "id": "1b3358eb-10e1-45db-a6af-5a621e59a33a",
+      "name": "IA - Entender Resposta"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Procura a resposta da IA nos vários formatos possíveis (incluindo o 'output' do Langchain/Gemini)\nlet intent = $json.output || $json.message?.content || $json.text || \"OUTROS\";\n\nreturn {\n  ...$json, \n  intentClassified: String(intent).trim().toUpperCase() \n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4128,
+        1760
+      ],
+      "id": "16065917-e155-4b7b-affc-66f3ae4c7625",
+      "name": "Tratar Output IA"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3632,
+        1952
+      ],
+      "id": "f2e83a93-5b33-4b3b-bea8-ecdae19f600b",
+      "name": "IA_Entender_Intencao",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "O5Fz5jVPmuR0EOt2",
+          "name": "Silvia - Ana - PAGA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "=disparo_pendente_{{ $json.sessionId }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2544,
+        2672
+      ],
+      "id": "f56ff707-5ab6-48ed-9dca-64673b584bae",
+      "name": "Checar_Disparo_Pendente",
+      "credentials": {
+        "redis": {
+          "id": "20Ko8c2VoYoVUaCs",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "804810de-09eb-4da3-ad1c-943f2f3a65b6",
+              "leftValue": "={{ $json.propertyName }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2976,
+        2656
+      ],
+      "id": "8fcf365b-824e-46f3-baaf-589c6700fed1",
+      "name": "Tem_Disparo_Pendente?"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=disparo_pendente_{{ $('Filtro_Eventos_Webhook').first().json.sessionId }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        4816,
+        1648
+      ],
+      "id": "e7ea7fcc-78d9-4cfc-8d85-a3d97dd704ae",
+      "name": "Limpar_Disparo_1",
+      "credentials": {
+        "redis": {
+          "id": "20Ko8c2VoYoVUaCs",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=disparo_pendente_{{ $('Filtro_Eventos_Webhook').first().json.sessionId }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        5024,
+        1840
+      ],
+      "id": "288a8bba-62c7-49dd-95df-c554c36a3a5f",
+      "name": "Limpar_Disparo_2",
+      "credentials": {
+        "redis": {
+          "id": "20Ko8c2VoYoVUaCs",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=disparo_pendente_{{ $('Filtro_Eventos_Webhook').first().json.sessionId }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2544,
+        2400
+      ],
+      "id": "706d2976-82d9-47be-9004-d110e3dbae2c",
+      "name": "Limpar_Disparo_3",
+      "credentials": {
+        "redis": {
+          "id": "20Ko8c2VoYoVUaCs",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Isso \"volta no tempo\", pega o JSON perfeito que entrou no webhook\n// e injeta ele de volta na linha de execução principal.\nreturn [{ \n  json: $('Filtro_Eventos_Webhook').first().json \n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2976,
+        2400
+      ],
+      "id": "5a9161c9-4568-4dd6-be90-d88240f57fc6",
+      "name": "Restaurar_Dados"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2800,
+        2656
+      ],
+      "id": "7031afec-bc1a-4925-8c19-a000976c5439",
+      "name": "Merge"
+    }
+  ],
+  "pinData": {
+    "Webhook Evo API": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-n8n.yyuhkk.easypanel.host",
+            "user-agent": "axios/1.13.2",
+            "content-length": "1471",
+            "accept": "application/json, text/plain, */*",
+            "accept-encoding": "gzip, compress, deflate, br",
+            "content-type": "application/json",
+            "x-forwarded-for": "172.18.0.1",
+            "x-forwarded-host": "n8n-n8n.yyuhkk.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "b2aef2927755",
+            "x-real-ip": "172.18.0.1"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "event": "messages.upsert",
+            "instance": "Silvia",
+            "data": {
+              "key": {
+                "remoteJid": "556186446934@s.whatsapp.net",
+                "remoteJidAlt": "556186446934@s.whatsapp.net",
+                "fromMe": false,
+                "id": "AC08878FE1D7AA8D974A4BCAA3601DA7",
+                "participant": "",
+                "addressingMode": "lid"
+              },
+              "pushName": "Henrique",
+              "status": "DELIVERY_ACK",
+              "message": {
+                "conversation": "05814436166\n08/11/1999",
+                "messageContextInfo": {
+                  "threadId": [],
+                  "deviceListMetadata": {
+                    "senderKeyIndexes": [],
+                    "recipientKeyIndexes": [],
+                    "senderKeyHash": {
+                      "0": 38,
+                      "1": 153,
+                      "2": 151,
+                      "3": 207,
+                      "4": 10,
+                      "5": 53,
+                      "6": 11,
+                      "7": 60,
+                      "8": 89,
+                      "9": 248
+                    },
+                    "senderTimestamp": {
+                      "low": 1775338397,
+                      "high": 0,
+                      "unsigned": true
+                    },
+                    "recipientKeyHash": {
+                      "0": 51,
+                      "1": 253,
+                      "2": 72,
+                      "3": 54,
+                      "4": 125,
+                      "5": 255,
+                      "6": 72,
+                      "7": 148,
+                      "8": 31,
+                      "9": 148
+                    },
+                    "recipientTimestamp": {
+                      "low": 1776220394,
+                      "high": 0,
+                      "unsigned": true
+                    }
+                  },
+                  "deviceListMetadataVersion": 2,
+                  "messageSecret": {
+                    "0": 179,
+                    "1": 241,
+                    "2": 102,
+                    "3": 251,
+                    "4": 158,
+                    "5": 177,
+                    "6": 222,
+                    "7": 206,
+                    "8": 252,
+                    "9": 207,
+                    "10": 209,
+                    "11": 182,
+                    "12": 30,
+                    "13": 60,
+                    "14": 89,
+                    "15": 86,
+                    "16": 152,
+                    "17": 73,
+                    "18": 223,
+                    "19": 251,
+                    "20": 4,
+                    "21": 22,
+                    "22": 202,
+                    "23": 21,
+                    "24": 38,
+                    "25": 240,
+                    "26": 87,
+                    "27": 51,
+                    "28": 155,
+                    "29": 120,
+                    "30": 89,
+                    "31": 33
+                  }
+                }
+              },
+              "messageType": "conversation",
+              "messageTimestamp": 1776434782,
+              "instanceId": "3a7a6ccd-26ed-47df-94e9-578a0a6d49f4",
+              "source": "android"
+            },
+            "destination": "https://n8n-n8n.yyuhkk.easypanel.host/webhook/evo-silvia-prod",
+            "date_time": "2026-04-17T11:06:22.667Z",
+            "sender": "554191194738@s.whatsapp.net",
+            "server_url": "https://evolution-evo.yyuhkk.easypanel.host",
+            "apikey": "544AA063B68F-49A1-BEF5-6AF3E5185639"
+          },
+          "webhookUrl": "https://n8n-n8n.yyuhkk.easypanel.host/webhook/evo-silvia-prod",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook Evo API": {
+      "main": [
+        [
+          {
+            "node": "Filtro_Eventos_Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA_Gemini_Principal": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente Silvia",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agente Silvia",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool_Verificar_Paciente_Existe": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente Silvia",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtro_Eventos_Webhook": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Checar_Disparo_Pendente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool_Listar_Medicos": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente Silvia",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool_Listar_Convenios": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente Silvia",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool_Buscar_Horarios": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente Silvia",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool_Agendar_Consulta": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente Silvia",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool_Cancelar_Agendamento": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente Silvia",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente Silvia": {
+      "main": [
+        [
+          {
+            "node": "Dividir_Mensagens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verifica_Comando": {
+      "main": [
+        [
+          {
+            "node": "Limpar_Memoria_Redis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ler_Contexto_Humano",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpar_Memoria_Redis": {
+      "main": [
+        [
+          {
+            "node": "Mensagem_Contexto_Limpo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensagem_Contexto_Limpo": {
+      "main": [
+        [
+          {
+            "node": "Enviar_Resposta_WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool_Criar_Atualizar_Paciente": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente Silvia",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É_Audio?": {
+      "main": [
+        [
+          {
+            "node": "Baixar_Audio_Evo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Verifica_Comando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base64_para_Binario": {
+      "main": [
+        [
+          {
+            "node": "Transcritor_Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcritor_Gemini": {
+      "main": [
+        [
+          {
+            "node": "Montar_Texto_Transcrito",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar_Audio_Evo": {
+      "main": [
+        [
+          {
+            "node": "Base64_para_Binario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar_Texto_Transcrito": {
+      "main": [
+        [
+          {
+            "node": "Verifica_Comando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool_Consultar_Agendamentos": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente Silvia",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dividir_Mensagens": {
+      "main": [
+        [
+          {
+            "node": "Loop_Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop_Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Checar_Etiqueta_Receita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar_Resposta_WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Espera_Processamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Espera_Processamento": {
+      "main": [
+        [
+          {
+            "node": "Loop_Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add_Fila_Mensagens": {
+      "main": [
+        [
+          {
+            "node": "Espera 12 Segundos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Espera 12 Segundos": {
+      "main": [
+        [
+          {
+            "node": "Extrair e Limpar Fila Múltipla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair e Limpar Fila Múltipla": {
+      "main": [
+        [
+          {
+            "node": "Montar Textão",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Textão": {
+      "main": [
+        [
+          {
+            "node": "É_Audio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool_Reagir_Mensagem": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente Silvia",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool_Buscar_Agendamentos_CPF": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente Silvia",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bloquear_Bot_Pausa": {
+      "main": [
+        [
+          {
+            "node": "Add_Contexto_Humano",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Desbloquear_Bot_Pausa": {
+      "main": [
+        [
+          {
+            "node": "Limpar_Contexto_App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar_Pausa_Ativa": {
+      "main": [
+        [
+          {
+            "node": "Assistente_Pausada?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assistente_Pausada?": {
+      "main": [
+        [
+          {
+            "node": "Pausar_Bot_Novamente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add_Fila_Mensagens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Roteador_Comandos": {
+      "main": [
+        [
+          {
+            "node": "Bloquear_Bot_Pausa",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Desbloquear_Bot_Pausa",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tem_Imagem?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar_Personalidade": {
+      "main": [
+        [
+          {
+            "node": "Agente Silvia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool_Gerar_Receita": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente Silvia",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tem_Imagem?": {
+      "main": [
+        [
+          {
+            "node": "Pre_Processar_Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Verificar_Pausa_Ativa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analisar_Imagem_Gemini": {
+      "main": [
+        [
+          {
+            "node": "Tratar_Analise_Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tratar_Analise_Imagem": {
+      "main": [
+        [
+          {
+            "node": "Verificar_Pausa_Ativa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pre_Processar_Imagem": {
+      "main": [
+        [
+          {
+            "node": "Analisar_Imagem_Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checar_Etiqueta_Receita": {
+      "main": [
+        [
+          {
+            "node": "Precisa_Etiquetar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Precisa_Etiquetar?": {
+      "main": [
+        [
+          {
+            "node": "App_AddLabel",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Enviar_Resposta_WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar_Resposta_WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pausar_Bot_Novamente": {
+      "main": [
+        [
+          {
+            "node": "Add_Contexto_Paciente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler_Contexto_Humano": {
+      "main": [
+        [
+          {
+            "node": "Buscar_Personalidade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analisar Intenção": {
+      "main": [
+        [
+          {
+            "node": "Next.js - Confirmar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Next.js - Cancelar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Limpar_Disparo_3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Next.js - Cancelar": {
+      "main": [
+        [
+          {
+            "node": "Evo - Msg Cancelado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evo - Msg Cancelado": {
+      "main": [
+        [
+          {
+            "node": "Limpar_Disparo_2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA - Entender Resposta": {
+      "main": [
+        [
+          {
+            "node": "Tratar Output IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tratar Output IA": {
+      "main": [
+        [
+          {
+            "node": "Analisar Intenção",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA_Entender_Intencao": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "IA - Entender Resposta",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checar_Disparo_Pendente": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Tem_Disparo_Pendente?": {
+      "main": [
+        [
+          {
+            "node": "IA - Entender Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Roteador_Comandos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Next.js - Confirmar": {
+      "main": [
+        [
+          {
+            "node": "Limpar_Disparo_1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpar_Disparo_2": {
+      "main": [
+        [
+          {
+            "node": "Evo - Notificar Assistente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpar_Disparo_3": {
+      "main": [
+        [
+          {
+            "node": "Restaurar_Dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restaurar_Dados": {
+      "main": [
+        [
+          {
+            "node": "Tem_Imagem?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Tem_Disparo_Pendente?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "2fe7e703-8066-48c1-941f-e4b465fde069",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5e7e8643e7147f9326806d43a4de74f76bb6cc8bceea0a468d6b4b07226cb9e8"
+  },
+  "id": "VSusx5CUfPmgu_DGJRk8W",
+  "tags": []
+}
