@@ -191,14 +191,56 @@ export async function fetchPatientBookingsAction(doctorId: string, addressId: st
   }
 }
 
-export async function fetchBookingsByNINAction(nin: string, birthday: string) {
-  if (!nin || !birthday) return { success: false, error: "Parâmetros incompletos." };
+export async function fetchBookingsByNINAction(nin: string, birthday: string, doctorId: string) {
+  if (!nin || !birthday || !doctorId) return { success: false, error: "CPF, Data e ID do Médico são obrigatórios." };
+
   try {
-    const response = await ClinicService.getBookingsByNIN(nin, birthday);
-    return { success: true, data: response.result };
+    // 1. Limpeza de dados recebidos do WhatsApp (n8n)
+    const cleanNin = nin.replace(/\D/g, '');
+
+    let cleanBirthday = birthday;
+    if (cleanBirthday.includes('/')) {
+      const [day, month, year] = cleanBirthday.split('/');
+      if (day && month && year) cleanBirthday = `${year}-${month}-${day}`;
+    }
+
+    // 2. Consulta em TEMPO REAL na API DO CLINIC para descobrir o patient_id
+    const existsRes = await ClinicService.checkPatientExists(cleanNin, cleanBirthday);
+
+    // Se a clínica disser que o paciente não existe, abortamos e avisamos a IA
+    if (!existsRes.result || !existsRes.result.patient_id) {
+      return { success: false, error: "Paciente não encontrado no sistema da clínica com este CPF e Data de Nascimento." };
+    }
+
+    const patientId = existsRes.result.patient_id.toString();
+
+    // 3. Monta a janela de datas (Hoje até 90 dias para frente)
+    const today = new Date();
+    const start_date = today.toISOString().split('T')[0];
+
+    const end = new Date();
+    end.setDate(end.getDate() + 90);
+    const end_date = end.toISOString().split('T')[0];
+
+    // 4. Busca os agendamentos usando a rota que exige o patient_id
+    const bookingsRes = await ClinicService.getPatientBookings(doctorId, "1", patientId, start_date, end_date);
+    const bookings = bookingsRes.result?.items || [];
+
+    // 5. Injeta o aviso (Anti-Alucinação) para a IA caso a lista venha vazia
+    if (bookings.length === 0) {
+      return {
+        success: true,
+        data: [],
+        _aviso_sistema: `ATENÇÃO IA: O paciente foi encontrado no sistema (ID: ${patientId}), mas NÃO há consultas agendadas para ele nos próximos 90 dias com este médico. Envie uma mensagem simpática avisando isso e pergunte qual foi o dia/mês aproximado que ele agendou para pesquisarmos novamente.`
+      };
+    }
+
+    // Se tem agendamento, retorna normalmente
+    return { success: true, data: bookings };
+
   } catch (error: any) {
-    console.error("[Clinic API Error] fetchBookingsByNINAction:", error.message);
-    return { success: false, error: "Falha ao buscar agendamentos por CPF/NIN." };
+    console.error("[Clinic API Error] fetchBookingsByNINAction:", error);
+    return { success: false, error: "Falha interna ao comunicar com a API da clínica." };
   }
 }
 
