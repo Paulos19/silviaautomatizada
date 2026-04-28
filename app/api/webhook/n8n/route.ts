@@ -138,7 +138,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: `Action '${action}' not supported.` }, { status: 400 });
     }
   } catch (error: any) {
-    console.error("[N8N Webhook Error]:", error);
+    console.error("[N8N Webhook Error] Payload recebido:", body);
+    console.error("[N8N Webhook Error] Detalhe:", error.message || error);
     return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
   }
 }
