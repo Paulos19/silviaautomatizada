@@ -57,24 +57,57 @@ export async function fetchSinglePatientAction(patientId: string) {
 
 export async function checkPatientExistsAction(nin: string, birthday: string) {
   if (!nin) return { success: false, error: "NIN/CPF obrigatório." };
+
   try {
+    // 1. Busca Básica para ver se o paciente existe
     const response = await ClinicService.getPatients(nin, 1, 100);
     const items = response.result?.items;
 
     if (items && items.length > 0) {
       const patient = items[0];
-      return {
-        success: true,
-        data: {
-          patient_id: patient.id,
-          patient_name: patient.name,
-          patient_mobile: patient.mobile,
-          patient_email: patient.email
-        }
-      };
+
+      // 2. BUSCA COMPLETA (Anti-Alucinação)
+      // Tenta pegar o perfil completo para extrair o healthInsuranceCode
+      try {
+        const fullProfileResponse = await ClinicService.getPatientById(patient.id);
+
+        // Dependendo de como o seu Zod schema mapeia, os dados podem vir direto no objeto ou dentro de um '.result'
+        const fullPatient = fullProfileResponse.result || fullProfileResponse;
+
+        return {
+          success: true,
+          data: {
+            patient_id: patient.id,
+            patient_name: patient.name,
+            patient_mobile: patient.mobile,
+            patient_email: patient.email,
+            // INJETANDO DADOS PARA A IA:
+            // Tenta mapear os nomes mais comuns que a API da clínica possa usar para o convênio
+            healthInsuranceCode: fullPatient.healthInsuranceCode || fullPatient.insurance_id || fullPatient.healthInsurancePlan || null,
+            maritalStatus: fullPatient.maritalStatus || patient.maritalStatus || null,
+            sex: fullPatient.sex || patient.sex || null
+          }
+        };
+
+      } catch (fullProfileError) {
+        // Fallback: Se a busca do perfil completo falhar (API lenta/caiu), 
+        // devolve o básico para a IA continuar o fluxo sem o convênio (e ela chamará a Tool_Listar_Convenios).
+        console.error("[Clinic API Error] Erro ao buscar perfil completo, retornando básico:", fullProfileError);
+        return {
+          success: true,
+          data: {
+            patient_id: patient.id,
+            patient_name: patient.name,
+            patient_mobile: patient.mobile,
+            patient_email: patient.email
+          }
+        };
+      }
     }
 
+    // Se o array de items vier vazio, paciente não existe
     return { success: false, error: "Paciente não encontrado." };
+
   } catch (error) {
     console.error("[Clinic API Error] checkPatientExistsAction:", error);
     return { success: false, error: "Falha ao verificar existência." };

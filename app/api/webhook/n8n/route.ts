@@ -10,7 +10,7 @@ import {
   fetchDoctorsAction,
   fetchPatientBookingsAction,
   fetchBookingsByNINAction,
-  createPrescriptionRequestAction // <-- Nova action importada aqui
+  createPrescriptionRequestAction
 } from "@/actions/clinic.actions";
 import { loadRagAction } from "@/actions/rag.actions";
 
@@ -25,8 +25,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: "Unauthorized. Invalid Webhook Secret." }, { status: 401 });
   }
 
+  // DECLARAÇÃO FORA DO TRY PARA SER ACESSÍVEL NO CATCH
+  let body: any;
+
   try {
-    const body = await request.json();
+    // ATRIBUIÇÃO DENTRO DO TRY
+    body = await request.json();
     const { action, payload } = body;
 
     console.log(`[n8n Request] Action: ${action}`, payload);
@@ -138,6 +142,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: `Action '${action}' not supported.` }, { status: 400 });
     }
   } catch (error: any) {
+    // AGORA O CATCH CONSEGUE LER A VARIÁVEL 'body'
     console.error("[N8N Webhook Error] Payload recebido:", body);
     console.error("[N8N Webhook Error] Detalhe:", error.message || error);
     return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
