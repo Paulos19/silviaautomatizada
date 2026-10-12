@@ -15,7 +15,7 @@ import {
 const CLINIC_URL = process.env.CLINIC_API_URL;
 const CLIENT_ID = process.env.CLINIC_CLIENT_ID;
 const CLIENT_SECRET = process.env.CLINIC_CLIENT_SECRET;
-const FACILITY_ID = process.env.CLINIC_FACILITY_ID;
+const FACILITY_ID = process.env.CLINIC_FACILITY_ID || "1";
 
 let cachedToken: string | null = null;
 let tokenExpiresAt: number | null = null;
@@ -57,10 +57,15 @@ async function clinicFetch(endpoint: string, options: RequestInit = {}) {
     throw new Error(`Erro na integração Clinic: Status ${response.status}`);
   }
 
-  // Tratamento para 204 No Content (Cancelamento)
+  // Tratamento para 204 No Content (Cancelamento) ou respostas sem corpo
   if (response.status === 204) return { success: true };
 
-  return response.json();
+  const text = await response.text();
+  try {
+    return text ? JSON.parse(text) : { success: true };
+  } catch {
+    return { success: true, text };
+  }
 }
 
 export const ClinicService = {
@@ -113,9 +118,25 @@ export const ClinicService = {
     return ClinicBookSlotResponseSchema.parse(data);
   },
 
+  async setBookingStatus(doctorId: string, addressId: string, bookingId: string, value: string = "canceled") {
+    const facilityId = FACILITY_ID || "1";
+    const url = `/api/v1/integration/facilities/${facilityId}/doctors/${doctorId}/addresses/${addressId}/bookings/${bookingId}/status?value=${value}`;
+    return await clinicFetch(url, { method: "PATCH" });
+  },
+
   async cancelBooking(doctorId: string, addressId: string, bookingId: string, externalId: string = "1") {
-    const url = `/api/v1/integration/facilities/${FACILITY_ID}/doctors/${doctorId}/addresses/${addressId}/bookings/${bookingId}?external_id=${externalId}`;
-    return await clinicFetch(url, { method: "DELETE" });
+    const facilityId = FACILITY_ID || "1";
+    // Tenta atualizar o status para canceled no prontuário/histórico da clínica
+    try {
+      const patchUrl = `/api/v1/integration/facilities/${facilityId}/doctors/${doctorId}/addresses/${addressId}/bookings/${bookingId}/status?value=canceled`;
+      await clinicFetch(patchUrl, { method: "PATCH" });
+    } catch (e: any) {
+      console.warn("[ClinicService] PATCH status canceled alert:", e.message);
+    }
+
+    // Executa o cancelamento oficial da reserva para desocupar o slot na agenda
+    const deleteUrl = `/api/v1/integration/facilities/${facilityId}/doctors/${doctorId}/addresses/${addressId}/bookings/${bookingId}?external_id=${externalId}`;
+    return await clinicFetch(deleteUrl, { method: "DELETE" });
   },
 
   async getInsuranceProviders() {

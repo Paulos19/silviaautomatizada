@@ -202,12 +202,15 @@ export async function bookSlotAction(doctorId: string, addressId: string, slotSt
   }
 }
 
-export async function cancelBookingAction(doctorId: string, addressId: string, bookingId: string, externalId: string = "1") {
-  if (!doctorId || !addressId || !bookingId) return { success: false, error: "Parâmetros incompletos." };
+export async function cancelBookingAction(doctorId?: string, addressId?: string, bookingId?: string, externalId: string = "1") {
+  const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "10073";
+  const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "1";
+
+  if (!bookingId) return { success: false, error: "ID do agendamento (bookingId) é obrigatório." };
 
   try {
-    const response = await ClinicService.cancelBooking(doctorId, addressId, bookingId, externalId);
-    return { success: true, data: "Agendamento cancelado com sucesso (204 No Content)." };
+    const response = await ClinicService.cancelBooking(finalDoctorId, finalAddressId, bookingId, externalId);
+    return { success: true, data: response || "Agendamento cancelado com sucesso." };
   } catch (error: any) {
     console.error("[Clinic API Error] cancelBooking:", error.message);
     return { success: false, error: "Falha ao cancelar agendamento." };
@@ -227,8 +230,9 @@ export async function fetchPatientBookingsAction(doctorId: string, addressId: st
 export async function fetchBookingsByNINAction(nin: string, birthday: string, doctorId?: string, addressId?: string) {
   if (!nin || !birthday) return { success: false, error: "Parâmetros incompletos (CPF e Data de Nascimento são obrigatórios)." };
   try {
+    const cleanNin = nin.replace(/\D/g, "");
     // Passo 1: Descobrir o patientId pelo CPF
-    const patientsResponse = await ClinicService.getPatients(nin, 1, 100);
+    const patientsResponse = await ClinicService.getPatients(cleanNin, 1, 100);
     const items = patientsResponse.result?.items;
 
     if (!items || items.length === 0) {
@@ -237,20 +241,23 @@ export async function fetchBookingsByNINAction(nin: string, birthday: string, do
 
     const patientId = String(items[0].id);
 
-    // Passo 2: Buscar agendamentos usando o endpoint que funciona
-    const today = new Date().toISOString().split('T')[0];
-    const endDateObj = new Date();
-    endDateObj.setDate(endDateObj.getDate() + 90);
-    const endDate = endDateObj.toISOString().split('T')[0];
+    // Passo 2: Buscar agendamentos usando o endpoint da agenda (30 dias atrás até 365 dias no futuro)
+    const pastDate = new Date();
+    pastDate.setDate(pastDate.getDate() - 30);
+    const startDate = pastDate.toISOString().split('T')[0];
 
-    const finalDoctorId = doctorId || "1";
-    const finalAddressId = addressId || "1";
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 365);
+    const endDate = futureDate.toISOString().split('T')[0];
+
+    const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "10073";
+    const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "1";
 
     const response = await ClinicService.getPatientBookings(
       finalDoctorId,
       finalAddressId,
       patientId,
-      today,
+      startDate,
       endDate
     );
 
