@@ -21,6 +21,10 @@ import {
     Sparkles,
     AlertCircle,
     Search,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, Variants } from "framer-motion";
@@ -342,6 +346,8 @@ export default function PrescriptionsPage() {
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [filter, setFilter] = useState<"ALL" | "PENDENTE" | "CONCLUIDO" | "REJEITADO">("ALL");
     const [searchTerm, setSearchTerm] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(6);
 
     useEffect(() => {
         loadRequests();
@@ -367,11 +373,18 @@ export default function PrescriptionsPage() {
         setUpdatingId(null);
     };
 
+    // Reset pagination when search, filter or items per page change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, filter, itemsPerPage]);
+
     const searchFilteredRequests = searchTerm === ""
         ? requests
         : requests.filter((r) =>
             r.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            r.unimedCard.toLowerCase().includes(searchTerm.toLowerCase())
+            r.unimedCard.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (r.medications && r.medications.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (r.address && r.address.toLowerCase().includes(searchTerm.toLowerCase()))
         );
 
     const filtered = filter === "ALL" ? searchFilteredRequests : searchFilteredRequests.filter((r) => r.status === filter);
@@ -381,6 +394,35 @@ export default function PrescriptionsPage() {
         PENDENTE: searchFilteredRequests.filter((r) => r.status === "PENDENTE").length,
         CONCLUIDO: searchFilteredRequests.filter((r) => r.status === "CONCLUIDO").length,
         REJEITADO: searchFilteredRequests.filter((r) => r.status === "REJEITADO").length,
+    };
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+    const safePage = Math.min(Math.max(1, currentPage), totalPages);
+    const startIndex = (safePage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, filtered.length);
+    const paginatedRequests = filtered.slice(startIndex, endIndex);
+
+    const handlePageChange = (newPage: number) => {
+        setCurrentPage(newPage);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    const getPageNumbers = () => {
+        const pages: (number | string)[] = [];
+        if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            if (safePage <= 3) {
+                pages.push(1, 2, 3, 4, "...", totalPages);
+            } else if (safePage >= totalPages - 2) {
+                pages.push(1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+            } else {
+                pages.push(1, "...", safePage - 1, safePage, safePage + 1, "...", totalPages);
+            }
+        }
+        return pages;
     };
 
     return (
@@ -497,122 +539,225 @@ export default function PrescriptionsPage() {
 
             {/* ═══ CARDS ═══ */}
             {!loading && filtered.length > 0 && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                    {filtered.map((req) => {
-                        const status = statusConfig[req.status] || statusConfig.PENDENTE;
-                        const StatusIcon = status.icon;
-                        const isUpdating = updatingId === req.id;
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        {paginatedRequests.map((req) => {
+                            const status = statusConfig[req.status] || statusConfig.PENDENTE;
+                            const StatusIcon = status.icon;
+                            const isUpdating = updatingId === req.id;
 
-                        return (
-                            <motion.div
-                                key={req.id}
-                                variants={item}
-                                className="bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-6 group hover:border-teal-500/20 transition-all duration-500 relative overflow-hidden"
-                            >
-                                {/* Glow */}
-                                <div className="absolute top-0 right-0 -mr-12 -mt-12 w-32 h-32 bg-teal-500/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                            return (
+                                <motion.div
+                                    key={req.id}
+                                    variants={item}
+                                    className="bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-6 group hover:border-teal-500/20 transition-all duration-500 relative overflow-hidden"
+                                >
+                                    {/* Glow */}
+                                    <div className="absolute top-0 right-0 -mr-12 -mt-12 w-32 h-32 bg-teal-500/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
-                                {/* Status + Date header */}
-                                <div className="flex items-center justify-between mb-5 relative z-10">
-                                    <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider", status.bg, status.border, status.color, "border")}>
-                                        <StatusIcon className="w-3.5 h-3.5" />
-                                        {status.label}
-                                    </div>
-                                    <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                                        <CalendarDays className="w-3.5 h-3.5" />
-                                        {formatDate(req.createdAt)}
-                                    </div>
-                                </div>
-
-                                {/* Patient Info */}
-                                <div className="space-y-3 relative z-10">
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                                            <User className="w-5 h-5 text-teal-400" />
+                                    {/* Status + Date header */}
+                                    <div className="flex items-center justify-between mb-5 relative z-10">
+                                        <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider", status.bg, status.border, status.color, "border")}>
+                                            <StatusIcon className="w-3.5 h-3.5" />
+                                            {status.label}
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="text-base font-semibold text-white font-outfit truncate">
-                                                {req.patientName}
-                                            </h3>
-                                            <p className="text-xs text-slate-500 font-inter mt-0.5">
-                                                Nasc.: {req.birthDate}
+                                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                                            <CalendarDays className="w-3.5 h-3.5" />
+                                            {formatDate(req.createdAt)}
+                                        </div>
+                                    </div>
+
+                                    {/* Patient Info */}
+                                    <div className="space-y-3 relative z-10">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                                                <User className="w-5 h-5 text-teal-400" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="text-base font-semibold text-white font-outfit truncate">
+                                                    {req.patientName}
+                                                </h3>
+                                                <p className="text-xs text-slate-500 font-inter mt-0.5">
+                                                    Nasc.: {req.birthDate}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                                                <CreditCard className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Carteirinha</p>
+                                                    <p className="text-sm text-slate-200 font-medium truncate">{req.unimedCard}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                                                <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Endereço</p>
+                                                    <p className="text-sm text-slate-200 font-medium truncate">{req.address}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Medications */}
+                                        <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Pill className="w-3.5 h-3.5 text-emerald-400" />
+                                                <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+                                                    Medicamentos
+                                                </p>
+                                            </div>
+                                            <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed font-inter">
+                                                {req.medications}
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
-                                            <CreditCard className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                                            <div className="min-w-0">
-                                                <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Carteirinha</p>
-                                                <p className="text-sm text-slate-200 font-medium truncate">{req.unimedCard}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
-                                            <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                                            <div className="min-w-0">
-                                                <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Endereço</p>
-                                                <p className="text-sm text-slate-200 font-medium truncate">{req.address}</p>
-                                            </div>
-                                        </div>
+                                    {/* Actions */}
+                                    <div className="flex items-center gap-2 mt-5 pt-4 border-t border-white/5 relative z-10">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => generatePrescriptionPDF(req)}
+                                            className="rounded-xl bg-white/5 border-white/10 text-slate-300 hover:bg-teal-500/10 hover:border-teal-500/30 hover:text-teal-400 gap-1.5 transition-all flex-1"
+                                        >
+                                            <Download className="w-3.5 h-3.5" />
+                                            Baixar PDF
+                                        </Button>
+
+                                        {req.status === "PENDENTE" && (
+                                            <>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => handleStatusChange(req.id, "CONCLUIDO")}
+                                                    disabled={isUpdating}
+                                                    className="rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25 gap-1.5 transition-all flex-1"
+                                                >
+                                                    {isUpdating ? (
+                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                    ) : (
+                                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                                    )}
+                                                    Concluir
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => handleStatusChange(req.id, "REJEITADO")}
+                                                    disabled={isUpdating}
+                                                    className="rounded-xl bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20 gap-1.5 transition-all"
+                                                >
+                                                    <XCircle className="w-3.5 h-3.5" />
+                                                </Button>
+                                            </>
+                                        )}
                                     </div>
+                                </motion.div>
+                            );
+                        })}
+                    </div>
 
-                                    {/* Medications */}
-                                    <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <Pill className="w-3.5 h-3.5 text-emerald-400" />
-                                            <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
-                                                Medicamentos
-                                            </p>
-                                        </div>
-                                        <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed font-inter">
-                                            {req.medications}
-                                        </p>
-                                    </div>
-                                </div>
+                    {/* ═══ PAGINATION CONTROLS ═══ */}
+                    <motion.div
+                        variants={item}
+                        className="bg-[#111A28]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4"
+                    >
+                        {/* Info & Items Per Page */}
+                        <div className="flex flex-wrap items-center gap-4 text-xs font-inter text-slate-400">
+                            <div>
+                                Mostrando <span className="font-semibold text-white">{startIndex + 1}</span> a{" "}
+                                <span className="font-semibold text-white">{endIndex}</span> de{" "}
+                                <span className="font-semibold text-white">{filtered.length}</span>{" "}
+                                {filtered.length === 1 ? "solicitação" : "solicitações"}
+                            </div>
+                            <div className="flex items-center gap-2 border-l border-white/10 pl-4">
+                                <span>Exibir:</span>
+                                <select
+                                    value={itemsPerPage}
+                                    onChange={(e) => {
+                                        setItemsPerPage(Number(e.target.value));
+                                    }}
+                                    className="bg-[#0B111A] border border-white/10 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-teal-500/40 transition-colors cursor-pointer"
+                                >
+                                    <option value={6}>6 por página</option>
+                                    <option value={10}>10 por página</option>
+                                    <option value={20}>20 por página</option>
+                                    <option value={50}>50 por página</option>
+                                </select>
+                            </div>
+                        </div>
 
-                                {/* Actions */}
-                                <div className="flex items-center gap-2 mt-5 pt-4 border-t border-white/5 relative z-10">
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => generatePrescriptionPDF(req)}
-                                        className="rounded-xl bg-white/5 border-white/10 text-slate-300 hover:bg-teal-500/10 hover:border-teal-500/30 hover:text-teal-400 gap-1.5 transition-all flex-1"
-                                    >
-                                        <Download className="w-3.5 h-3.5" />
-                                        Baixar PDF
-                                    </Button>
+                        {/* Navigation Buttons & Page Pills */}
+                        {totalPages > 1 && (
+                            <div className="flex items-center gap-1.5">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    disabled={safePage === 1}
+                                    onClick={() => handlePageChange(1)}
+                                    title="Primeira página"
+                                    className="w-8 h-8 rounded-xl bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all"
+                                >
+                                    <ChevronsLeft className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    disabled={safePage === 1}
+                                    onClick={() => handlePageChange(safePage - 1)}
+                                    title="Página anterior"
+                                    className="w-8 h-8 rounded-xl bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                </Button>
 
-                                    {req.status === "PENDENTE" && (
-                                        <>
-                                            <Button
-                                                size="sm"
-                                                onClick={() => handleStatusChange(req.id, "CONCLUIDO")}
-                                                disabled={isUpdating}
-                                                className="rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25 gap-1.5 transition-all flex-1"
-                                            >
-                                                {isUpdating ? (
-                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                ) : (
-                                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                <div className="flex items-center gap-1 px-1">
+                                    {getPageNumbers().map((p, idx) =>
+                                        typeof p === "number" ? (
+                                            <button
+                                                key={idx}
+                                                onClick={() => handlePageChange(p)}
+                                                className={cn(
+                                                    "w-8 h-8 rounded-xl text-xs font-inter font-medium transition-all duration-200 flex items-center justify-center",
+                                                    safePage === p
+                                                        ? "bg-teal-500/20 text-teal-300 border border-teal-500/40 font-semibold shadow-sm"
+                                                        : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"
                                                 )}
-                                                Concluir
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => handleStatusChange(req.id, "REJEITADO")}
-                                                disabled={isUpdating}
-                                                className="rounded-xl bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20 gap-1.5 transition-all"
                                             >
-                                                <XCircle className="w-3.5 h-3.5" />
-                                            </Button>
-                                        </>
+                                                {p}
+                                            </button>
+                                        ) : (
+                                            <span key={idx} className="w-6 text-center text-xs text-slate-600 select-none">
+                                                {p}
+                                            </span>
+                                        )
                                     )}
                                 </div>
-                            </motion.div>
-                        );
-                    })}
+
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    disabled={safePage === totalPages}
+                                    onClick={() => handlePageChange(safePage + 1)}
+                                    title="Próxima página"
+                                    className="w-8 h-8 rounded-xl bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all"
+                                >
+                                    <ChevronRight className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    disabled={safePage === totalPages}
+                                    onClick={() => handlePageChange(totalPages)}
+                                    title="Última página"
+                                    className="w-8 h-8 rounded-xl bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all"
+                                >
+                                    <ChevronsRight className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        )}
+                    </motion.div>
                 </div>
             )}
         </motion.div>
