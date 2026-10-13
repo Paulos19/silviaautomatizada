@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import {
     fetchPrescriptionRequestsAction,
     updatePrescriptionStatusAction,
+    deletePrescriptionRequestAction,
 } from "@/actions/clinic.actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +13,7 @@ import {
     Download,
     CheckCircle2,
     XCircle,
+    Trash2,
     Clock,
     User,
     CalendarDays,
@@ -344,6 +346,7 @@ export default function PrescriptionsPage() {
     const [requests, setRequests] = useState<PrescriptionRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
     const [filter, setFilter] = useState<"ALL" | "PENDENTE" | "CONCLUIDO" | "REJEITADO">("ALL");
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -371,6 +374,22 @@ export default function PrescriptionsPage() {
             );
         }
         setUpdatingId(null);
+    };
+
+    const handleDelete = async (id: string, patientName: string) => {
+        const confirmed = window.confirm(
+            `Tem certeza que deseja excluir permanentemente a solicitação de receita de "${patientName}"? Esta ação não pode ser desfeita.`
+        );
+        if (!confirmed) return;
+
+        setDeletingId(id);
+        const res = await deletePrescriptionRequestAction(id);
+        if (res.success) {
+            setRequests((prev) => prev.filter((r) => r.id !== id));
+        } else {
+            alert("Erro ao excluir solicitação de receita.");
+        }
+        setDeletingId(null);
     };
 
     // Reset pagination when search, filter or items per page change
@@ -631,7 +650,7 @@ export default function PrescriptionsPage() {
                                                 <Button
                                                     size="sm"
                                                     onClick={() => handleStatusChange(req.id, "CONCLUIDO")}
-                                                    disabled={isUpdating}
+                                                    disabled={isUpdating || deletingId === req.id}
                                                     className="rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25 gap-1.5 transition-all flex-1"
                                                 >
                                                     {isUpdating ? (
@@ -645,13 +664,30 @@ export default function PrescriptionsPage() {
                                                     size="sm"
                                                     variant="outline"
                                                     onClick={() => handleStatusChange(req.id, "REJEITADO")}
-                                                    disabled={isUpdating}
-                                                    className="rounded-xl bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20 gap-1.5 transition-all"
+                                                    disabled={isUpdating || deletingId === req.id}
+                                                    title="Rejeitar solicitação"
+                                                    className="rounded-xl bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20 gap-1.5 transition-all"
                                                 >
                                                     <XCircle className="w-3.5 h-3.5" />
                                                 </Button>
                                             </>
                                         )}
+
+                                        {/* Botão de Excluir / Deletar */}
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => handleDelete(req.id, req.patientName)}
+                                            disabled={isUpdating || deletingId === req.id}
+                                            title="Excluir permanentemente"
+                                            className="rounded-xl bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/25 hover:text-rose-300 gap-1.5 transition-all px-2.5"
+                                        >
+                                            {deletingId === req.id ? (
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            ) : (
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            )}
+                                        </Button>
                                     </div>
                                 </motion.div>
                             );

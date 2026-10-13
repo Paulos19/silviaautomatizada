@@ -358,3 +358,15 @@ export async function updatePrescriptionStatusAction(id: string, status: string)
     return { success: false, error: "Falha ao atualizar status." };
   }
 }
+
+export async function deletePrescriptionRequestAction(id: string) {
+  try {
+    const deleted = await prisma.prescriptionRequest.delete({
+      where: { id },
+    });
+    return { success: true, data: deleted };
+  } catch (error: any) {
+    console.error("Erro ao deletar solicitação de receita:", error);
+    return { success: false, error: "Falha ao deletar solicitação de receita." };
+  }
+}
