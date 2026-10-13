@@ -190,15 +190,46 @@ export async function fetchFreeSlotsAction(doctorId: string, addressId: string, 
 
 export async function bookSlotAction(doctorId: string, addressId: string, slotStart: string, payload: Record<string, any>) {
   try {
-    if (payload.external_id === "") {
-      delete payload.external_id;
+    const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "10073";
+    const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "1";
+
+    // Mapeamento e normalização dos campos exigidos pela Clinic API
+    let healthInsuranceCode = 
+      payload.healthInsuranceCode ?? 
+      payload.health_insurance_id ?? 
+      payload.healthInsuranceId ?? 
+      payload.health_insurance_code;
+
+    // Se ainda não tiver código do convênio e temos o patient_id, busca no cadastro do paciente
+    if (!healthInsuranceCode && payload.patient_id) {
+      try {
+        const patientData = await ClinicService.getPatientById(payload.patient_id);
+        healthInsuranceCode = patientData.result?.healthInsuranceCode;
+      } catch (e: any) {
+        console.warn("[bookSlotAction] Falha ao recuperar convênio do paciente:", e.message);
+      }
     }
 
-    const response = await ClinicService.bookSlot(doctorId, addressId, slotStart, payload);
+    // Fallback padrão para Unimed (260) se não identificado
+    if (!healthInsuranceCode || Number(healthInsuranceCode) === 0) {
+      healthInsuranceCode = 260;
+    }
+
+    const cleanPayload = {
+      address_service_id: payload.address_service_id || 1,
+      external_id: payload.external_id || "1",
+      patient_id: Number(payload.patient_id),
+      obs: payload.obs || payload.note || payload.observacoes || "Agendado via Silv.IA",
+      healthInsuranceCode: Number(healthInsuranceCode),
+      consultationType: payload.consultationType || 1,
+      appointmentType: payload.appointmentType || payload.type || 1,
+    };
+
+    const response = await ClinicService.bookSlot(finalDoctorId, finalAddressId, slotStart, cleanPayload);
     return { success: true, data: response.result };
   } catch (error: any) {
     console.error("[Clinic API Error] bookSlot:", error.message);
-    return { success: false, error: "Falha ao agendar consulta." };
+    return { success: false, error: "Falha ao agendar consulta: " + error.message };
   }
 }
 
