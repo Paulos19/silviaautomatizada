@@ -423,12 +423,6 @@ export default function OrchestratorPage() {
         );
     }, [events]);
 
-    // Seleciona automaticamente o primeiro contato real caso nenhum esteja selecionado
-    useEffect(() => {
-        if (!selectedChatPhone && chats.length > 0) {
-            setSelectedChatPhone(chats[0].phone);
-        }
-    }, [chats, selectedChatPhone]);
 
     // Métricas calculadas
     const totalReqs = (summary?.successful_requests || 0) + (summary?.failed_requests || 0);
