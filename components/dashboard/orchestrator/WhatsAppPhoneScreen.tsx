@@ -25,9 +25,7 @@ import {
     ExternalLink,
     Download,
     MessageSquare,
-    Clock,
-    Sparkles,
-    Pin
+    Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -65,6 +63,41 @@ interface WhatsAppPhoneScreenProps {
     onDownloadPdf?: () => void;
 }
 
+/**
+ * Função utilitária que identifica quebras de texto (como " | " ou quebras de linha duplas)
+ * e divide a mensagem em múltiplos balões individuais com visual autêntico de WhatsApp.
+ */
+function splitMessageIntoBubbles(rawText: string): string[] {
+    if (!rawText) return [];
+
+    // Remove prefixos como 'Recebida: "' ou 'Enviada: "' e aspas nas extremidades
+    let cleaned = rawText
+        .replace(/^Recebida:\s*"?/i, "")
+        .replace(/^Enviada:\s*"?/i, "")
+        .replace(/"?$/, "")
+        .trim();
+
+    // Se a mensagem contiver o delimitador "|" utilizado nos prompts da Silvia
+    if (cleaned.includes("|")) {
+        const parts = cleaned
+            .split(/\s*\|\s*/)
+            .map((p) => p.trim())
+            .filter((p) => p.length > 0);
+        if (parts.length > 0) return parts;
+    }
+
+    // Se contiver quebras de linha duplas
+    if (cleaned.includes("\n\n")) {
+        const parts = cleaned
+            .split(/\n{2,}/)
+            .map((p) => p.trim())
+            .filter((p) => p.length > 0);
+        if (parts.length > 0) return parts;
+    }
+
+    return [cleaned];
+}
+
 export function WhatsAppPhoneScreen({
     chats,
     selectedChatPhone,
@@ -82,7 +115,6 @@ export function WhatsAppPhoneScreen({
     // Filtra as conversas pela busca e pelas tags
     const filteredChats = useMemo(() => {
         return chats.filter((chat) => {
-            // Busca textual
             if (searchQuery.trim()) {
                 const q = searchQuery.toLowerCase();
                 const matchName = chat.name.toLowerCase().includes(q);
@@ -91,7 +123,6 @@ export function WhatsAppPhoneScreen({
                 if (!matchName && !matchPhone && !matchLastMsg) return false;
             }
 
-            // Filtro por abas
             if (activeFilter === "ALL") return true;
             if (activeFilter === "BOOKINGS") return chat.status === "booked" || chat.status === "cancelled";
             if (activeFilter === "PRESCRIPTIONS") return chat.status === "prescription";
@@ -101,23 +132,29 @@ export function WhatsAppPhoneScreen({
         });
     }, [chats, searchQuery, activeFilter]);
 
+    // Conversa ativa selecionada (se houver pelo menos uma conversa e nenhuma selecionada, abre a primeira)
     const activeChat = useMemo(() => {
-        return chats.find((c) => c.phone === selectedChatPhone) || null;
+        if (selectedChatPhone) {
+            return chats.find((c) => c.phone === selectedChatPhone) || null;
+        }
+        return null;
     }, [chats, selectedChatPhone]);
 
     return (
-        <div className="relative w-full h-full bg-[#111B21] text-[#E9EDEF] flex flex-col font-sans select-none overflow-hidden">
-            {/* --- 1. STATUS BAR DO SMARTPHONE (Android/iOS) --- */}
-            <div className="h-7 w-full bg-[#111B21] flex items-center justify-between px-6 pt-1 text-[11px] font-medium text-slate-300 z-50 shrink-0">
-                <span>{currentTime}</span>
-                <div className="flex items-center gap-1.5 text-slate-300">
+        <div className="relative w-full h-full bg-[#EFEAE2] text-[#111B21] flex flex-col font-sans select-none overflow-hidden">
+            {/* --- 1. STATUS BAR SUPERIOR DO SMARTPHONE (Referência 2) --- */}
+            <div className="h-6 w-full bg-[#005C4B] flex items-center justify-between px-5 text-[11px] font-medium text-white/90 z-50 shrink-0">
+                <span className="font-semibold text-[10px]">{currentTime}</span>
+                {/* Punch-hole central simulado */}
+                <div className="w-2.5 h-2.5 rounded-full bg-black/40 border border-white/10" />
+                <div className="flex items-center gap-1.5 text-white/90 text-[10px]">
                     <Wifi className="w-3 h-3" />
-                    <span className="text-[10px] font-bold">5G</span>
+                    <span className="font-bold text-[9px]">85%</span>
                     <Battery className="w-3.5 h-3.5" />
                 </div>
             </div>
 
-            {/* --- 2. CONTEÚDO PRINCIPAL (LISTA OU CHAT ABERTO) --- */}
+            {/* --- 2. CONTEÚDO PRINCIPAL (LISTA DE CONVERSAS OU CHAT ROOM) --- */}
             <div className="relative flex-1 w-full overflow-hidden flex flex-col">
                 <AnimatePresence initial={false} mode="wait">
                     {!activeChat ? (
@@ -126,54 +163,30 @@ export function WhatsAppPhoneScreen({
                         /* ============================================================ */
                         <motion.div
                             key="chats-list"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            transition={{ duration: 0.25, ease: "easeOut" }}
-                            className="flex flex-col h-full w-full"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="flex flex-col h-full w-full bg-white"
                         >
-                            {/* Header WhatsApp */}
-                            <div className="px-4 py-2.5 flex items-center justify-between border-b border-[#202C33] bg-[#111B21] shrink-0">
-                                <span className="text-xl font-bold tracking-tight text-[#00A884]">
-                                    WhatsApp
-                                </span>
-                                <div className="flex items-center gap-4 text-[#AEBAC1]">
+                            {/* Header WhatsApp Verde */}
+                            <div className="px-4 py-2.5 flex items-center justify-between bg-[#005C4B] text-white shrink-0 shadow-sm">
+                                <span className="text-lg font-bold tracking-tight">WhatsApp</span>
+                                <div className="flex items-center gap-3.5 text-white/90">
                                     <button className="hover:text-white transition-colors">
-                                        <Camera className="w-5 h-5" />
+                                        <Camera className="w-4 h-4" />
                                     </button>
                                     <button className="hover:text-white transition-colors">
-                                        <MoreVertical className="w-5 h-5" />
+                                        <Search className="w-4 h-4" />
+                                    </button>
+                                    <button className="hover:text-white transition-colors">
+                                        <MoreVertical className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Barra de Busca "Ask Meta AI or Search" */}
-                            <div className="px-3 pt-2.5 pb-2 bg-[#111B21] shrink-0">
-                                <div className="relative flex items-center bg-[#202C33] rounded-full px-3 py-1.5 border border-[#2A3942]/60 shadow-inner">
-                                    {/* Ícone de anel colorido Meta AI */}
-                                    <div className="w-4 h-4 rounded-full bg-gradient-to-tr from-blue-500 via-indigo-500 to-teal-400 p-[1.5px] mr-2 shrink-0">
-                                        <div className="w-full h-full rounded-full bg-[#202C33]" />
-                                    </div>
-                                    <input
-                                        type="text"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        placeholder="Buscar paciente ou número..."
-                                        className="w-full bg-transparent text-xs text-[#E9EDEF] placeholder-[#8696A0] outline-none"
-                                    />
-                                    {searchQuery && (
-                                        <button
-                                            onClick={() => setSearchQuery("")}
-                                            className="text-xs text-[#8696A0] hover:text-white"
-                                        >
-                                            ✕
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Filtros em Pílulas (Pills) como na Referência 2 */}
-                            <div className="px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0 border-b border-[#202C33]/60 bg-[#111B21]">
+                            {/* Filtros em Pílulas (Pills) */}
+                            <div className="px-3 py-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0 border-b border-slate-100 bg-white">
                                 {[
                                     { id: "ALL", label: "Todos" },
                                     { id: "BOOKINGS", label: "Consultas" },
@@ -185,10 +198,10 @@ export function WhatsAppPhoneScreen({
                                         key={tab.id}
                                         onClick={() => onFilterChange(tab.id)}
                                         className={cn(
-                                            "px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200",
+                                            "px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-all",
                                             activeFilter === tab.id
-                                                ? "bg-[#00A884] text-[#111B21] font-semibold shadow-sm"
-                                                : "bg-[#202C33] text-[#8696A0] hover:bg-[#2A3942] hover:text-[#E9EDEF]"
+                                                ? "bg-[#008069] text-white font-semibold"
+                                                : "bg-[#F0F2F5] text-[#54656F] hover:bg-[#E4E6EB]"
                                         )}
                                     >
                                         {tab.label}
@@ -196,14 +209,14 @@ export function WhatsAppPhoneScreen({
                                 ))}
                             </div>
 
-                            {/* Lista de Contatos com Separador (Referência 2) */}
-                            <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-[#202C33]/50">
+                            {/* Lista de Contatos Reais com Separador (Sem Mocks) */}
+                            <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
                                 {filteredChats.length === 0 ? (
-                                    <div className="p-8 text-center text-[#8696A0] text-xs space-y-2">
-                                        <MessageSquare className="w-8 h-8 text-[#8696A0]/40 mx-auto" />
-                                        <p>Nenhuma conversa encontrada neste filtro.</p>
-                                        <p className="text-[11px] text-[#8696A0]/60">
-                                            Envie uma mensagem no WhatsApp para ver o contato aparecer aqui instantaneamente!
+                                    <div className="p-8 text-center text-[#54656F] text-xs space-y-2">
+                                        <MessageSquare className="w-8 h-8 text-[#54656F]/40 mx-auto" />
+                                        <p className="font-medium">Nenhum atendimento neste filtro.</p>
+                                        <p className="text-[11px] text-[#54656F]/70">
+                                            As mensagens recebidas no WhatsApp da clínica aparecerão aqui automaticamente.
                                         </p>
                                     </div>
                                 ) : (
@@ -211,59 +224,54 @@ export function WhatsAppPhoneScreen({
                                         <div
                                             key={chat.phone}
                                             onClick={() => onSelectChat(chat.phone)}
-                                            className="px-3.5 py-3 flex items-center gap-3 hover:bg-[#202C33]/60 active:bg-[#202C33] cursor-pointer transition-colors group relative"
+                                            className="px-3.5 py-2.5 flex items-center gap-3 hover:bg-[#F5F6F6] active:bg-[#E9EDEF] cursor-pointer transition-colors group"
                                         >
                                             {/* Bolinha do Avatar */}
                                             <div className="relative shrink-0">
                                                 <div
                                                     className={cn(
-                                                        "w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm text-white shadow-sm",
+                                                        "w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm text-white shadow-xs",
                                                         chat.avatarColor
                                                     )}
                                                 >
                                                     {chat.avatarInitial}
                                                 </div>
-                                                {/* Badge de status no avatar */}
-                                                {chat.status === "handoff" && (
-                                                    <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-rose-500 border-2 border-[#111B21] flex items-center justify-center text-[9px] font-bold text-white">
-                                                        !
+                                                {chat.status === "booked" && (
+                                                    <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[#00A884] border-2 border-white flex items-center justify-center text-[8px] font-bold text-white">
+                                                        ✓
                                                     </span>
                                                 )}
-                                                {chat.status === "booked" && (
-                                                    <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#00A884] border-2 border-[#111B21] flex items-center justify-center text-[9px] font-bold text-white">
-                                                        ✓
+                                                {chat.status === "handoff" && (
+                                                    <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-amber-500 border-2 border-white flex items-center justify-center text-[8px] font-bold text-white">
+                                                        !
                                                     </span>
                                                 )}
                                             </div>
 
-                                            {/* Dados do Contato & Última Mensagem */}
+                                            {/* Nome e Prévia */}
                                             <div className="flex-1 min-w-0 pr-1">
                                                 <div className="flex items-center justify-between mb-0.5">
-                                                    <h3 className="text-sm font-semibold text-[#E9EDEF] truncate group-hover:text-white">
+                                                    <h3 className="text-xs font-semibold text-[#111B21] truncate">
                                                         {chat.name}
                                                     </h3>
-                                                    <span className="text-[11px] text-[#8696A0] font-mono shrink-0 ml-2">
+                                                    <span className="text-[10px] text-[#667781] shrink-0 ml-1">
                                                         {chat.lastTime}
                                                     </span>
                                                 </div>
 
                                                 <div className="flex items-center justify-between gap-1">
-                                                    <p className="text-xs text-[#8696A0] truncate flex items-center gap-1">
-                                                        {/* Ícone de status da mensagem */}
+                                                    <p className="text-[11px] text-[#667781] truncate flex items-center gap-1">
                                                         {chat.lastMessage.startsWith("✓✓") && (
-                                                            <CheckCheck className="w-3.5 h-3.5 text-[#53BDEB] shrink-0 inline" />
+                                                            <CheckCheck className="w-3 h-3 text-[#53BDEB] shrink-0 inline" />
                                                         )}
                                                         <span>{chat.lastMessage.replace("✓✓", "").trim()}</span>
                                                     </p>
 
-                                                    {/* Badge de mensagens ou pin */}
-                                                    {chat.isPinned ? (
-                                                        <Pin className="w-3 h-3 text-[#8696A0] shrink-0" />
-                                                    ) : chat.unreadCount > 0 ? (
-                                                        <span className="min-w-4 h-4 px-1 rounded-full bg-[#00A884] text-[#111B21] text-[10px] font-bold flex items-center justify-center shrink-0">
+                                                    {chat.unreadCount > 0 && (
+                                                        <span className="min-w-4 h-4 px-1 rounded-full bg-[#25D366] text-white text-[9px] font-bold flex items-center justify-center shrink-0">
                                                             {chat.unreadCount}
                                                         </span>
-                                                    ) : null}
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -271,161 +279,112 @@ export function WhatsAppPhoneScreen({
                                 )}
                             </div>
 
-                            {/* Floating Action Button (FAB) verde do WhatsApp */}
-                            <div className="absolute bottom-16 right-4 z-30">
-                                <button className="w-12 h-12 rounded-2xl bg-[#00A884] hover:bg-[#008f6f] text-[#111B21] shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95">
+                            {/* Botão Flutuante (FAB) de Nova Conversa */}
+                            <div className="absolute bottom-5 right-4 z-30">
+                                <button className="w-11 h-11 rounded-2xl bg-[#00A884] hover:bg-[#008f6f] text-white shadow-md flex items-center justify-center transition-transform hover:scale-105 active:scale-95">
                                     <MessageSquare className="w-5 h-5 fill-current" />
-                                </button>
-                            </div>
-
-                            {/* Barra Inferior de Navegação do WhatsApp */}
-                            <div className="h-14 bg-[#111B21] border-t border-[#202C33] flex items-center justify-around px-2 text-[#8696A0] shrink-0">
-                                <button
-                                    onClick={() => onFilterChange("ALL")}
-                                    className={cn(
-                                        "flex flex-col items-center gap-1 py-1 px-3 rounded-full transition-colors",
-                                        activeFilter === "ALL" ? "text-[#00A884]" : "hover:text-[#E9EDEF]"
-                                    )}
-                                >
-                                    <div className="relative">
-                                        <MessageSquare className="w-5 h-5 fill-current" />
-                                        {chats.length > 0 && (
-                                            <span className="absolute -top-1 -right-2 bg-[#00A884] text-[#111B21] text-[9px] font-bold px-1 rounded-full">
-                                                {chats.length}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <span className="text-[10px] font-semibold">Conversas</span>
-                                </button>
-
-                                <button
-                                    onClick={() => onFilterChange("BOOKINGS")}
-                                    className={cn(
-                                        "flex flex-col items-center gap-1 py-1 px-3 rounded-full transition-colors",
-                                        activeFilter === "BOOKINGS" ? "text-[#00A884]" : "hover:text-[#E9EDEF]"
-                                    )}
-                                >
-                                    <Calendar className="w-5 h-5" />
-                                    <span className="text-[10px] font-medium">Consultas</span>
-                                </button>
-
-                                <button
-                                    onClick={() => onFilterChange("PRESCRIPTIONS")}
-                                    className={cn(
-                                        "flex flex-col items-center gap-1 py-1 px-3 rounded-full transition-colors",
-                                        activeFilter === "PRESCRIPTIONS" ? "text-[#00A884]" : "hover:text-[#E9EDEF]"
-                                    )}
-                                >
-                                    <Pill className="w-5 h-5" />
-                                    <span className="text-[10px] font-medium">Receitas</span>
-                                </button>
-
-                                <button
-                                    onClick={() => onFilterChange("HANDOFF")}
-                                    className={cn(
-                                        "flex flex-col items-center gap-1 py-1 px-3 rounded-full transition-colors",
-                                        activeFilter === "HANDOFF" ? "text-[#00A884]" : "hover:text-[#E9EDEF]"
-                                    )}
-                                >
-                                    <AlertTriangle className="w-5 h-5" />
-                                    <span className="text-[10px] font-medium">Recepção</span>
                                 </button>
                             </div>
                         </motion.div>
                     ) : (
                         /* ============================================================ */
-                        /*                TELA DA CONVERSA INDIVIDUAL (CHAT ROOM)       */
+                        /*                TELA DA CONVERSA (CHAT ROOM - REF 2)          */
                         /* ============================================================ */
                         <motion.div
                             key="chat-room"
-                            initial={{ opacity: 0, x: 25 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 25 }}
-                            transition={{ duration: 0.28, ease: "easeOut" }}
-                            className="flex flex-col h-full w-full bg-[#0B141A]"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="flex flex-col h-full w-full bg-[#EFEAE2]"
                         >
-                            {/* Header do Chat */}
-                            <div className="px-3 py-2 bg-[#202C33] flex items-center justify-between border-b border-[#2A3942] shrink-0 z-20">
-                                <div className="flex items-center gap-2 min-w-0">
+                            {/* --- HEADER DO CHAT (Referência 2) --- */}
+                            <div className="px-2.5 py-2 bg-[#005C4B] text-white flex items-center justify-between shadow-sm shrink-0 z-20">
+                                <div className="flex items-center gap-1.5 min-w-0">
                                     <button
                                         onClick={() => onSelectChat(null)}
-                                        className="p-1 -ml-1 text-[#AEBAC1] hover:text-white rounded-full hover:bg-[#2A3942] transition-colors"
+                                        className="p-1 -ml-1 text-white hover:bg-black/10 rounded-full transition-colors"
+                                        title="Voltar para a lista"
                                     >
                                         <ArrowLeft className="w-5 h-5" />
                                     </button>
 
+                                    {/* Avatar circular */}
                                     <div
                                         className={cn(
-                                            "w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0",
+                                            "w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0 border border-white/20 shadow-xs",
                                             activeChat.avatarColor
                                         )}
                                     >
                                         {activeChat.avatarInitial}
                                     </div>
 
-                                    <div className="min-w-0">
-                                        <h3 className="text-xs font-semibold text-[#E9EDEF] truncate leading-tight">
+                                    {/* Nome e Status "online" como na Referência 2 */}
+                                    <div className="min-w-0 leading-tight">
+                                        <h3 className="text-xs font-bold text-white truncate max-w-[150px]">
                                             {activeChat.name}
                                         </h3>
-                                        <p className="text-[10px] text-[#00A884] font-medium truncate">
-                                            Online • Silv.IA Consultório
-                                        </p>
+                                        <p className="text-[10px] text-emerald-200 font-medium">online</p>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-3 text-[#AEBAC1] shrink-0">
+                                {/* Ações do Header (Vídeo, Ligação, Menu) */}
+                                <div className="flex items-center gap-2.5 text-white/95 shrink-0">
                                     <a
                                         href={`https://wa.me/${activeChat.phone.replace(/\D/g, "")}`}
                                         target="_blank"
                                         rel="noreferrer"
                                         title="Abrir no WhatsApp Web"
-                                        className="hover:text-white transition-colors"
+                                        className="p-1 hover:bg-black/10 rounded-full transition-colors"
                                     >
-                                        <ExternalLink className="w-4 h-4 text-[#00A884]" />
+                                        <ExternalLink className="w-3.5 h-3.5" />
                                     </a>
-                                    <button className="hover:text-white transition-colors">
-                                        <Phone className="w-4 h-4" />
+                                    <button className="p-1 hover:bg-black/10 rounded-full transition-colors">
+                                        <Video className="w-4 h-4" />
                                     </button>
-                                    <button className="hover:text-white transition-colors">
+                                    <button className="p-1 hover:bg-black/10 rounded-full transition-colors">
+                                        <Phone className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button className="p-1 hover:bg-black/10 rounded-full transition-colors">
                                         <MoreVertical className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Área de Mensagens com Wallpaper WhatsApp */}
+                            {/* --- ÁREA DE MENSAGENS COM WALLPAPER E BALÕES SEPARADOS --- */}
                             <div
-                                className="flex-1 overflow-y-auto p-3.5 space-y-3 custom-scrollbar relative"
+                                className="flex-1 overflow-y-auto px-3 py-2 space-y-2 relative"
                                 style={{
-                                    backgroundImage: `radial-gradient(#202C33 1px, transparent 1px)`,
-                                    backgroundSize: "20px 20px"
+                                    backgroundImage: `radial-gradient(#cfc7bc 1px, transparent 1px)`,
+                                    backgroundSize: "16px 16px"
                                 }}
                             >
-                                {/* Pílula de Data */}
-                                <div className="flex justify-center my-2">
-                                    <span className="px-3 py-0.5 rounded-lg bg-[#182229] border border-[#202C33] text-[10px] font-semibold text-[#8696A0] uppercase tracking-wider shadow-sm">
-                                        Hoje
+                                {/* Pílula de Data Centralizada "TODAY" (Referência 2) */}
+                                <div className="flex justify-center my-1.5">
+                                    <span className="px-3 py-0.5 rounded-md bg-[#34B7F1] text-white text-[10px] font-bold uppercase tracking-wider shadow-xs">
+                                        TODAY
                                     </span>
                                 </div>
 
-                                {/* Balões de Mensagem */}
+                                {/* Renderização de Mensagens Divididas em Balões Individuais */}
                                 {activeChat.messages.map((msg) => {
                                     const isSilvia = msg.sender === "silvia";
                                     const isSystem = msg.sender === "system";
 
-                                    // 1. Cards de Sistema Especiais
+                                    // 1. Card de Consulta Agendada com Sucesso
                                     if (msg.type === "booking") {
                                         return (
                                             <div key={msg.id} className="flex justify-center my-2">
-                                                <div className="w-full max-w-[310px] p-3 rounded-2xl bg-[#005C4B]/20 border border-[#00A884]/40 backdrop-blur-md shadow-md space-y-1.5">
-                                                    <div className="flex items-center gap-2 text-[#00A884] font-bold text-xs">
-                                                        <Calendar className="w-4 h-4 shrink-0" />
-                                                        <span>Consulta Médica Agendada</span>
+                                                <div className="w-full max-w-[310px] p-2.5 rounded-xl bg-white border border-emerald-300 shadow-xs space-y-1.5">
+                                                    <div className="flex items-center gap-1.5 text-[#008069] font-bold text-xs border-b border-emerald-100 pb-1">
+                                                        <Calendar className="w-3.5 h-3.5 shrink-0" />
+                                                        <span>Consulta Confirmada no Sistema</span>
                                                     </div>
-                                                    <p className="text-[11px] text-[#E9EDEF] leading-relaxed">
+                                                    <p className="text-[11px] text-[#111B21] leading-relaxed">
                                                         {msg.text}
                                                     </p>
-                                                    <div className="pt-1 flex items-center justify-between text-[10px] text-[#8696A0] font-mono border-t border-[#00A884]/20">
-                                                        <span>Dr. Marco Antonio • Psiquiatria</span>
+                                                    <div className="pt-1 flex items-center justify-between text-[9px] text-[#667781] font-mono">
+                                                        <span className="text-[#008069] font-semibold">Reserva Oficial</span>
                                                         <span>{msg.time}</span>
                                                     </div>
                                                 </div>
@@ -433,27 +392,30 @@ export function WhatsAppPhoneScreen({
                                         );
                                     }
 
+                                    // 2. Card de Comprovante em PDF Enviado
                                     if (msg.type === "voucher") {
                                         return (
-                                            <div key={msg.id} className="flex justify-end my-1.5">
-                                                <div className="w-full max-w-[280px] p-2.5 rounded-2xl bg-[#005C4B] text-white shadow-md space-y-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="p-2 rounded-xl bg-white/10 text-white">
-                                                            <FileText className="w-5 h-5 text-teal-300" />
+                                            <div key={msg.id} className="flex justify-end my-1">
+                                                <div className="w-full max-w-[280px] p-2 rounded-xl bg-[#D9FDD3] shadow-xs space-y-2 border border-[#C5ECC0]">
+                                                    <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200">
+                                                        <div className="p-1.5 rounded-md bg-rose-50 text-rose-600">
+                                                            <FileText className="w-5 h-5" />
                                                         </div>
-                                                        <div className="min-w-0">
-                                                            <p className="text-xs font-bold truncate">Comprovante de Agendamento</p>
-                                                            <p className="text-[10px] text-teal-200">PDF • Hospital Otorrinos</p>
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-xs font-semibold text-[#111B21] truncate">
+                                                                comprovante_consulta.pdf
+                                                            </p>
+                                                            <p className="text-[10px] text-[#667781]">142 KB • PDF Oficial</p>
                                                         </div>
                                                     </div>
                                                     <button
                                                         onClick={onDownloadPdf}
-                                                        className="w-full py-1 px-2 rounded-lg bg-white/15 hover:bg-white/25 text-[11px] font-semibold flex items-center justify-center gap-1 transition-colors"
+                                                        className="w-full py-1 px-2 rounded-md bg-[#008069] hover:bg-[#006e5a] text-white text-[11px] font-semibold flex items-center justify-center gap-1 transition-colors shadow-xs"
                                                     >
                                                         <Download className="w-3 h-3" />
                                                         Baixar Comprovante
                                                     </button>
-                                                    <div className="flex justify-end items-center gap-1 text-[9px] text-teal-200/80">
+                                                    <div className="flex justify-end items-center gap-1 text-[9px] text-[#667781]">
                                                         <span>{msg.time}</span>
                                                         <CheckCheck className="w-3 h-3 text-[#53BDEB]" />
                                                     </div>
@@ -462,66 +424,91 @@ export function WhatsAppPhoneScreen({
                                         );
                                     }
 
+                                    // 3. Card de Transferência para a Recepção (Ana)
                                     if (msg.type === "handoff") {
                                         return (
-                                            <div key={msg.id} className="flex justify-center my-2">
-                                                <div className="w-full max-w-[310px] p-2.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs space-y-1 shadow-sm">
-                                                    <div className="flex items-center gap-1.5 font-bold text-amber-400">
+                                            <div key={msg.id} className="flex justify-center my-1.5">
+                                                <div className="w-full max-w-[310px] p-2.5 rounded-xl bg-[#FEF3C7] border border-amber-300 text-amber-900 text-xs space-y-1 shadow-xs">
+                                                    <div className="flex items-center gap-1 font-bold text-amber-800">
                                                         <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                                                         <span>Transferido para a Recepção (Ana)</span>
                                                     </div>
-                                                    <p className="text-[11px] text-slate-200">{msg.text}</p>
-                                                    <p className="text-[9px] text-amber-300/80 text-right font-mono">{msg.time}</p>
+                                                    <p className="text-[11px] text-amber-950">{msg.text}</p>
+                                                    <p className="text-[9px] text-amber-800 text-right font-mono">{msg.time}</p>
                                                 </div>
                                             </div>
                                         );
                                     }
 
-                                    // 2. Balão Padrão de Conversa (Paciente ou Silvia)
+                                    // 4. BALÕES DE MENSAGENS COM QUEBRAS EM BALÕES INDIVIDUAIS (Referência 2)
+                                    const subBubbles = splitMessageIntoBubbles(msg.text);
+
                                     return (
                                         <div
                                             key={msg.id}
                                             className={cn(
-                                                "flex w-full",
-                                                isSilvia ? "justify-end" : "justify-start"
+                                                "flex flex-col w-full space-y-1",
+                                                isSilvia ? "items-end" : "items-start"
                                             )}
                                         >
-                                            <div
-                                                className={cn(
-                                                    "max-w-[82%] px-3 py-1.5 rounded-2xl text-xs relative shadow-sm leading-relaxed",
-                                                    isSilvia
-                                                        ? "bg-[#005C4B] text-[#E9EDEF] rounded-tr-xs"
-                                                        : "bg-[#202C33] text-[#E9EDEF] rounded-tl-xs"
-                                                )}
-                                            >
-                                                <p className="pr-12 whitespace-pre-wrap">{msg.text}</p>
-                                                <div className="absolute right-2 bottom-1 flex items-center gap-1 text-[9px] text-[#8696A0]">
-                                                    <span>{msg.time}</span>
-                                                    {isSilvia && (
-                                                        <CheckCheck className="w-3 h-3 text-[#53BDEB]" />
-                                                    )}
-                                                </div>
-                                            </div>
+                                            {subBubbles.map((textPart, partIndex) => {
+                                                const isLastPart = partIndex === subBubbles.length - 1;
+
+                                                return (
+                                                    <div
+                                                        key={`${msg.id}-p-${partIndex}`}
+                                                        className={cn(
+                                                            "max-w-[80%] px-3 py-1.5 rounded-xl text-xs relative shadow-xs leading-relaxed",
+                                                            isSilvia
+                                                                ? "bg-[#D9FDD3] text-[#111B21] rounded-tr-xs"
+                                                                : "bg-white text-[#111B21] rounded-tl-xs"
+                                                        )}
+                                                    >
+                                                        <p className="pr-11 whitespace-pre-wrap text-[12.5px] leading-[18px]">
+                                                            {textPart}
+                                                        </p>
+                                                        {isLastPart && (
+                                                            <div className="absolute right-1.5 bottom-1 flex items-center gap-0.5 text-[9px] text-[#667781]">
+                                                                <span>{msg.time}</span>
+                                                                {isSilvia && (
+                                                                    <CheckCheck className="w-3 h-3 text-[#53BDEB]" />
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     );
                                 })}
                             </div>
 
-                            {/* Barra Inferior de Digitação (Simulação do WhatsApp) */}
-                            <div className="p-2 bg-[#202C33] flex items-center gap-2 border-t border-[#2A3942] shrink-0">
-                                <div className="flex-1 flex items-center bg-[#2A3942] rounded-full px-3 py-1.5 gap-2">
-                                    <Smile className="w-4 h-4 text-[#8696A0] hover:text-white cursor-pointer" />
+                            {/* --- BARRA INFERIOR DE DIGITAÇÃO (Referência 2) --- */}
+                            <div className="p-2 bg-transparent flex items-center gap-1.5 shrink-0 z-20">
+                                {/* Caixa em pílula branca */}
+                                <div className="flex-1 flex items-center bg-white rounded-full px-3 py-1.5 gap-2 shadow-xs border border-slate-200">
+                                    <Smile className="w-4 h-4 text-[#8696A0] hover:text-[#54656F] cursor-pointer shrink-0" />
                                     <input
                                         type="text"
                                         disabled
-                                        placeholder="Atendimento autônomo Silv.IA..."
-                                        className="w-full bg-transparent text-xs text-[#E9EDEF] placeholder-[#8696A0] outline-none cursor-not-allowed"
+                                        placeholder="Type a message"
+                                        className="w-full bg-transparent text-xs text-[#111B21] placeholder-[#8696A0] outline-none cursor-not-allowed"
                                     />
-                                    <Paperclip className="w-4 h-4 text-[#8696A0] hover:text-white cursor-pointer" />
+                                    <Paperclip className="w-4 h-4 text-[#8696A0] hover:text-[#54656F] cursor-pointer shrink-0" />
+                                    <Camera className="w-4 h-4 text-[#8696A0] hover:text-[#54656F] cursor-pointer shrink-0" />
                                 </div>
-                                <div className="w-8 h-8 rounded-full bg-[#00A884] text-[#111B21] flex items-center justify-center shrink-0 shadow-md">
+
+                                {/* Botão circular verde de microfone (Referência 2) */}
+                                <div className="w-9 h-9 rounded-full bg-[#00A884] text-white flex items-center justify-center shrink-0 shadow-md">
                                     <Mic className="w-4 h-4 fill-current" />
                                 </div>
+                            </div>
+
+                            {/* Barra de Navegação Android Inferior (Referência 2) */}
+                            <div className="h-5 w-full bg-[#EFEAE2] flex items-center justify-around px-16 text-[#8696A0] text-[9px] opacity-60 shrink-0">
+                                <span>|||</span>
+                                <span className="text-[7px]">⬜</span>
+                                <span>&lt;</span>
                             </div>
                         </motion.div>
                     )}

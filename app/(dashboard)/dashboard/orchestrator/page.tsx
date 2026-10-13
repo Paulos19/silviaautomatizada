@@ -23,8 +23,6 @@ import {
     MessageSquare,
     Sparkles,
     Check,
-    Smartphone,
-    Layers,
     Filter,
     ChevronRight,
     Search
@@ -85,16 +83,16 @@ interface DailySummary {
 const DEFAULT_API_URL = process.env.NEXT_PUBLIC_ORCHESTRATOR_API_URL || "https://n8n-silvia-py.yyuhkk.easypanel.host";
 const DEFAULT_WS_URL = process.env.NEXT_PUBLIC_ORCHESTRATOR_WS_URL || "wss://n8n-silvia-py.yyuhkk.easypanel.host/ws/orchestrator";
 
-// Cores determinísticas para avatar
+// Cores determinísticas para avatar baseadas no telefone
 const AVATAR_PALETTE = [
-    "bg-emerald-600",
-    "bg-teal-600",
-    "bg-cyan-600",
-    "bg-blue-600",
-    "bg-indigo-600",
-    "bg-violet-600",
-    "bg-amber-600",
-    "bg-rose-600"
+    "bg-[#00A884]",
+    "bg-[#008069]",
+    "bg-[#128C7E]",
+    "bg-[#027EB5]",
+    "bg-[#6B52AE]",
+    "bg-[#D93F38]",
+    "bg-[#E26829]",
+    "bg-[#5C6BC0]"
 ];
 
 function getAvatarColor(key: string): string {
@@ -117,157 +115,6 @@ function formatPhoneDisplay(phone: string): string {
     return phone;
 }
 
-// Conversas modelo padrão (para quando ainda não há histórico completo de múltiplos contatos)
-const DEFAULT_SEED_CHATS: WhatsAppChat[] = [
-    {
-        phone: "556186446934",
-        formattedPhone: "+55 (61) 98644-6934",
-        name: "Paulo Henrique de Araujo",
-        avatarColor: "bg-emerald-600",
-        avatarInitial: "P",
-        lastMessage: "✓✓ Consulta confirmada com sucesso! | Acabei de enviar seu comprovante",
-        lastTime: "14:04",
-        lastTimestamp: Date.now() - 1000 * 60 * 3,
-        unreadCount: 0,
-        status: "booked",
-        isPinned: true,
-        messages: [
-            {
-                id: "seed-p1",
-                sender: "patient",
-                time: "14:02",
-                timestamp: Date.now() - 1000 * 60 * 5,
-                text: "Olá Silvia, gostaria de marcar uma consulta com o Dr. Marco Antonio para o dia 29/12 às 09:30 pela Unimed."
-            },
-            {
-                id: "seed-p2",
-                sender: "silvia",
-                time: "14:03",
-                timestamp: Date.now() - 1000 * 60 * 4,
-                text: "Perfeito, Paulo! Vou consultar a agenda do Dr. Marco Antonio e verificar a disponibilidade do seu convênio Unimed Curitiba."
-            },
-            {
-                id: "seed-p3",
-                sender: "system",
-                time: "14:04",
-                timestamp: Date.now() - 1000 * 60 * 3,
-                type: "booking",
-                text: "Consulta agendada para PAULO HENRIQUE DE ARAUJO DE SOUSA • Data: 29/12 às 09:30 • Convênio: Unimed Curitiba • Reserva #1428398",
-                metadata: { booking_id: "1428398", insurance: "Unimed Curitiba", date: "2026-12-29 09:30" }
-            },
-            {
-                id: "seed-p4",
-                sender: "silvia",
-                time: "14:04",
-                timestamp: Date.now() - 1000 * 60 * 2,
-                type: "voucher",
-                text: "Comprovante oficial em PDF emitido e encaminhado.",
-                metadata: { booking_id: "1428398" }
-            },
-            {
-                id: "seed-p5",
-                sender: "silvia",
-                time: "14:04",
-                timestamp: Date.now() - 1000 * 60 * 2,
-                text: "Consulta confirmada com sucesso! Acabei de enviar seu comprovante em PDF oficial. Posso te ajudar com mais alguma coisa?"
-            }
-        ]
-    },
-    {
-        phone: "5541998765432",
-        formattedPhone: "+55 (41) 99876-5432",
-        name: "Lillian Evaro",
-        avatarColor: "bg-teal-600",
-        avatarInitial: "L",
-        lastMessage: "✓✓ Transferindo para a Ana da recepção resolver...",
-        lastTime: "13:45",
-        lastTimestamp: Date.now() - 1000 * 60 * 25,
-        unreadCount: 1,
-        status: "handoff",
-        messages: [
-            {
-                id: "seed-l1",
-                sender: "patient",
-                time: "13:42",
-                timestamp: Date.now() - 1000 * 60 * 28,
-                text: "Boa tarde, preciso tirar uma dúvida complexa sobre o reembolso do procedimento cirúrgico com a gerência."
-            },
-            {
-                id: "seed-l2",
-                sender: "silvia",
-                time: "13:44",
-                timestamp: Date.now() - 1000 * 60 * 26,
-                text: "Entendi perfeitamente, Lillian. Como se trata de questão financeira/reembolso cirúrgico, vou transferir agora mesmo para a Ana da nossa recepção!"
-            },
-            {
-                id: "seed-l3",
-                sender: "system",
-                time: "13:45",
-                timestamp: Date.now() - 1000 * 60 * 25,
-                type: "handoff",
-                text: "Paciente solicitou informações sobre reembolso cirúrgico e regras específicas do convênio."
-            }
-        ]
-    },
-    {
-        phone: "5541991234567",
-        formattedPhone: "+55 (41) 99123-4567",
-        name: "Cristiano Alvés",
-        avatarColor: "bg-indigo-600",
-        avatarInitial: "C",
-        lastMessage: "✓✓ Sua solicitação de renovação de receita foi anotada",
-        lastTime: "12:30",
-        lastTimestamp: Date.now() - 1000 * 60 * 100,
-        unreadCount: 0,
-        status: "prescription",
-        messages: [
-            {
-                id: "seed-c1",
-                sender: "patient",
-                time: "12:28",
-                timestamp: Date.now() - 1000 * 60 * 102,
-                text: "Olá, preciso renovar minha receita de uso contínuo com o Dr. Marco."
-            },
-            {
-                id: "seed-c2",
-                sender: "silvia",
-                time: "12:30",
-                timestamp: Date.now() - 1000 * 60 * 100,
-                type: "prescription",
-                text: "Sua solicitação de renovação de receita foi registrada no prontuário! O Dr. Marco fará a conferência médica e emitiremos o PDF com assinatura digital."
-            }
-        ]
-    },
-    {
-        phone: "5541984561230",
-        formattedPhone: "+55 (41) 98456-1230",
-        name: "Jonathan Miller",
-        avatarColor: "bg-blue-600",
-        avatarInitial: "J",
-        lastMessage: "Consulta desmarcada a pedido do paciente",
-        lastTime: "11:15",
-        lastTimestamp: Date.now() - 1000 * 60 * 180,
-        unreadCount: 0,
-        status: "cancelled",
-        messages: [
-            {
-                id: "seed-j1",
-                sender: "patient",
-                time: "11:10",
-                timestamp: Date.now() - 1000 * 60 * 185,
-                text: "Infelizmente surgiu um imprevisto de viagem, preciso cancelar o agendamento de amanhã."
-            },
-            {
-                id: "seed-j2",
-                sender: "silvia",
-                time: "11:15",
-                timestamp: Date.now() - 1000 * 60 * 180,
-                text: "Sem problemas, Jonathan! A consulta de amanhã foi cancelada com sucesso no sistema e o horário já foi liberado. Quando desejar reagendar é só me chamar!"
-            }
-        ]
-    }
-];
-
 export default function OrchestratorPage() {
     const [summary, setSummary] = useState<DailySummary | null>(null);
     const [events, setEvents] = useState<OrchestratorEvent[]>([]);
@@ -278,9 +125,8 @@ export default function OrchestratorPage() {
     const [isLoadingInitial, setIsLoadingInitial] = useState(true);
     const [lastSyncTime, setLastSyncTime] = useState<string>("");
 
-    // Estado do Smartphone WhatsApp
+    // Telefone selecionado para visualização da conversa
     const [selectedChatPhone, setSelectedChatPhone] = useState<string | null>(null);
-    const [is3DMode, setIs3DMode] = useState<boolean>(true);
 
     const wsRef = useRef<WebSocket | null>(null);
     const pingIntervalRef = useRef<any>(null);
@@ -459,20 +305,15 @@ export default function OrchestratorPage() {
         window.open(`${DEFAULT_API_URL}/orchestrator/download-report`, "_blank");
     };
 
-    // --- TRANSFORMAÇÃO DE EVENTOS EM CHATS DE WHATSAPP DINÂMICOS ---
+    // --- TRANSFORMAÇÃO DE EVENTOS EM CHATS DE WHATSAPP REAIS (SEM MOCKS) ---
     const chats: WhatsAppChat[] = useMemo(() => {
         const chatsByPhone = new Map<string, WhatsAppChat>();
 
-        // 1. Inicia com os seeds para manter estrutura vibrante
-        DEFAULT_SEED_CHATS.forEach((sc) => {
-            chatsByPhone.set(sc.phone, { ...sc, messages: [...sc.messages] });
-        });
-
-        // 2. Itera pelos eventos ao vivo (do mais antigo para o mais novo para montar timeline ordenada)
+        // 1. Itera por todos os eventos reais ordenados cronologicamente (do mais antigo para o mais recente)
         const sortedEventsAsc = [...events].reverse();
 
         sortedEventsAsc.forEach((ev) => {
-            // Extrai o telefone do evento
+            // Extrai o telefone associado ao evento
             let phone = ev.metadata?.phone || "";
             if (!phone && ev.metadata?.remoteJid) {
                 phone = String(ev.metadata.remoteJid).split("@")[0].replace(/\D/g, "");
@@ -482,7 +323,8 @@ export default function OrchestratorPage() {
                 if (match) phone = match[0];
             }
 
-            if (!phone) return; // ignora eventos sem número associado
+            // Ignora eventos estritamente do sistema sem telefone
+            if (!phone) return;
 
             const formattedPhone = formatPhoneDisplay(phone);
             const patientName =
@@ -497,10 +339,18 @@ export default function OrchestratorPage() {
 
             if (ev.type === "MESSAGE_RECEIVED") {
                 sender = "patient";
-                msgText = ev.description.replace(/^Mensagem recebida:\s*"?/i, "").replace(/"?$/, "").trim();
+                msgText = ev.description
+                    .replace(/^Mensagem recebida:\s*"?/i, "")
+                    .replace(/^Recebida:\s*"?/i, "")
+                    .replace(/"?$/, "")
+                    .trim();
             } else if (ev.type === "MESSAGE_SENT") {
                 sender = "silvia";
-                msgText = ev.description.replace(/^Enviada:\s*"?/i, "").replace(/"?$/, "").trim();
+                msgText = ev.description
+                    .replace(/^Resposta da Silvia:\s*"?/i, "")
+                    .replace(/^Enviada:\s*"?/i, "")
+                    .replace(/"?$/, "")
+                    .trim();
             } else if (ev.type === "APPOINTMENT_BOOKED") {
                 sender = "system";
                 msgType = "booking";
@@ -508,11 +358,11 @@ export default function OrchestratorPage() {
             } else if (ev.type === "VOUCHER_SENT") {
                 sender = "silvia";
                 msgType = "voucher";
-                msgText = `PDF oficial do comprovante de agendamento entregue no WhatsApp.`;
+                msgText = `Comprovante oficial em PDF emitido e entregue no WhatsApp do paciente.`;
             } else if (ev.type === "HANDOFF_ANA") {
                 sender = "system";
                 msgType = "handoff";
-                msgText = `Transferência solicitada: ${ev.metadata?.reason || ev.description}`;
+                msgText = `Transferência para atendimento humano solicitada: ${ev.metadata?.reason || ev.description}`;
             } else if (ev.type === "PRESCRIPTION_CREATED") {
                 sender = "system";
                 msgType = "prescription";
@@ -533,17 +383,15 @@ export default function OrchestratorPage() {
                 metadata: ev.metadata
             };
 
-            // Determina status do chat
+            // Determina status da conversa
             let chatStatus: WhatsAppChat["status"] = "active";
             if (ev.type === "APPOINTMENT_BOOKED") chatStatus = "booked";
             else if (ev.type === "APPOINTMENT_CANCELLED") chatStatus = "cancelled";
             else if (ev.type === "HANDOFF_ANA") chatStatus = "handoff";
             else if (ev.type === "PRESCRIPTION_CREATED") chatStatus = "prescription";
 
-            // Se o contato já existe no mapa, adiciona mensagem e atualiza último texto
             if (chatsByPhone.has(phone)) {
                 const existing = chatsByPhone.get(phone)!;
-                // Evita duplicatas de mensagem
                 if (!existing.messages.some((m) => m.id === ev.id)) {
                     existing.messages.push(newMessage);
                 }
@@ -552,7 +400,6 @@ export default function OrchestratorPage() {
                 existing.lastTimestamp = newMessage.timestamp;
                 if (chatStatus !== "active") existing.status = chatStatus;
             } else {
-                // Novo contato detectado: cria o card de chat como no WhatsApp!
                 const initial = patientName.trim().charAt(0).toUpperCase() || "📱";
                 chatsByPhone.set(phone, {
                     phone,
@@ -570,17 +417,24 @@ export default function OrchestratorPage() {
             }
         });
 
-        // Ordena conversas pela mensagem mais recente primeiro
+        // Ordena conversas pela mais recente
         return Array.from(chatsByPhone.values()).sort(
             (a, b) => b.lastTimestamp - a.lastTimestamp
         );
     }, [events]);
 
+    // Seleciona automaticamente o primeiro contato real caso nenhum esteja selecionado
+    useEffect(() => {
+        if (!selectedChatPhone && chats.length > 0) {
+            setSelectedChatPhone(chats[0].phone);
+        }
+    }, [chats, selectedChatPhone]);
+
     // Métricas calculadas
     const totalReqs = (summary?.successful_requests || 0) + (summary?.failed_requests || 0);
     const successRate = totalReqs > 0 ? Math.round((summary!.successful_requests / totalReqs) * 100) : 100;
     const totalMessages = (summary?.total_messages_received || 0) + (summary?.total_messages_sent || 0);
-    const uniquePatients = chats.length;
+    const uniquePatients = summary?.active_patients?.length || chats.length;
     const handoffsCount = summary?.handoffs_to_ana?.length || 0;
 
     return (
@@ -621,17 +475,6 @@ export default function OrchestratorPage() {
                         <span className="font-semibold">{isConnected ? "Ao Vivo (WebSocket)" : "Reconectando..."}</span>
                         {lastSyncTime && <span className="text-muted-foreground hidden sm:inline">• {lastSyncTime}</span>}
                     </div>
-
-                    {/* Alternador 3D / Plano */}
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIs3DMode(!is3DMode)}
-                        className="rounded-xl border-border/50 hover:bg-card/60 gap-1.5 h-9 text-xs"
-                    >
-                        <Smartphone className="w-3.5 h-3.5 text-teal-400" />
-                        <span>{is3DMode ? "Modo 3D (GSAP)" : "Modo Plano"}</span>
-                    </Button>
 
                     {/* Botão Atualizar */}
                     <Button
@@ -860,7 +703,7 @@ export default function OrchestratorPage() {
             {/* --- SEÇÃO PRINCIPAL: SMARTPHONE WHATSAPP + PAINEL DE CONTROLE EXECUTIVO --- */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 {/* ============================================================ */}
-                {/* COLUNA ESQUERDA: SMARTPHONE 3D COM WHATSAPP (6/12)           */}
+                {/* COLUNA ESQUERDA: SMARTPHONE COM WHATSAPP (6/12)              */}
                 {/* ============================================================ */}
                 <div className="lg:col-span-6 flex flex-col items-center justify-center relative">
                     <div className="w-full flex items-center justify-between mb-3 px-2">
@@ -871,40 +714,25 @@ export default function OrchestratorPage() {
                             </h2>
                         </div>
                         <span className="text-xs text-muted-foreground font-mono">
-                            {chats.length} conversas ativas
+                            {chats.length} contato(s) ativo(s)
                         </span>
                     </div>
 
-                    {/* Frame do Smartphone (3D com Three.js/GSAP ou 2D Plano) */}
-                    {is3DMode ? (
-                        <ThreePhoneFrame>
-                            <WhatsAppPhoneScreen
-                                chats={chats}
-                                selectedChatPhone={selectedChatPhone}
-                                onSelectChat={setSelectedChatPhone}
-                                activeFilter={selectedFilter}
-                                onFilterChange={setSelectedFilter}
-                                onDownloadPdf={handleDownloadReport}
-                            />
-                        </ThreePhoneFrame>
-                    ) : (
-                        <div className="relative w-[370px] h-[760px] rounded-[44px] p-2 bg-gradient-to-b from-slate-700 via-slate-900 to-black shadow-2xl border-2 border-slate-700">
-                            <div className="w-full h-full rounded-[36px] overflow-hidden">
-                                <WhatsAppPhoneScreen
-                                    chats={chats}
-                                    selectedChatPhone={selectedChatPhone}
-                                    onSelectChat={setSelectedChatPhone}
-                                    activeFilter={selectedFilter}
-                                    onFilterChange={setSelectedFilter}
-                                    onDownloadPdf={handleDownloadReport}
-                                />
-                            </div>
-                        </div>
-                    )}
+                    {/* Smartphone Estático Frontal (Referência 2) */}
+                    <ThreePhoneFrame>
+                        <WhatsAppPhoneScreen
+                            chats={chats}
+                            selectedChatPhone={selectedChatPhone}
+                            onSelectChat={setSelectedChatPhone}
+                            activeFilter={selectedFilter}
+                            onFilterChange={setSelectedFilter}
+                            onDownloadPdf={handleDownloadReport}
+                        />
+                    </ThreePhoneFrame>
 
                     <p className="text-xs text-muted-foreground/70 text-center mt-3 flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-teal-400" />
-                        Passe o mouse sobre o smartphone para inclinação 3D interativa. Clique em qualquer paciente para abrir a conversa.
+                        Simulação autêntica do WhatsApp da Silvia. Clique em qualquer paciente para abrir a conversa e histórico clínico.
                     </p>
                 </div>
 
