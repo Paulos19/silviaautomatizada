@@ -181,7 +181,7 @@ export default function OrchestratorPage() {
             }
         };
 
-        // Fallback REST inicial caso o WebSocket demore
+        // Fallback REST inicial
         fetch(`${DEFAULT_API_URL}/orchestrator/metrics`)
             .then((res) => res.json())
             .then((data) => {
@@ -196,10 +196,27 @@ export default function OrchestratorPage() {
                 if (isMounted) setIsLoadingInitial(false);
             });
 
+        // Polling de segurança a cada 6 segundos caso o WebSocket esteja desconectado ou reconectando
+        const pollInterval = setInterval(() => {
+            if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+                fetch(`${DEFAULT_API_URL}/orchestrator/metrics`)
+                    .then((res) => res.json())
+                    .then((data) => {
+                        if (isMounted) {
+                            setSummary(data);
+                            setEvents(data.recent_events || []);
+                            setLastSyncTime(new Date().toLocaleTimeString("pt-BR"));
+                        }
+                    })
+                    .catch(() => {});
+            }
+        }, 6000);
+
         connectWs();
 
         return () => {
             isMounted = false;
+            clearInterval(pollInterval);
             if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
             if (wsRef.current) wsRef.current.close();
         };
