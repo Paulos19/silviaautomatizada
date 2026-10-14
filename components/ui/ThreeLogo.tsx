@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import * as THREE from "three";
+import { cn } from "@/lib/utils";
 
 interface ThreeLogoProps {
     className?: string;
@@ -10,137 +10,62 @@ interface ThreeLogoProps {
 }
 
 /**
- * ThreeLogo
- * Emblema interativo 3D gerado com Three.js e SVG vetorial.
- * Apresenta uma geometria procedural em ouro polido e esmeralda sobre fundo âmbar luminoso,
- * respondendo com suavidade ao cursor, combinada à tipografia elegante do Hospital Otorrinos Curitiba e Silv.IA.
+ * SilviaLogo (ThreeLogo)
+ * Logomarca oficial baseada fielmente na Referência 2:
+ * Cruz médica preta arredondada com estrela de 4 pontas (brilho/sparkle) vazada no centro,
+ * acompanhada da tipografia geométrica premium "Silvia".
  */
 export function ThreeLogo({ className, showText = true }: ThreeLogoProps) {
-    const mountRef = useRef<HTMLDivElement | null>(null);
-
-    useEffect(() => {
-        const mount = mountRef.current;
-        if (!mount) return;
-
-        const width = 42;
-        const height = 42;
-
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-        camera.position.z = 3.6;
-
-        let renderer: THREE.WebGLRenderer | null = null;
-        try {
-            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-            renderer.setSize(width, height);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-            mount.appendChild(renderer.domElement);
-        } catch {
-            return;
-        }
-
-        // Iluminação dourada quente e estúdio claro
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
-        scene.add(ambientLight);
-
-        const pointLight1 = new THREE.PointLight(0xffd700, 3.5, 10);
-        pointLight1.position.set(2, 3, 3);
-        scene.add(pointLight1);
-
-        const pointLight2 = new THREE.PointLight(0x10b981, 2.0, 10);
-        pointLight2.position.set(-2, -2, 2);
-        scene.add(pointLight2);
-
-        // Geometria orgânica em ouro polido brilhante
-        const geometry = new THREE.TorusKnotGeometry(0.85, 0.28, 64, 16, 2, 3);
-        const material = new THREE.MeshPhysicalMaterial({
-            color: 0xf59e0b,
-            emissive: 0xd97706,
-            emissiveIntensity: 0.25,
-            roughness: 0.15,
-            metalness: 0.9,
-            clearcoat: 1.0,
-            clearcoatRoughness: 0.08
-        });
-
-        const mesh = new THREE.Mesh(geometry, material);
-        scene.add(mesh);
-
-        let animationFrameId: number;
-        let mouseX = 0;
-        let mouseY = 0;
-        let targetX = 0;
-        let targetY = 0;
-
-        const handleMouseMove = (event: MouseEvent) => {
-            const rect = mount.getBoundingClientRect();
-            const x = event.clientX - (rect.left + rect.width / 2);
-            const y = event.clientY - (rect.top + rect.height / 2);
-            mouseX = (x / (window.innerWidth / 2)) * 0.8;
-            mouseY = (y / (window.innerHeight / 2)) * 0.8;
-        };
-
-        window.addEventListener("mousemove", handleMouseMove, { passive: true });
-
-        const animate = () => {
-            animationFrameId = requestAnimationFrame(animate);
-
-            mesh.rotation.x += 0.012;
-            mesh.rotation.y += 0.016;
-
-            targetX += (mouseX - targetX) * 0.05;
-            targetY += (mouseY - targetY) * 0.05;
-            mesh.position.x = targetX * 0.3;
-            mesh.position.y = -targetY * 0.3;
-
-            if (renderer) {
-                renderer.render(scene, camera);
-            }
-        };
-
-        animate();
-
-        return () => {
-            window.removeEventListener("mousemove", handleMouseMove);
-            cancelAnimationFrame(animationFrameId);
-            if (renderer && renderer.domElement && mount.contains(renderer.domElement)) {
-                mount.removeChild(renderer.domElement);
-                renderer.dispose();
-            }
-            geometry.dispose();
-            material.dispose();
-        };
-    }, []);
+    const [isHovered, setIsHovered] = useState(false);
 
     return (
         <Link
             href="/dashboard/orchestrator"
-            className={`flex items-center gap-2.5 sm:gap-3 group select-none shrink-0 ${className || ""}`}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className={cn(
+                "flex items-center gap-2.5 sm:gap-3 group select-none shrink-0 transition-transform duration-200 hover:opacity-90",
+                className
+            )}
+            title="Silvia • Hospital Otorrinos Curitiba"
         >
-            {/* Moldura Luminosa Dourada com Three.js */}
-            <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-amber-400 via-amber-300 to-yellow-100 p-0.5 flex items-center justify-center shadow-[0_4px_16px_rgba(245,190,56,0.25)] border border-amber-300/80 group-hover:scale-105 transition-transform duration-300">
-                <div ref={mountRef} className="w-[38px] h-[38px] sm:w-[42px] sm:h-[42px] flex items-center justify-center overflow-hidden rounded-[14px]">
-                    <svg className="w-5 h-5 text-amber-900 -z-10 absolute pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="9" />
-                        <path d="M12 7v10M8 12h8" />
-                    </svg>
-                </div>
+            {/* Ícone da Cruz com Estrela / Sparkle (Fiel à Referência 2) */}
+            <div className="relative w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center">
+                <svg
+                    viewBox="0 0 36 36"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-full h-full drop-shadow-[0_2px_4px_rgba(0,0,0,0.08)]"
+                >
+                    {/* Cruz Médica com Pontas Arredondadas (Pill shape) */}
+                    <g fill="#1E2022">
+                        {/* Braço Horizontal */}
+                        <rect x="3" y="13" width="30" height="10" rx="5" />
+                        {/* Braço Vertical */}
+                        <rect x="13" y="3" width="10" height="30" rx="5" />
+                    </g>
+
+                    {/* Estrela de 4 Pontas (Sparkle vazado no centro com brilho branco puro) */}
+                    <path
+                        d="M 18 6.5 C 18 13.5 14 18 6.5 18 C 14 18 18 22.5 18 29.5 C 18 22.5 22 18 29.5 18 C 22 18 18 13.5 18 6.5 Z"
+                        fill="#FFFFFF"
+                        className={cn(
+                            "transition-all duration-300 origin-center",
+                            isHovered ? "scale-110 drop-shadow-[0_0_6px_rgba(255,255,255,0.9)]" : ""
+                        )}
+                        style={{ transformOrigin: "18px 18px" }}
+                    />
+                </svg>
             </div>
 
-            {/* Tipografia Vetorial & Nome da Instituição */}
+            {/* Tipografia Oficial Silvia (Referência 2) */}
             {showText && (
-                <div className="flex flex-col">
-                    <div className="flex items-center gap-1.5 leading-none">
-                        <span className="font-semibold text-slate-900 text-xs sm:text-sm tracking-tight">
-                            Hospital Otorrinos
-                        </span>
-                        <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300/70 leading-none">
-                            Curitiba
-                        </span>
-                    </div>
-                    <span className="text-[10px] sm:text-[11px] text-slate-700 font-medium flex items-center gap-1 mt-0.5">
-                        <span className="text-amber-800 font-semibold">Silv.IA</span>
-                        <span>• Inteligência Clínica</span>
+                <div className="flex items-center gap-1.5 leading-none">
+                    <span className="font-bold text-slate-900 text-xl sm:text-2xl tracking-[-0.03em] font-sans">
+                        Silvia
+                    </span>
+                    <span className="hidden sm:inline-block text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-[#F2ECE0] text-slate-600 border border-[#E0D8C8]">
+                        Curitiba
                     </span>
                 </div>
             )}

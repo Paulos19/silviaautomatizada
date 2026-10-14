@@ -8,7 +8,7 @@ import { ClinicSettingsProvider } from "@/components/dashboard/clinic-settings-c
 export default function OrchestratorLayout({ children }: { children: React.ReactNode }) {
     return (
         <ClinicSettingsProvider>
-            <div className="min-h-screen bg-[#FBF9F4] text-slate-800 relative selection:bg-amber-200/60 font-sans flex flex-col">
+            <div className="min-h-screen bg-[#FBF9F4] text-slate-800 relative selection:bg-amber-200/60 font-sans flex flex-col overflow-x-hidden w-full max-w-full">
                 
                 {/* Ambient Radial Golden Glow (Inspirado fielmente na referência do usuário) */}
                 <div className="fixed top-0 right-0 w-[700px] h-[600px] bg-gradient-to-bl from-amber-200/35 via-yellow-100/20 to-transparent rounded-full blur-3xl pointer-events-none -z-0" />
