@@ -263,8 +263,8 @@ export async function fetchPatientBookingsAction(doctorId: string, addressId: st
   }
 }
 
-export async function fetchBookingsByNINAction(nin: string, birthday: string, doctorId?: string, addressId?: string) {
-  if (!nin || !birthday) return { success: false, error: "Parâmetros incompletos (CPF e Data de Nascimento são obrigatórios)." };
+export async function fetchBookingsByNINAction(nin: string, birthday?: string, doctorId?: string, addressId?: string) {
+  if (!nin) return { success: false, error: "CPF/NIN é obrigatório." };
   try {
     const cleanNin = nin.replace(/\D/g, "");
     // Passo 1: Descobrir o patientId pelo CPF

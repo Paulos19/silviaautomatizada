@@ -31,6 +31,9 @@ import {
   ShieldCheck,
   Sparkles,
   Ban,
+  Plus,
+  X,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, Variants } from "framer-motion";
@@ -89,6 +92,15 @@ function maskDateBR(value: string): string {
   } else if (v.length >= 3) {
     return `${v.slice(0, 2)}/${v.slice(2)}`;
   }
+  return v;
+}
+
+function maskCPF(value: string): string {
+  let v = value.replace(/\D/g, "");
+  if (v.length > 11) v = v.slice(0, 11);
+  if (v.length > 9) return `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}`;
+  if (v.length > 6) return `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6)}`;
+  if (v.length > 3) return `${v.slice(0, 3)}.${v.slice(3)}`;
   return v;
 }
 
@@ -205,6 +217,11 @@ export default function BookingsPage() {
   // Active tab
   const [activeTab, setActiveTab] = useState<"new" | "cancel">("new");
 
+  // Dynamic filter toggles (Dashboard: data fim e data nascimento opcionais)
+  const [showEndDate, setShowEndDate] = useState(false);
+  const [showBirthday, setShowBirthday] = useState(false);
+  const [showCancelBirthday, setShowCancelBirthday] = useState(false);
+
   useEffect(() => {
     loadInsurances();
   }, []);
@@ -224,8 +241,12 @@ export default function BookingsPage() {
     setFreeSlots([]);
     setSelectedSlot(null);
     const formData = new FormData(e.currentTarget);
-    const startDate = parseDateBRToISO(formData.get("startDate") as string);
-    const endDate = parseDateBRToISO(formData.get("endDate") as string);
+    const rawStart = (formData.get("startDate") as string) || "";
+    const rawEnd = showEndDate ? ((formData.get("endDate") as string) || "") : "";
+    const startDate = parseDateBRToISO(rawStart);
+    // Se a data fim não estiver selecionada ou for eliminada, a data início duplica para ter o mesmo valor da data fim (mesmo dia):
+    const endDate = (rawEnd && rawEnd.trim()) ? parseDateBRToISO(rawEnd) : startDate;
+
     const res = await fetchFreeSlotsAction(
       selectedDoctor.id.toString(),
       addressId,
@@ -247,8 +268,8 @@ export default function BookingsPage() {
     setPendingBookings([]);
     const formData = new FormData(e.currentTarget);
     const nin = formData.get("nin") as string;
-    const birthdayStr = formData.get("birthday") as string;
-    const birthday = parseDateBRToISO(birthdayStr);
+    const birthdayStr = showBirthday ? (formData.get("birthday") as string) : "";
+    const birthday = birthdayStr ? parseDateBRToISO(birthdayStr) : "";
     const res = await checkPatientExistsAction(nin, birthday);
     if (res.success && res.data) {
       const patient = res.data as PatientResult;
@@ -294,7 +315,7 @@ export default function BookingsPage() {
         }
       }
     } else {
-      setPatientSearchError("Paciente não encontrado. Verifique CPF e data de nascimento.");
+      setPatientSearchError("Paciente não encontrado no Clinic API. Verifique o CPF digitado.");
     }
     setLoading(null);
   };
@@ -334,8 +355,8 @@ export default function BookingsPage() {
     setCancelResult(null);
     const formData = new FormData(e.currentTarget);
     const nin = formData.get("nin") as string;
-    const birthdayStr = formData.get("birthday") as string;
-    const birthday = parseDateBRToISO(birthdayStr);
+    const birthdayStr = showCancelBirthday ? (formData.get("birthday") as string) : "";
+    const birthday = birthdayStr ? parseDateBRToISO(birthdayStr) : "";
     const res = await checkPatientExistsAction(nin, birthday);
     if (res.success && res.data && (res.data as PatientResult).patient_id) {
       const patient = res.data as PatientResult;
@@ -409,7 +430,7 @@ export default function BookingsPage() {
       setPendingBookings(detailedList);
       if (detailedList.length > 0) setSelectedBooking(detailedList[0].id);
     } else {
-      setCancelSearchError("Paciente não encontrado. Verifique CPF e data de nascimento.");
+      setCancelSearchError("Paciente não encontrado no Clinic API. Verifique o CPF digitado.");
     }
     setLoading(null);
   };
@@ -528,24 +549,60 @@ export default function BookingsPage() {
             </div>
 
             <form onSubmit={handleGetSlots} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <StyledInput
-                  name="startDate"
-                  label="Data Início"
-                  placeholder="DD/MM/AAAA"
-                  maxLength={10}
-                  onChange={(e) => { e.target.value = maskDateBR(e.target.value); }}
-                  required
-                />
-                <StyledInput
-                  name="endDate"
-                  label="Data Fim"
-                  placeholder="DD/MM/AAAA"
-                  maxLength={10}
-                  onChange={(e) => { e.target.value = maskDateBR(e.target.value); }}
-                  required
-                />
-              </div>
+              {showEndDate ? (
+                <div className="space-y-2 animate-in fade-in duration-200">
+                  <div className="grid grid-cols-2 gap-3">
+                    <StyledInput
+                      name="startDate"
+                      label="Data Início"
+                      placeholder="DD/MM/AAAA"
+                      maxLength={10}
+                      onChange={(e) => { e.target.value = maskDateBR(e.target.value); }}
+                      required
+                    />
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Data Fim</Label>
+                        <button
+                          type="button"
+                          onClick={() => setShowEndDate(false)}
+                          className="text-[10px] text-slate-500 hover:text-rose-600 transition-colors flex items-center gap-0.5 cursor-pointer"
+                        >
+                          <X className="w-3 h-3" /> Remover
+                        </button>
+                      </div>
+                      <Input
+                        name="endDate"
+                        placeholder="DD/MM/AAAA"
+                        maxLength={10}
+                        onChange={(e) => { e.target.value = maskDateBR(e.target.value); }}
+                        className="h-11 rounded-2xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 shadow-sm focus-visible:ring-2 focus-visible:ring-amber-400/40 focus-visible:border-amber-400 transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <StyledInput
+                    name="startDate"
+                    label="Data da Consulta"
+                    placeholder="DD/MM/AAAA"
+                    maxLength={10}
+                    onChange={(e) => { e.target.value = maskDateBR(e.target.value); }}
+                    required
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setShowEndDate(true)}
+                      className="text-[11px] font-semibold text-amber-800 hover:text-amber-900 flex items-center gap-1 transition-colors py-0.5 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Adicionar Data Fim (Intervalo)
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <Button
                 type="submit"
                 className="w-full h-11 rounded-2xl bg-[#1E2022] hover:bg-black text-white font-semibold shadow-sm transition-all gap-2 text-xs"
@@ -661,17 +718,57 @@ export default function BookingsPage() {
                     <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider">Identificar Paciente</h4>
                   </div>
                   <form onSubmit={handleSearchPatient} className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <StyledInput name="nin" label="CPF" placeholder="Apenas números" required />
-                      <StyledInput
-                        name="birthday"
-                        label="Data de Nascimento"
-                        placeholder="DD/MM/AAAA"
-                        maxLength={10}
-                        onChange={(e) => { e.target.value = maskDateBR(e.target.value); }}
-                        required
-                      />
-                    </div>
+                    {showBirthday ? (
+                      <div className="space-y-2 animate-in fade-in duration-200">
+                        <div className="grid grid-cols-2 gap-3">
+                          <StyledInput
+                            name="nin"
+                            label="CPF"
+                            placeholder="000.000.000-00"
+                            onChange={(e) => { e.target.value = maskCPF(e.target.value); }}
+                            required
+                          />
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Data Nasc.</Label>
+                              <button
+                                type="button"
+                                onClick={() => setShowBirthday(false)}
+                                className="text-[10px] text-slate-500 hover:text-rose-600 transition-colors flex items-center gap-0.5 cursor-pointer"
+                              >
+                                <X className="w-3 h-3" /> Ocultar
+                              </button>
+                            </div>
+                            <Input
+                              name="birthday"
+                              placeholder="DD/MM/AAAA"
+                              maxLength={10}
+                              onChange={(e) => { e.target.value = maskDateBR(e.target.value); }}
+                              className="h-11 rounded-2xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 shadow-sm focus-visible:ring-2 focus-visible:ring-amber-400/40 focus-visible:border-amber-400 transition-all"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <StyledInput
+                          name="nin"
+                          label="CPF do Paciente"
+                          placeholder="000.000.000-00 ou apenas números"
+                          onChange={(e) => { e.target.value = maskCPF(e.target.value); }}
+                          required
+                        />
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => setShowBirthday(true)}
+                            className="text-[11px] font-semibold text-amber-800 hover:text-amber-900 flex items-center gap-1 transition-colors py-0.5 cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> Informar Data de Nascimento (Opcional)
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     <Button
                       type="submit"
                       variant="outline"
@@ -809,17 +906,57 @@ export default function BookingsPage() {
 
                 {/* Search Patient for Cancel */}
                 <form onSubmit={handleSearchCancelPatient} className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <StyledInput name="nin" label="CPF do Paciente" placeholder="Apenas números" required />
-                    <StyledInput
-                      name="birthday"
-                      label="Data de Nascimento"
-                      placeholder="DD/MM/AAAA"
-                      maxLength={10}
-                      onChange={(e) => { e.target.value = maskDateBR(e.target.value); }}
-                      required
-                    />
-                  </div>
+                  {showCancelBirthday ? (
+                    <div className="space-y-2 animate-in fade-in duration-200">
+                      <div className="grid grid-cols-2 gap-3">
+                        <StyledInput
+                          name="nin"
+                          label="CPF do Paciente"
+                          placeholder="000.000.000-00"
+                          onChange={(e) => { e.target.value = maskCPF(e.target.value); }}
+                          required
+                        />
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Data Nasc.</Label>
+                            <button
+                              type="button"
+                              onClick={() => setShowCancelBirthday(false)}
+                              className="text-[10px] text-slate-500 hover:text-rose-600 transition-colors flex items-center gap-0.5 cursor-pointer"
+                            >
+                              <X className="w-3 h-3" /> Ocultar
+                            </button>
+                          </div>
+                          <Input
+                            name="birthday"
+                            placeholder="DD/MM/AAAA"
+                            maxLength={10}
+                            onChange={(e) => { e.target.value = maskDateBR(e.target.value); }}
+                            className="h-11 rounded-2xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 shadow-sm focus-visible:ring-2 focus-visible:ring-amber-400/40 focus-visible:border-amber-400 transition-all"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <StyledInput
+                        name="nin"
+                        label="CPF do Paciente"
+                        placeholder="000.000.000-00 ou apenas números"
+                        onChange={(e) => { e.target.value = maskCPF(e.target.value); }}
+                        required
+                      />
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setShowCancelBirthday(true)}
+                          className="text-[11px] font-semibold text-amber-800 hover:text-amber-900 flex items-center gap-1 transition-colors py-0.5 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Informar Data de Nascimento (Opcional)
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   <Button
                     type="submit"
                     variant="outline"
