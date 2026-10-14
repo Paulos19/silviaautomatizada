@@ -18,7 +18,8 @@ import {
   ChevronRight,
   Sparkles,
   Building2,
-  CalendarCheck
+  CalendarCheck,
+  Users
 } from "lucide-react";
 import Link from "next/link";
 import { motion, Variants } from "framer-motion";
