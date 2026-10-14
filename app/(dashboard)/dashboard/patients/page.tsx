@@ -19,7 +19,7 @@ import {
   Hash,
   CalendarDays,
   Sparkles,
-  FileText,
+  Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, Variants } from "framer-motion";
@@ -31,7 +31,7 @@ const container: Variants = {
 };
 
 const item: Variants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
 };
 
@@ -99,15 +99,15 @@ interface CreatePatientResult {
 function StyledInput(props: React.InputHTMLAttributes<HTMLInputElement> & { label?: string; icon?: React.ReactNode }) {
   const { label, icon, className, ...rest } = props;
   return (
-    <div className="space-y-2">
-      {label && <Label className="text-xs font-medium text-slate-400 uppercase tracking-wider">{label}</Label>}
+    <div className="space-y-1.5">
+      {label && <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">{label}</Label>}
       <div className="relative">
-        {icon && <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600">{icon}</div>}
+        {icon && <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">{icon}</div>}
         <Input
           {...rest}
           className={cn(
-            "h-11 rounded-2xl border border-white/10 bg-[#0B121D]/60 text-slate-200 placeholder:text-slate-600",
-            "focus-visible:ring-2 focus-visible:ring-teal-500/30 focus-visible:border-teal-500/40 transition-all",
+            "h-11 rounded-2xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 shadow-sm",
+            "focus-visible:ring-2 focus-visible:ring-amber-400/40 focus-visible:border-amber-400 transition-all text-xs",
             icon && "pl-10",
             className
           )}
@@ -133,8 +133,8 @@ function StyledSelect({ value, onChange, children, name, required, className }: 
       onChange={onChange}
       required={required}
       className={cn(
-        "w-full h-11 rounded-2xl border border-white/10 bg-[#0B121D]/60 px-4 text-sm text-slate-200",
-        "focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/40 transition-all",
+        "w-full h-11 rounded-2xl border border-[#E8E2D6] bg-white px-4 text-xs text-slate-900 shadow-sm",
+        "focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 transition-all",
         "appearance-none cursor-pointer",
         className
       )}
@@ -147,9 +147,7 @@ function StyledSelect({ value, onChange, children, name, required, className }: 
 // ─── Patient Info Card (for results) ───
 function PatientInfoCard({ data, type }: { data: any; type: "found" | "created" }) {
   const isFound = type === "found";
-  const accent = isFound ? "emerald" : "teal";
 
-  // Determine what data to show
   const name = data?.patient_name || data?.data?.patient_name || data?.data?.result?.name || data?.result?.name || null;
   const id = data?.patient_id || data?.data?.patient_id || data?.data?.result?.id || data?.result?.id || null;
   const mobile = data?.patient_mobile || data?.data?.patient_mobile || data?.data?.result?.mobile || data?.result?.mobile || null;
@@ -160,73 +158,59 @@ function PatientInfoCard({ data, type }: { data: any; type: "found" | "created" 
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       className={cn(
-        "p-5 rounded-2xl border space-y-4 relative overflow-hidden",
-        isFound ? "bg-emerald-500/5 border-emerald-500/20" : "bg-teal-500/5 border-teal-500/20"
+        "p-5 rounded-2xl border space-y-3.5 relative overflow-hidden",
+        isFound ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"
       )}
     >
-      {/* Glow */}
-      <div className={cn(
-        "absolute top-0 right-0 -mr-8 -mt-8 w-24 h-24 rounded-full blur-3xl",
-        isFound ? "bg-emerald-500/10" : "bg-teal-500/10"
-      )} />
-
       {/* Header */}
       <div className="flex items-center gap-3 relative z-10">
         <div className={cn(
-          "w-11 h-11 rounded-2xl flex items-center justify-center border",
-          isFound ? "bg-emerald-500/10 border-emerald-500/20" : "bg-teal-500/10 border-teal-500/20"
+          "w-10 h-10 rounded-2xl flex items-center justify-center border shadow-sm",
+          isFound ? "bg-emerald-100 border-emerald-300 text-emerald-800" : "bg-amber-100 border-amber-300 text-amber-800"
         )}>
           {isFound
-            ? <UserCheck className="w-5 h-5 text-emerald-400" />
-            : <Check className="w-5 h-5 text-teal-400" />
+            ? <UserCheck className="w-5 h-5" />
+            : <Check className="w-5 h-5" />
           }
         </div>
         <div className="flex-1 min-w-0">
-          <p className={cn("text-sm font-bold", isFound ? "text-emerald-400" : "text-teal-400")}>
-            {isFound ? "Paciente Encontrado" : "Paciente Salvo"}
+          <p className={cn("text-xs font-bold uppercase tracking-wider", isFound ? "text-emerald-800" : "text-amber-800")}>
+            {isFound ? "Paciente Localizado" : "Prontuário Registrado com Sucesso"}
           </p>
-          {name && <p className="text-base font-outfit font-semibold text-white truncate mt-0.5">{name}</p>}
+          {name && <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">{name}</p>}
         </div>
       </div>
 
       {/* Details Grid */}
       {(id || mobile || email) && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 relative z-10">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 relative z-10">
           {id && (
-            <div className="flex items-center gap-2 bg-[#0B121D]/40 rounded-xl px-3 py-2.5 border border-white/5">
+            <div className="flex items-center gap-2 bg-white/90 rounded-xl px-3 py-2 border border-[#E8E2D6] shadow-sm">
               <Hash className="w-3.5 h-3.5 text-slate-500 shrink-0" />
               <div>
-                <p className="text-[10px] text-slate-600 uppercase font-bold">ID</p>
-                <p className="text-sm text-white font-mono">{id}</p>
+                <p className="text-[9px] text-slate-700 uppercase font-bold">ID Clinic</p>
+                <p className="text-xs text-slate-900 font-mono font-semibold">#{id}</p>
               </div>
             </div>
           )}
           {mobile && (
-            <div className="flex items-center gap-2 bg-[#0B121D]/40 rounded-xl px-3 py-2.5 border border-white/5">
+            <div className="flex items-center gap-2 bg-white/90 rounded-xl px-3 py-2 border border-[#E8E2D6] shadow-sm">
               <Phone className="w-3.5 h-3.5 text-slate-500 shrink-0" />
               <div>
-                <p className="text-[10px] text-slate-600 uppercase font-bold">Celular</p>
-                <p className="text-sm text-white font-mono">{mobile}</p>
+                <p className="text-[9px] text-slate-700 uppercase font-bold">Celular</p>
+                <p className="text-xs text-slate-900 font-mono font-semibold">{mobile}</p>
               </div>
             </div>
           )}
           {email && (
-            <div className="flex items-center gap-2 bg-[#0B121D]/40 rounded-xl px-3 py-2.5 border border-white/5">
+            <div className="flex items-center gap-2 bg-white/90 rounded-xl px-3 py-2 border border-[#E8E2D6] shadow-sm">
               <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
               <div>
-                <p className="text-[10px] text-slate-600 uppercase font-bold">Email</p>
-                <p className="text-sm text-white truncate">{email}</p>
+                <p className="text-[9px] text-slate-700 uppercase font-bold">Email</p>
+                <p className="text-xs text-slate-900 font-semibold truncate max-w-[130px]">{email}</p>
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      {/* Fallback: Show raw data if nothing structured was found */}
-      {!name && !id && (
-        <div className="bg-[#0B121D]/40 rounded-xl p-3 border border-white/5 relative z-10">
-          <p className="text-[10px] text-slate-600 uppercase font-bold mb-1">Resposta da API</p>
-          <pre className="text-xs text-slate-400 overflow-auto max-h-32 font-mono whitespace-pre-wrap">{JSON.stringify(data, null, 2)}</pre>
         </div>
       )}
     </motion.div>
@@ -287,102 +271,42 @@ export default function PatientsPage() {
   };
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="w-full space-y-8 text-slate-200">
+    <motion.div variants={container} initial="hidden" animate="show" className="w-full space-y-8 text-slate-800 pb-16">
 
       {/* Header */}
-      <motion.div variants={item}>
-        <h1 className="text-3xl font-outfit font-semibold text-white tracking-tight">Gestão de Pacientes</h1>
-        <p className="text-sm font-inter text-slate-400 mt-2">Verifique cadastros existentes ou registre novos pacientes no sistema.</p>
+      <motion.div variants={item} className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 pb-2 border-b border-[#E8E2D6]/70">
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-900 border border-amber-300/80">
+              Hospital Otorrinos Curitiba
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-light text-slate-900 tracking-tight">
+            Gestão de <span className="font-semibold text-slate-900">Pacientes & Prontuários</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-700 mt-1">Consulte prontuários existentes ou cadastre novos pacientes diretamente no Clinic API.</p>
+        </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        {/* ═══ Card 1: Verificar Cadastro ═══ */}
-        <motion.div variants={item} className="bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-6 md:p-8 flex flex-col group hover:border-emerald-500/20 transition-all duration-500">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-              <UserCheck className="w-5 h-5 text-emerald-400" />
+        {/* ═══ Card 1: Verificar Cadastro (5 cols) ═══ */}
+        <motion.div variants={item} className="lg:col-span-5 bg-white border border-[#E8E2D6] rounded-[32px] shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-6 md:p-8 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-6 pb-3 border-b border-[#F0EAE0]">
+              <div className="p-2.5 rounded-2xl bg-[#F8F5EE] border border-[#E8E2D6] text-amber-700">
+                <UserCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm text-slate-900">Verificar Cadastro</h3>
+                <p className="text-xs text-slate-700">Localize prontuário por CPF e data de nascimento</p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-outfit text-base font-medium text-white">Verificar Cadastro</h3>
-              <p className="text-xs text-slate-500 font-inter">Consulte se o paciente possui prontuário ativo</p>
-            </div>
-          </div>
 
-          <form onSubmit={handleCheckExists} className="space-y-4">
-            <StyledInput
-              name="nin"
-              label="CPF"
-              placeholder="000.000.000-00"
-              icon={<Hash className="w-4 h-4" />}
-              maxLength={14}
-              onChange={(e) => { e.target.value = maskCPF(e.target.value); }}
-              required
-            />
-            <StyledInput
-              name="birthday"
-              label="Data de Nascimento"
-              placeholder="DD/MM/AAAA"
-              icon={<CalendarDays className="w-4 h-4" />}
-              maxLength={10}
-              onChange={(e) => { e.target.value = maskDateBR(e.target.value); }}
-              required
-            />
-            <Button
-              type="submit"
-              className="w-full h-11 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:brightness-110 transition-all gap-2"
-              disabled={loading === "exists"}
-            >
-              {loading === "exists" ? <Loader2 className="animate-spin w-4 h-4" /> : <><Search className="w-4 h-4" /> Consultar Base</>}
-            </Button>
-          </form>
-
-          {/* ── Results ── */}
-          {existsResult && (
-            <div className="mt-5">
-              {existsResult.success && existsResult.data ? (
-                <PatientInfoCard data={existsResult.data} type="found" />
-              ) : (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex items-center gap-3 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20"
-                >
-                  <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-amber-400">Paciente não encontrado</p>
-                    <p className="text-xs text-slate-500 mt-0.5">Verifique o CPF e data de nascimento ou cadastre um novo prontuário.</p>
-                  </div>
-                </motion.div>
-              )}
-            </div>
-          )}
-        </motion.div>
-
-        {/* ═══ Card 2: Novo Prontuário ═══ */}
-        <motion.div variants={item} className="bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-6 md:p-8 flex flex-col group hover:border-blue-500/20 transition-all duration-500">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2.5 rounded-2xl bg-blue-500/10 border border-blue-500/20">
-              <UserPlus className="w-5 h-5 text-blue-400" />
-            </div>
-            <div>
-              <h3 className="font-outfit text-base font-medium text-white">Novo Prontuário</h3>
-              <p className="text-xs text-slate-500 font-inter">Cadastre ou atualize os dados do paciente</p>
-            </div>
-          </div>
-
-          <form onSubmit={handleCreatePatient} className="space-y-4 flex-1 flex flex-col">
-            <StyledInput
-              name="name"
-              label="Nome Completo"
-              placeholder="Nome do paciente"
-              icon={<UserRound className="w-4 h-4" />}
-              required
-            />
-            <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleCheckExists} className="space-y-4">
               <StyledInput
                 name="nin"
-                label="CPF"
+                label="CPF do Paciente"
                 placeholder="000.000.000-00"
                 icon={<Hash className="w-4 h-4" />}
                 maxLength={14}
@@ -391,84 +315,169 @@ export default function PatientsPage() {
               />
               <StyledInput
                 name="birthday"
-                label="Data Nasc."
+                label="Data de Nascimento"
                 placeholder="DD/MM/AAAA"
                 icon={<CalendarDays className="w-4 h-4" />}
                 maxLength={10}
                 onChange={(e) => { e.target.value = maskDateBR(e.target.value); }}
                 required
               />
+              <Button
+                type="submit"
+                className="w-full h-11 rounded-2xl bg-[#1E2022] hover:bg-black text-white font-semibold shadow-sm transition-all gap-2 text-xs"
+                disabled={loading === "exists"}
+              >
+                {loading === "exists" ? <Loader2 className="animate-spin w-4 h-4" /> : <><Search className="w-4 h-4 text-amber-400" /> Consultar Base do Clinic API</>}
+              </Button>
+            </form>
+
+            {/* Results */}
+            {existsResult && (
+              <div className="mt-5">
+                {existsResult.success && existsResult.data ? (
+                  <PatientInfoCard data={existsResult.data} type="found" />
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex items-center gap-3 p-3.5 rounded-2xl bg-amber-50 border border-amber-200"
+                  >
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-amber-900">Paciente não encontrado</p>
+                      <p className="text-[11px] text-amber-700 mt-0.5">Verifique os dados ou realize o cadastro no painel ao lado.</p>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="pt-3 mt-6 border-t border-[#F0EAE0] text-[11px] text-slate-700 flex items-center justify-between">
+            <span>Integração Clinic API</span>
+            <span className="font-semibold text-emerald-800 flex items-center gap-1">
+              <Check className="w-3.5 h-3.5" /> Sincronizado
+            </span>
+          </div>
+        </motion.div>
+
+        {/* ═══ Card 2: Novo Prontuário (7 cols) ═══ */}
+        <motion.div variants={item} className="lg:col-span-7 bg-white border border-[#E8E2D6] rounded-[32px] shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-6 md:p-8 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-6 pb-3 border-b border-[#F0EAE0]">
+              <div className="p-2.5 rounded-2xl bg-amber-100/80 border border-amber-300 text-amber-800">
+                <UserPlus className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm text-slate-900">Novo Prontuário</h3>
+                <p className="text-xs text-slate-700">Registre novos pacientes no banco do hospital</p>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+
+            <form onSubmit={handleCreatePatient} className="space-y-4">
               <StyledInput
-                name="mobile"
-                label="Celular"
-                placeholder="(00) 00000-0000"
-                icon={<Phone className="w-4 h-4" />}
-                maxLength={15}
-                onChange={(e) => { e.target.value = maskPhone(e.target.value); }}
+                name="name"
+                label="Nome Completo"
+                placeholder="Ex: Maria Luiza da Silva"
+                icon={<UserRound className="w-4 h-4" />}
+                required
               />
-              <StyledInput
-                name="email"
-                label="Email"
-                placeholder="email@exemplo.com"
-                icon={<Mail className="w-4 h-4" />}
-                type="email"
-              />
-            </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <StyledInput
+                  name="nin"
+                  label="CPF"
+                  placeholder="000.000.000-00"
+                  icon={<Hash className="w-4 h-4" />}
+                  maxLength={14}
+                  onChange={(e) => { e.target.value = maskCPF(e.target.value); }}
+                  required
+                />
+                <StyledInput
+                  name="birthday"
+                  label="Data de Nascimento"
+                  placeholder="DD/MM/AAAA"
+                  icon={<CalendarDays className="w-4 h-4" />}
+                  maxLength={10}
+                  onChange={(e) => { e.target.value = maskDateBR(e.target.value); }}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <StyledInput
+                  name="mobile"
+                  label="Celular / WhatsApp"
+                  placeholder="(41) 90000-0000"
+                  icon={<Phone className="w-4 h-4" />}
+                  maxLength={15}
+                  onChange={(e) => { e.target.value = maskPhone(e.target.value); }}
+                />
+                <StyledInput
+                  name="email"
+                  label="E-mail"
+                  placeholder="paciente@exemplo.com"
+                  icon={<Mail className="w-4 h-4" />}
+                  type="email"
+                />
+              </div>
 
-            {/* Convênio */}
-            <div className="space-y-2">
-              <Label className="text-xs font-medium text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-blue-400" /> Convênio
-              </Label>
-              {loadingInsurances ? (
-                <div className="flex items-center gap-2 h-11 px-4 text-sm text-slate-500 bg-[#0B121D]/60 border border-white/10 rounded-2xl">
-                  <Loader2 className="animate-spin w-4 h-4 text-blue-400" /> Carregando convênios...
-                </div>
-              ) : (
-                <StyledSelect name="healthInsuranceCode" required>
-                  <option value="">Selecione um convênio...</option>
-                  {insurances.map((ins) => (
-                    <option key={ins.id} value={ins.id}>
-                      {ins.name || `Convênio #${ins.id}`}
-                    </option>
-                  ))}
-                </StyledSelect>
-              )}
-            </div>
-
-            <div className="flex-1" />
-
-            <Button
-              type="submit"
-              className="w-full h-12 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 hover:brightness-110 transition-all gap-2 text-base mt-2"
-              disabled={loading === "createPatient"}
-            >
-              {loading === "createPatient" ? <Loader2 className="animate-spin w-5 h-5" /> : <><Sparkles className="w-5 h-5" /> Salvar Paciente</>}
-            </Button>
-          </form>
-
-          {/* ── Results ── */}
-          {createResult && (
-            <div className="mt-5">
-              {createResult.success ? (
-                <PatientInfoCard data={createResult} type="created" />
-              ) : (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex items-center gap-3 p-4 rounded-2xl bg-rose-500/5 border border-rose-500/20"
-                >
-                  <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-rose-400">Erro ao salvar paciente</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{createResult.error || "Tente novamente."}</p>
+              {/* Convênio */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Convênio Principal
+                </Label>
+                {loadingInsurances ? (
+                  <div className="flex items-center gap-2 h-11 px-4 text-xs text-slate-700 bg-[#FBF9F4] border border-[#E8E2D6] rounded-2xl">
+                    <Loader2 className="animate-spin w-4 h-4 text-amber-600" /> Carregando lista de convênios...
                   </div>
-                </motion.div>
-              )}
-            </div>
-          )}
+                ) : (
+                  <StyledSelect name="healthInsuranceCode" required>
+                    <option value="">Selecione um plano de saúde...</option>
+                    {insurances.map((ins) => (
+                      <option key={ins.id} value={ins.id}>
+                        {ins.name || `Convênio #${ins.id}`}
+                      </option>
+                    ))}
+                  </StyledSelect>
+                )}
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  type="submit"
+                  className="w-full h-11 rounded-2xl bg-[#1E2022] hover:bg-black text-white font-semibold shadow-sm transition-all gap-2 text-xs"
+                  disabled={loading === "createPatient"}
+                >
+                  {loading === "createPatient" ? <Loader2 className="animate-spin w-4 h-4" /> : <><Sparkles className="w-4 h-4 text-amber-400" /> Criar Prontuário no Clinic API</>}
+                </Button>
+              </div>
+            </form>
+
+            {/* Results */}
+            {createResult && (
+              <div className="mt-5">
+                {createResult.success ? (
+                  <PatientInfoCard data={createResult} type="created" />
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex items-center gap-3 p-3.5 rounded-2xl bg-rose-50 border border-rose-200"
+                  >
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-rose-800">Falha ao salvar prontuário</p>
+                      <p className="text-[11px] text-rose-700 mt-0.5">{createResult.error || "Tente novamente."}</p>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="pt-3 mt-6 border-t border-[#F0EAE0] text-[11px] text-slate-700 flex items-center justify-between">
+            <span>Hospital Otorrinos Curitiba</span>
+            <span className="text-slate-700">Cadastro Seguro</span>
+          </div>
         </motion.div>
       </div>
     </motion.div>

@@ -449,34 +449,39 @@ export default function PrescriptionsPage() {
             variants={container}
             initial="hidden"
             animate="show"
-            className="w-full space-y-8 text-slate-200"
+            className="w-full space-y-8 pb-16 text-slate-800"
         >
             {/* ═══ HEADER ═══ */}
-            <motion.div variants={item} className="flex flex-col gap-6">
+            <motion.div variants={item} className="flex flex-col gap-4 pb-2 border-b border-[#E8E2D6]/70">
                 <div>
-                    <h1 className="text-3xl font-outfit font-semibold text-white tracking-tight">
-                        Receitas
+                    <div className="flex items-center gap-2 mb-1.5">
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-900 border border-amber-300/80">
+                            Hospital Otorrinos Curitiba
+                        </span>
+                    </div>
+                    <h1 className="text-2xl sm:text-3xl font-light text-slate-900 tracking-tight">
+                        Gestão de <span className="font-semibold text-slate-900">Receitas Médicas</span>
                     </h1>
-                    <p className="text-sm font-inter text-slate-400 mt-2">
-                        Solicitações de renovação de receita recebidas via WhatsApp.
+                    <p className="text-xs sm:text-sm text-slate-700 mt-1">
+                        Solicitações de renovação de receituário captadas pela Silvia Concierge via WhatsApp.
                     </p>
                 </div>
 
                 {/* ═══ CONTROLS (SEARCH & FILTERS) ═══ */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="relative w-full sm:w-80">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Search className="h-4 w-4 text-slate-500" />
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <Search className="h-4 w-4 text-slate-400" />
                         </div>
                         <input
                             type="text"
                             placeholder="Buscar paciente ou carteirinha..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2.5 bg-[#111A28]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-sm font-inter text-slate-200 placeholder-slate-500 focus:outline-none focus:border-teal-500/30 transition-all font-medium"
+                            className="w-full pl-9 pr-4 py-2.5 bg-white border border-[#E8E2D6] rounded-2xl text-xs font-sans text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/40 shadow-sm transition-all"
                         />
                     </div>
-                    <div className="flex items-center self-start sm:self-auto gap-1.5 bg-[#111A28]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-1 overflow-x-auto max-w-full">
+                    <div className="flex items-center self-start sm:self-auto gap-1 bg-white border border-[#E8E2D6] shadow-sm rounded-full p-1 overflow-x-auto max-w-full shrink-0">
                         {(["ALL", "PENDENTE", "CONCLUIDO", "REJEITADO"] as const).map((f) => {
                             const labels: Record<string, string> = {
                                 ALL: "Todas",
@@ -484,38 +489,22 @@ export default function PrescriptionsPage() {
                                 CONCLUIDO: "Concluídas",
                                 REJEITADO: "Rejeitadas",
                             };
-                            const colors: Record<string, string> = {
-                                ALL: "teal",
-                                PENDENTE: "amber",
-                                CONCLUIDO: "emerald",
-                                REJEITADO: "rose",
-                            };
                             const isActive = filter === f;
-                            const c = colors[f];
                             return (
                                 <button
                                     key={f}
                                     onClick={() => setFilter(f)}
                                     className={cn(
-                                        "px-3 py-1.5 rounded-xl text-xs font-inter font-medium transition-all duration-300 flex items-center gap-1.5",
+                                        "px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 flex items-center gap-1.5",
                                         isActive
-                                            ? `bg-${c}-500/15 text-${c}-400 border border-${c}-500/30`
-                                            : "text-slate-500 hover:text-slate-300 border border-transparent"
+                                            ? "bg-[#1E2022] text-white shadow-sm font-semibold"
+                                            : "text-slate-700 hover:text-slate-900 hover:bg-[#F2ECE0]"
                                     )}
-                                    style={
-                                        isActive
-                                            ? {
-                                                backgroundColor: `color-mix(in srgb, var(--color-${c}-500, ${c === "teal" ? "#14b8a6" : c === "amber" ? "#f59e0b" : c === "emerald" ? "#10b981" : "#f43f5e"}) 15%, transparent)`,
-                                                color: c === "teal" ? "#2dd4bf" : c === "amber" ? "#fbbf24" : c === "emerald" ? "#34d399" : "#fb7185",
-                                                borderColor: `color-mix(in srgb, var(--color-${c}-500, ${c === "teal" ? "#14b8a6" : c === "amber" ? "#f59e0b" : c === "emerald" ? "#10b981" : "#f43f5e"}) 30%, transparent)`,
-                                            }
-                                            : undefined
-                                    }
                                 >
-                                    {labels[f]}
+                                    <span>{labels[f]}</span>
                                     <span className={cn(
-                                        "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
-                                        isActive ? "bg-white/10" : "bg-white/5"
+                                        "text-[10px] font-bold px-1.5 py-0.2 rounded-full",
+                                        isActive ? "bg-amber-400 text-slate-950" : "bg-slate-200 text-slate-700"
                                     )}>
                                         {counts[f]}
                                     </span>
@@ -529,8 +518,8 @@ export default function PrescriptionsPage() {
             {/* ═══ LOADING ═══ */}
             {loading && (
                 <motion.div variants={item} className="flex items-center justify-center py-20">
-                    <Loader2 className="w-8 h-8 animate-spin text-teal-400" />
-                    <span className="ml-3 text-slate-400">Carregando solicitações...</span>
+                    <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+                    <span className="ml-3 text-slate-600 text-xs">Carregando solicitações de receitas...</span>
                 </motion.div>
             )}
 
@@ -538,19 +527,19 @@ export default function PrescriptionsPage() {
             {!loading && filtered.length === 0 && (
                 <motion.div
                     variants={item}
-                    className="bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-12 flex flex-col items-center justify-center gap-5"
+                    className="bg-white border border-[#E8E2D6] shadow-[0_10px_30px_rgba(0,0,0,0.03)] rounded-[32px] p-12 flex flex-col items-center justify-center gap-4 text-center"
                 >
-                    <div className="w-16 h-16 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
-                        <Pill className="w-8 h-8 text-teal-400" />
+                    <div className="w-14 h-14 rounded-2xl bg-[#F8F5EE] border border-[#E8E2D6] flex items-center justify-center text-amber-700">
+                        <Pill className="w-7 h-7" />
                     </div>
-                    <div className="text-center">
-                        <h3 className="font-outfit font-semibold text-lg text-white">
-                            Nenhuma solicitação
+                    <div>
+                        <h3 className="font-semibold text-base text-slate-900">
+                            Nenhuma solicitação encontrada
                         </h3>
-                        <p className="text-sm text-slate-400 mt-1 font-inter">
+                        <p className="text-xs text-slate-700 mt-1">
                             {filter === "ALL"
-                                ? "Ainda não há solicitações de renovação de receita."
-                                : `Nenhuma solicitação com status "${filter.toLowerCase()}".`}
+                                ? "Não há solicitações de renovação de receita registradas hoje."
+                                : `Nenhuma solicitação com o status "${filter.toLowerCase()}".`}
                         </p>
                     </div>
                 </motion.div>
@@ -569,80 +558,84 @@ export default function PrescriptionsPage() {
                                 <motion.div
                                     key={req.id}
                                     variants={item}
-                                    className="bg-[#111A28]/80 backdrop-blur-xl border border-[#1E293B] rounded-3xl p-6 group hover:border-teal-500/20 transition-all duration-500 relative overflow-hidden"
+                                    className="bg-white border border-[#E8E2D6] rounded-[32px] shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-6 md:p-7 flex flex-col justify-between group hover:border-amber-300 transition-all relative overflow-hidden"
                                 >
-                                    {/* Glow */}
-                                    <div className="absolute top-0 right-0 -mr-12 -mt-12 w-32 h-32 bg-teal-500/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
                                     {/* Status + Date header */}
-                                    <div className="flex items-center justify-between mb-5 relative z-10">
-                                        <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider", status.bg, status.border, status.color, "border")}>
-                                            <StatusIcon className="w-3.5 h-3.5" />
-                                            {status.label}
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                                            <CalendarDays className="w-3.5 h-3.5" />
-                                            {formatDate(req.createdAt)}
-                                        </div>
-                                    </div>
-
-                                    {/* Patient Info */}
-                                    <div className="space-y-3 relative z-10">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                                                <User className="w-5 h-5 text-teal-400" />
+                                    <div>
+                                        <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#F0EAE0]">
+                                            <div className={cn(
+                                                "flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                                                req.status === "CONCLUIDO" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" :
+                                                req.status === "REJEITADO" ? "bg-rose-50 text-rose-800 border border-rose-200" :
+                                                "bg-amber-50 text-amber-800 border border-amber-200"
+                                            )}>
+                                                <StatusIcon className="w-3 h-3" />
+                                                {status.label}
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="text-base font-semibold text-white font-outfit truncate">
-                                                    {req.patientName}
-                                                </h3>
-                                                <p className="text-xs text-slate-500 font-inter mt-0.5">
-                                                    Nasc.: {req.birthDate}
-                                                </p>
+                                            <div className="flex items-center gap-1 text-[11px] text-slate-700 font-mono">
+                                                <CalendarDays className="w-3.5 h-3.5 text-slate-500" />
+                                                {formatDate(req.createdAt)}
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
-                                                <CreditCard className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                                                <div className="min-w-0">
-                                                    <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Carteirinha</p>
-                                                    <p className="text-sm text-slate-200 font-medium truncate">{req.unimedCard}</p>
+                                        {/* Patient Info */}
+                                        <div className="space-y-3">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-10 h-10 rounded-2xl bg-[#F8F5EE] border border-[#E8E2D6] flex items-center justify-center text-slate-800 font-bold shrink-0">
+                                                    {req.patientName.charAt(0)}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="text-sm font-semibold text-slate-900 truncate">
+                                                        {req.patientName}
+                                                    </h3>
+                                                    <p className="text-[11px] text-slate-700 mt-0.5">
+                                                        Data Nasc.: {req.birthDate}
+                                                    </p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
-                                                <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                                                <div className="min-w-0">
-                                                    <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Endereço</p>
-                                                    <p className="text-sm text-slate-200 font-medium truncate">{req.address}</p>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#FBF9F4] border border-[#E8E2D6]">
+                                                    <CreditCard className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                                                    <div className="min-w-0">
+                                                        <p className="text-[9px] text-slate-700 uppercase font-semibold">Carteirinha</p>
+                                                        <p className="text-xs font-mono font-medium text-slate-900 truncate">{req.unimedCard || "Não informada"}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#FBF9F4] border border-[#E8E2D6]">
+                                                    <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                                    <div className="min-w-0">
+                                                        <p className="text-[9px] text-slate-700 uppercase font-semibold">Endereço de Entrega</p>
+                                                        <p className="text-xs font-medium text-slate-900 truncate">{req.address || "Retirada no Hospital"}</p>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        {/* Medications */}
-                                        <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <Pill className="w-3.5 h-3.5 text-emerald-400" />
-                                                <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
-                                                    Medicamentos
+                                            {/* Medications */}
+                                            <div className="p-3.5 rounded-2xl bg-[#FBF9F4] border border-[#E8E2D6]">
+                                                <div className="flex items-center gap-1.5 mb-1.5">
+                                                    <Pill className="w-3.5 h-3.5 text-amber-700" />
+                                                    <p className="text-[10px] text-slate-700 uppercase tracking-wider font-semibold">
+                                                        Medicamentos & Dosagens Solicitadas
+                                                    </p>
+                                                </div>
+                                                <p className="text-xs text-slate-800 whitespace-pre-wrap leading-relaxed font-sans">
+                                                    {req.medications}
                                                 </p>
                                             </div>
-                                            <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed font-inter">
-                                                {req.medications}
-                                            </p>
                                         </div>
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="flex items-center gap-2 mt-5 pt-4 border-t border-white/5 relative z-10">
+                                    <div className="flex items-center gap-2 mt-5 pt-4 border-t border-[#F0EAE0]">
                                         <Button
                                             size="sm"
                                             variant="outline"
                                             onClick={() => generatePrescriptionPDF(req)}
-                                            className="rounded-xl bg-white/5 border-white/10 text-slate-300 hover:bg-teal-500/10 hover:border-teal-500/30 hover:text-teal-400 gap-1.5 transition-all flex-1"
+                                            className="rounded-xl bg-white border-[#E8E2D6] text-slate-800 hover:bg-[#F4EFE6] gap-1.5 transition-all text-xs font-semibold flex-1 shadow-sm"
                                         >
-                                            <Download className="w-3.5 h-3.5" />
-                                            Baixar PDF
+                                            <Download className="w-3.5 h-3.5 text-amber-600" />
+                                            Gerar PDF Timbrado
                                         </Button>
 
                                         {req.status === "PENDENTE" && (
@@ -651,7 +644,7 @@ export default function PrescriptionsPage() {
                                                     size="sm"
                                                     onClick={() => handleStatusChange(req.id, "CONCLUIDO")}
                                                     disabled={isUpdating || deletingId === req.id}
-                                                    className="rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25 gap-1.5 transition-all flex-1"
+                                                    className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 text-xs font-semibold shadow-sm transition-all"
                                                 >
                                                     {isUpdating ? (
                                                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -666,21 +659,21 @@ export default function PrescriptionsPage() {
                                                     onClick={() => handleStatusChange(req.id, "REJEITADO")}
                                                     disabled={isUpdating || deletingId === req.id}
                                                     title="Rejeitar solicitação"
-                                                    className="rounded-xl bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20 gap-1.5 transition-all"
+                                                    className="rounded-xl bg-white border-[#E8E2D6] text-rose-600 hover:bg-rose-50 gap-1.5 transition-all"
                                                 >
                                                     <XCircle className="w-3.5 h-3.5" />
                                                 </Button>
                                             </>
                                         )}
 
-                                        {/* Botão de Excluir / Deletar */}
+                                        {/* Botão de Excluir */}
                                         <Button
                                             size="sm"
                                             variant="outline"
                                             onClick={() => handleDelete(req.id, req.patientName)}
                                             disabled={isUpdating || deletingId === req.id}
                                             title="Excluir permanentemente"
-                                            className="rounded-xl bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/25 hover:text-rose-300 gap-1.5 transition-all px-2.5"
+                                            className="rounded-xl bg-white border-[#E8E2D6] text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-all px-2.5"
                                         >
                                             {deletingId === req.id ? (
                                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -697,53 +690,42 @@ export default function PrescriptionsPage() {
                     {/* ═══ PAGINATION CONTROLS ═══ */}
                     <motion.div
                         variants={item}
-                        className="bg-[#111A28]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4"
+                        className="bg-white border border-[#E8E2D6] rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-700"
                     >
                         {/* Info & Items Per Page */}
-                        <div className="flex flex-wrap items-center gap-4 text-xs font-inter text-slate-400">
+                        <div className="flex flex-wrap items-center gap-4">
                             <div>
-                                Mostrando <span className="font-semibold text-white">{startIndex + 1}</span> a{" "}
-                                <span className="font-semibold text-white">{endIndex}</span> de{" "}
-                                <span className="font-semibold text-white">{filtered.length}</span>{" "}
+                                Mostrando <span className="font-semibold text-slate-900">{startIndex + 1}</span> a{" "}
+                                <span className="font-semibold text-slate-900">{endIndex}</span> de{" "}
+                                <span className="font-semibold text-slate-900">{filtered.length}</span>{" "}
                                 {filtered.length === 1 ? "solicitação" : "solicitações"}
                             </div>
-                            <div className="flex items-center gap-2 border-l border-white/10 pl-4">
+                            <div className="flex items-center gap-2 border-l border-[#E8E2D6] pl-4">
                                 <span>Exibir:</span>
                                 <select
                                     value={itemsPerPage}
                                     onChange={(e) => {
                                         setItemsPerPage(Number(e.target.value));
                                     }}
-                                    className="bg-[#0B111A] border border-white/10 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-teal-500/40 transition-colors cursor-pointer"
+                                    className="bg-[#FBF9F4] border border-[#E8E2D6] rounded-xl px-2 py-1 text-xs text-slate-800 focus:outline-none transition-colors cursor-pointer"
                                 >
                                     <option value={6}>6 por página</option>
                                     <option value={10}>10 por página</option>
                                     <option value={20}>20 por página</option>
-                                    <option value={50}>50 por página</option>
                                 </select>
                             </div>
                         </div>
 
-                        {/* Navigation Buttons & Page Pills */}
+                        {/* Navigation Buttons */}
                         {totalPages > 1 && (
                             <div className="flex items-center gap-1.5">
                                 <Button
                                     variant="outline"
                                     size="icon"
                                     disabled={safePage === 1}
-                                    onClick={() => handlePageChange(1)}
-                                    title="Primeira página"
-                                    className="w-8 h-8 rounded-xl bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all"
-                                >
-                                    <ChevronsLeft className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    disabled={safePage === 1}
                                     onClick={() => handlePageChange(safePage - 1)}
                                     title="Página anterior"
-                                    className="w-8 h-8 rounded-xl bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all"
+                                    className="w-8 h-8 rounded-xl bg-white border-[#E8E2D6] text-slate-700 hover:bg-[#F2ECE0] disabled:opacity-30 transition-all"
                                 >
                                     <ChevronLeft className="w-4 h-4" />
                                 </Button>
@@ -755,16 +737,16 @@ export default function PrescriptionsPage() {
                                                 key={idx}
                                                 onClick={() => handlePageChange(p)}
                                                 className={cn(
-                                                    "w-8 h-8 rounded-xl text-xs font-inter font-medium transition-all duration-200 flex items-center justify-center",
+                                                    "w-8 h-8 rounded-xl text-xs font-medium transition-all flex items-center justify-center",
                                                     safePage === p
-                                                        ? "bg-teal-500/20 text-teal-300 border border-teal-500/40 font-semibold shadow-sm"
-                                                        : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"
+                                                        ? "bg-[#1E2022] text-white font-semibold shadow-sm"
+                                                        : "text-slate-700 hover:bg-[#F2ECE0]"
                                                 )}
                                             >
                                                 {p}
                                             </button>
                                         ) : (
-                                            <span key={idx} className="w-6 text-center text-xs text-slate-600 select-none">
+                                            <span key={idx} className="w-6 text-center text-xs text-slate-500">
                                                 {p}
                                             </span>
                                         )
@@ -777,19 +759,9 @@ export default function PrescriptionsPage() {
                                     disabled={safePage === totalPages}
                                     onClick={() => handlePageChange(safePage + 1)}
                                     title="Próxima página"
-                                    className="w-8 h-8 rounded-xl bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all"
+                                    className="w-8 h-8 rounded-xl bg-white border-[#E8E2D6] text-slate-700 hover:bg-[#F2ECE0] disabled:opacity-30 transition-all"
                                 >
                                     <ChevronRight className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    disabled={safePage === totalPages}
-                                    onClick={() => handlePageChange(totalPages)}
-                                    title="Última página"
-                                    className="w-8 h-8 rounded-xl bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all"
-                                >
-                                    <ChevronsRight className="w-4 h-4" />
                                 </Button>
                             </div>
                         )}
