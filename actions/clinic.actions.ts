@@ -153,17 +153,22 @@ export async function createPatientAction(payload: Record<string, any>) {
     }
     */
 
-    // Removemos resquícios do 'cardNumber' antigo para garantir que não quebre a API
-    // caso a IA acabe enviando esse campo por engano devido ao histórico.
-    if (payload.cardNumber) {
-      delete payload.cardNumber;
+    // 5. Garantia de campo obrigatório external_id (Exigido estritamente pela API da Clínica)
+    payload.external_id = payload.external_id !== undefined && payload.external_id !== null ? String(payload.external_id) : "";
+
+    // 6. Conversão de código do convênio para numérico se presente
+    if (payload.healthInsuranceCode && typeof payload.healthInsuranceCode === 'string') {
+      const parsedCode = parseInt(payload.healthInsuranceCode, 10);
+      if (!isNaN(parsedCode)) {
+        payload.healthInsuranceCode = parsedCode;
+      }
     }
 
     const response = await ClinicService.createOrUpdatePatient(payload);
     return { success: true, data: response };
   } catch (error: any) {
     console.error("[Clinic API Error] createPatient:", error.message);
-    return { success: false, error: "Falha ao criar/atualizar paciente." };
+    return { success: false, error: error.message || "Falha ao criar/atualizar paciente." };
   }
 }
 
