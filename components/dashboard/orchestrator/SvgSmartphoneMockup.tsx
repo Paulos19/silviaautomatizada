@@ -8,37 +8,45 @@ interface SvgSmartphoneMockupProps {
     className?: string;
     statusBarTime?: string;
     batteryLevel?: number;
+    isFullHeight?: boolean;
 }
 
 /**
  * SvgSmartphoneMockup
  * Um chassi de smartphone ultra-realista construído com vetores SVG e CSS premium.
  * Apresenta acabamento em titânio grafite, Dynamic Island / punch-hole frontal,
- * botões laterais de volume/power e proporções fiéis para acomodar a tela interativa do WhatsApp.
+ * botões físicos laterais de volume/power e proporções adaptáveis (inclusive 100vh).
  */
 export function SvgSmartphoneMockup({
     children,
     className,
     statusBarTime = "10:44",
-    batteryLevel = 94
+    batteryLevel = 98,
+    isFullHeight = false
 }: SvgSmartphoneMockupProps) {
     return (
-        <div className={cn("relative mx-auto flex items-center justify-center select-none py-2", className)}>
+        <div className={cn("relative mx-auto flex items-center justify-center select-none", isFullHeight ? "h-full w-full py-0" : "py-2", className)}>
             {/* Sutil glow de iluminação suave atrás do smartphone */}
             <div className="absolute inset-4 bg-amber-400/10 blur-3xl rounded-full pointer-events-none -z-10" />
 
             {/* Container do Smartphone */}
-            <div className="relative w-[360px] sm:w-[380px] h-[740px] rounded-[52px] p-[10px] bg-gradient-to-b from-[#2e3238] via-[#1c1f24] to-[#121417] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.12),inset_0_1px_1px_rgba(255,255,255,0.25)] border border-[#3b4047] z-10 flex flex-col overflow-hidden">
-                
+            <div
+                className={cn(
+                    "relative rounded-[50px] p-[10px] bg-gradient-to-b from-[#2e3238] via-[#1c1f24] to-[#121417] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.12),inset_0_1px_1px_rgba(255,255,255,0.25)] border border-[#3b4047] z-10 flex flex-col overflow-hidden transition-all duration-300",
+                    isFullHeight
+                        ? "w-full max-w-[410px] h-full min-h-[660px] max-h-[calc(100vh-5.5rem)]"
+                        : "w-[360px] sm:w-[380px] h-[740px]"
+                )}
+            >
                 {/* Botões Físicos Laterais Externos (SVG) */}
-                <div className="absolute -left-[3.5px] top-[130px] w-[3.5px] h-[32px] bg-[#42474f] rounded-l-md shadow-sm" />
-                <div className="absolute -left-[3.5px] top-[175px] w-[3.5px] h-[48px] bg-[#42474f] rounded-l-md shadow-sm" />
-                <div className="absolute -left-[3.5px] top-[235px] w-[3.5px] h-[48px] bg-[#42474f] rounded-l-md shadow-sm" />
-                <div className="absolute -right-[3.5px] top-[190px] w-[3.5px] h-[64px] bg-[#42474f] rounded-r-md shadow-sm" />
+                <div className="absolute -left-[3.5px] top-[120px] w-[3.5px] h-[30px] bg-[#42474f] rounded-l-md shadow-sm" />
+                <div className="absolute -left-[3.5px] top-[165px] w-[3.5px] h-[45px] bg-[#42474f] rounded-l-md shadow-sm" />
+                <div className="absolute -left-[3.5px] top-[220px] w-[3.5px] h-[45px] bg-[#42474f] rounded-l-md shadow-sm" />
+                <div className="absolute -right-[3.5px] top-[180px] w-[3.5px] h-[60px] bg-[#42474f] rounded-r-md shadow-sm" />
 
                 {/* Top Notch / Dynamic Island */}
-                <div className="absolute top-[18px] inset-x-0 flex justify-center items-center z-40 pointer-events-none">
-                    <div className="h-[24px] w-[110px] bg-[#000000] rounded-full flex items-center justify-between px-3 shadow-[0_2px_8px_rgba(0,0,0,0.8)] border border-white/5">
+                <div className="absolute top-[16px] inset-x-0 flex justify-center items-center z-40 pointer-events-none">
+                    <div className="h-[24px] w-[114px] bg-[#000000] rounded-full flex items-center justify-between px-3 shadow-[0_2px_8px_rgba(0,0,0,0.8)] border border-white/5">
                         <div className="w-2.5 h-2.5 rounded-full bg-[#0a0d12] border border-[#1a1f26] flex items-center justify-center">
                             <div className="w-1 h-1 rounded-full bg-[#1b2b45]" />
                         </div>
@@ -50,7 +58,7 @@ export function SvgSmartphoneMockup({
                 </div>
 
                 {/* Barra de Status do Sistema Operacional do Smartphone */}
-                <div className="absolute top-[14px] inset-x-0 px-7 flex justify-between items-center z-30 pointer-events-none text-[11px] font-semibold text-slate-700 tracking-tight">
+                <div className="absolute top-[13px] inset-x-0 px-7 flex justify-between items-center z-30 pointer-events-none text-[11px] font-semibold text-slate-700 tracking-tight">
                     <span>{statusBarTime}</span>
                     <div className="flex items-center gap-1.5 text-slate-700">
                         {/* Ícone de Sinal de Rede */}
@@ -71,12 +79,12 @@ export function SvgSmartphoneMockup({
                 </div>
 
                 {/* Tela Interna do Smartphone (com bordas curvas) */}
-                <div className="relative w-full h-full bg-[#EFEAE2] rounded-[42px] overflow-hidden flex flex-col z-20 shadow-inner">
+                <div className="relative w-full h-full bg-[#EFEAE2] rounded-[40px] overflow-hidden flex flex-col z-20 shadow-inner">
                     {children}
                 </div>
 
                 {/* Barra Home inferior do iOS / Android */}
-                <div className="absolute bottom-[16px] inset-x-0 flex justify-center items-center z-40 pointer-events-none">
+                <div className="absolute bottom-[14px] inset-x-0 flex justify-center items-center z-40 pointer-events-none">
                     <div className="w-32 h-1 rounded-full bg-slate-800/40 backdrop-blur-sm" />
                 </div>
             </div>
