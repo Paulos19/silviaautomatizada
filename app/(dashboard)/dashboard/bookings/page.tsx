@@ -95,15 +95,6 @@ function maskDateBR(value: string): string {
   return v;
 }
 
-function maskCPF(value: string): string {
-  let v = value.replace(/\D/g, "");
-  if (v.length > 11) v = v.slice(0, 11);
-  if (v.length > 9) return `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}`;
-  if (v.length > 6) return `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6)}`;
-  if (v.length > 3) return `${v.slice(0, 3)}.${v.slice(3)}`;
-  return v;
-}
-
 function parseDateBRToISO(dateStr: string): string {
   if (!dateStr) return "";
   if (dateStr.includes("-")) return dateStr;
@@ -197,6 +188,8 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [freeSlots, setFreeSlots] = useState<string[]>([]);
+  const [slotsError, setSlotsError] = useState<string | null>(null);
+  const [hasSearchedSlots, setHasSearchedSlots] = useState(false);
 
   // Nova consulta state
   const [insurances, setInsurances] = useState<InsuranceOption[]>([]);
@@ -236,10 +229,15 @@ export default function BookingsPage() {
   // ─── Buscar Slots ───
   const handleGetSlots = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!selectedDoctor) return;
+    const doctorId = selectedDoctor?.id?.toString() || "10073";
+    const addrId = addressId || "1";
+
     setLoading("slots");
     setFreeSlots([]);
     setSelectedSlot(null);
+    setSlotsError(null);
+    setHasSearchedSlots(true);
+
     const formData = new FormData(e.currentTarget);
     const rawStart = (formData.get("startDate") as string) || "";
     const rawEnd = showEndDate ? ((formData.get("endDate") as string) || "") : "";
@@ -247,14 +245,25 @@ export default function BookingsPage() {
     // Se a data fim não estiver selecionada ou for eliminada, a data início duplica para ter o mesmo valor da data fim (mesmo dia):
     const endDate = (rawEnd && rawEnd.trim()) ? parseDateBRToISO(rawEnd) : startDate;
 
+    if (!startDate) {
+      setSlotsError("Por favor, preencha a data da consulta.");
+      setLoading(null);
+      return;
+    }
+
     const res = await fetchFreeSlotsAction(
-      selectedDoctor.id.toString(),
-      addressId,
+      doctorId,
+      addrId,
       startDate,
       endDate
     );
     if (res.success && Array.isArray(res.data)) {
       setFreeSlots(res.data);
+      if (res.data.length === 0) {
+        setSlotsError("Nenhuma vaga livre encontrada para esta data.");
+      }
+    } else {
+      setSlotsError(res.error || "Nenhuma vaga livre encontrada para este período.");
     }
     setLoading(null);
   };
@@ -267,9 +276,17 @@ export default function BookingsPage() {
     setPatientSearchError(null);
     setPendingBookings([]);
     const formData = new FormData(e.currentTarget);
-    const nin = formData.get("nin") as string;
+    const rawNin = (formData.get("nin") as string) || "";
+    const nin = rawNin.replace(/\D/g, "");
     const birthdayStr = showBirthday ? (formData.get("birthday") as string) : "";
     const birthday = birthdayStr ? parseDateBRToISO(birthdayStr) : "";
+
+    if (!nin) {
+      setPatientSearchError("Digite o CPF do paciente.");
+      setLoading(null);
+      return;
+    }
+
     const res = await checkPatientExistsAction(nin, birthday);
     if (res.success && res.data) {
       const patient = res.data as PatientResult;
@@ -354,9 +371,17 @@ export default function BookingsPage() {
     setSelectedBooking(null);
     setCancelResult(null);
     const formData = new FormData(e.currentTarget);
-    const nin = formData.get("nin") as string;
+    const rawNin = (formData.get("nin") as string) || "";
+    const nin = rawNin.replace(/\D/g, "");
     const birthdayStr = showCancelBirthday ? (formData.get("birthday") as string) : "";
     const birthday = birthdayStr ? parseDateBRToISO(birthdayStr) : "";
+
+    if (!nin) {
+      setCancelSearchError("Digite o CPF do paciente.");
+      setLoading(null);
+      return;
+    }
+
     const res = await checkPatientExistsAction(nin, birthday);
     if (res.success && res.data && (res.data as PatientResult).patient_id) {
       const patient = res.data as PatientResult;
@@ -654,13 +679,25 @@ export default function BookingsPage() {
                   </motion.div>
                 ))}
               </div>
+            ) : hasSearchedSlots ? (
+              <div className="flex-1 flex flex-col items-center justify-center py-10 gap-2.5 text-center">
+                <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700">
+                  <CalendarX className="w-5 h-5 text-amber-700" />
+                </div>
+                <p className="text-xs text-slate-800 font-semibold">
+                  {slotsError || "Nenhuma vaga livre encontrada para esta data."}
+                </p>
+                <p className="text-[11px] text-slate-600 max-w-[260px]">
+                  Tente consultar outra data ou use a opção de intervalo para verificar os próximos dias.
+                </p>
+              </div>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center py-10 gap-2.5 text-center">
                 <div className="w-11 h-11 rounded-2xl bg-[#F8F5EE] border border-[#E8E2D6] flex items-center justify-center text-slate-700">
                   <CalendarSearch className="w-5 h-5 text-slate-700" />
                 </div>
                 <p className="text-xs text-slate-700 font-medium">
-                  Selecione o intervalo de datas para<br />carregar os horários do Clinic API.
+                  Selecione uma data para carregar<br />os horários disponíveis na agenda.
                 </p>
               </div>
             )}
@@ -724,8 +761,8 @@ export default function BookingsPage() {
                           <StyledInput
                             name="nin"
                             label="CPF"
-                            placeholder="000.000.000-00"
-                            onChange={(e) => { e.target.value = maskCPF(e.target.value); }}
+                            placeholder="Digite o CPF"
+                            maxLength={18}
                             required
                           />
                           <div className="space-y-2">
@@ -754,8 +791,8 @@ export default function BookingsPage() {
                         <StyledInput
                           name="nin"
                           label="CPF do Paciente"
-                          placeholder="000.000.000-00 ou apenas números"
-                          onChange={(e) => { e.target.value = maskCPF(e.target.value); }}
+                          placeholder="Digite o CPF (com ou sem pontuação)"
+                          maxLength={18}
                           required
                         />
                         <div className="flex justify-end">
@@ -912,8 +949,8 @@ export default function BookingsPage() {
                         <StyledInput
                           name="nin"
                           label="CPF do Paciente"
-                          placeholder="000.000.000-00"
-                          onChange={(e) => { e.target.value = maskCPF(e.target.value); }}
+                          placeholder="Digite o CPF"
+                          maxLength={18}
                           required
                         />
                         <div className="space-y-2">
@@ -942,8 +979,8 @@ export default function BookingsPage() {
                       <StyledInput
                         name="nin"
                         label="CPF do Paciente"
-                        placeholder="000.000.000-00 ou apenas números"
-                        onChange={(e) => { e.target.value = maskCPF(e.target.value); }}
+                        placeholder="Digite o CPF (com ou sem pontuação)"
+                        maxLength={18}
                         required
                       />
                       <div className="flex justify-end">

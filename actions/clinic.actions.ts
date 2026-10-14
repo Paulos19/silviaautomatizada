@@ -55,12 +55,15 @@ export async function fetchSinglePatientAction(patientId: string) {
   }
 }
 
-export async function checkPatientExistsAction(nin: string, birthday: string) {
+export async function checkPatientExistsAction(nin: string, birthday?: string) {
   if (!nin) return { success: false, error: "NIN/CPF obrigatório." };
 
   try {
-    // 1. Busca Básica para ver se o paciente existe
-    const response = await ClinicService.getPatients(nin, 1, 100);
+    const cleanNin = nin.replace(/\D/g, "");
+    if (!cleanNin) return { success: false, error: "CPF inválido." };
+
+    // 1. Busca Básica para ver se o paciente existe (sempre dígitos limpos)
+    const response = await ClinicService.getPatients(cleanNin, 1, 100);
     const items = response.result?.items;
 
     if (items && items.length > 0) {
