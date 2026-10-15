@@ -14,7 +14,8 @@ import {
     Menu,
     X,
     LayoutDashboard,
-    LogOut
+    LogOut,
+    Clock
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { ThreeLogo } from "@/components/ui/ThreeLogo";
@@ -138,6 +139,7 @@ export function AppHeaderbar() {
         { label: "Orquestrador IA", href: "/dashboard/orchestrator", icon: Activity },
         { label: "Visão Geral", href: "/dashboard", icon: LayoutDashboard },
         { label: "Agendamentos", href: "/dashboard/bookings", icon: CalendarDays },
+        { label: "Lista de Espera", href: "/dashboard/waitlist", icon: Clock },
         { label: "Pacientes", href: "/dashboard/patients", icon: Users },
         { label: "Corpo Clínico", href: "/dashboard/doctors", icon: Stethoscope },
         { label: "Receitas", href: "/dashboard/prescriptions", icon: FileText },
