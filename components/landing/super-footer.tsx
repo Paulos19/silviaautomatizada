@@ -1,119 +1,110 @@
 "use client";
 
 import Link from "next/link";
-import { Instagram, Linkedin, Github } from "lucide-react";
+import { Instagram, Linkedin, ArrowUpRight } from "lucide-react";
 
 const footerLinks = [
-    {
-        title: "Plataforma",
-        links: [
-            { label: "Agentes IA", href: "#features" },
-            { label: "Agenda", href: "#features" },
-            { label: "Analytics", href: "#features" },
-            { label: "Segurança", href: "#" },
-        ],
-    },
-    {
-        title: "Recursos",
-        links: [
-            { label: "Documentação", href: "#" },
-            { label: "Integrações", href: "#" },
-            { label: "API", href: "#" },
-            { label: "Status", href: "#" },
-        ],
-    },
-    {
-        title: "Empresa",
-        links: [
-            { label: "Sobre", href: "#about" },
-            { label: "Contato", href: "#contact" },
-            { label: "Privacidade", href: "#" },
-            { label: "Termos", href: "#" },
-        ],
-    },
-];
-
-const socialLinks = [
-    { icon: Instagram, href: "#", label: "Instagram" },
-    { icon: Linkedin, href: "#", label: "LinkedIn" },
-    { icon: Github, href: "#", label: "GitHub" },
+  {
+    title: "Plataforma",
+    links: [
+      { label: "Atendimento IA", href: "#features" },
+      { label: "Gestão de Agenda", href: "#features" },
+      { label: "Visão Computacional", href: "#n8n-features" },
+      { label: "Segurança & Silos", href: "#core" },
+    ],
+  },
+  {
+    title: "Hospital",
+    links: [
+      { label: "Hospital Otorrinos Curitiba", href: "#" },
+      { label: "Corpo Clínico", href: "/login" },
+      { label: "Integração Clinic", href: "#" },
+      { label: "Portal Administrativo", href: "/login" },
+    ],
+  },
+  {
+    title: "Institucional",
+    links: [
+      { label: "Privacidade & LGPD", href: "#" },
+      { label: "Termos de Uso", href: "#" },
+      { label: "Suporte 24/7", href: "#contact" },
+      { label: "Agendar Demonstração", href: "#contact" },
+    ],
+  },
 ];
 
 export function SuperFooter() {
-    return (
-        <footer className="w-full bg-black border-t border-white/[0.04] pt-20 pb-10 px-6 md:px-12 select-none">
-            <div className="max-w-[1100px] mx-auto">
-
-                {/* Top Row */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 md:gap-8 mb-16">
-
-                    {/* Brand */}
-                    <div className="lg:col-span-2 space-y-6">
-                        <Link href="/" className="flex items-center gap-2 group">
-                            <div className="relative w-24 h-8 overflow-hidden">
-                                <img
-                                    src="/logo.png"
-                                    alt="Silvia"
-                                    className="w-full h-full object-contain opacity-80 group-hover:opacity-100 transition-opacity duration-500"
-                                />
-                            </div>
-                        </Link>
-
-                        <p className="text-sm font-inter font-light text-white/25 max-w-xs leading-relaxed">
-                            Inteligência artificial generativa para gestão clínica.
-                            Agendamento, prontuários e analytics — tudo orquestrado.
-                        </p>
-
-                        <div className="flex items-center gap-3">
-                            {socialLinks.map((social) => {
-                                const Icon = social.icon;
-                                return (
-                                    <Link
-                                        key={social.label}
-                                        href={social.href}
-                                        aria-label={social.label}
-                                        className="p-2.5 rounded-full bg-white/[0.03] border border-white/[0.05] text-white/25 hover:text-white/60 hover:bg-white/[0.06] transition-all duration-500"
-                                    >
-                                        <Icon className="w-4 h-4" strokeWidth={1.5} />
-                                    </Link>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Link Columns */}
-                    {footerLinks.map((section) => (
-                        <div key={section.title} className="space-y-5">
-                            <h4 className="text-[11px] font-inter font-medium uppercase tracking-[0.15em] text-white/30">
-                                {section.title}
-                            </h4>
-                            <ul className="space-y-3">
-                                {section.links.map((link) => (
-                                    <li key={link.label}>
-                                        <Link
-                                            href={link.href}
-                                            className="text-sm font-inter text-white/20 hover:text-white/50 transition-colors duration-500"
-                                        >
-                                            {link.label}
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Bottom Bar */}
-                <div className="pt-8 border-t border-white/[0.04] flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p className="text-[11px] font-inter text-white/15">
-                        © {new Date().getFullYear()} Silvia AI. Todos os direitos reservados.
-                    </p>
-                    <p className="text-[11px] font-inter text-white/10">
-                        Built by Paulo Henrique.
-                    </p>
-                </div>
-
+  return (
+    <footer className="relative w-full bg-gradient-to-b from-transparent to-white/95 border-t border-slate-200/60 pt-28 pb-12 px-6 md:px-12 select-none z-10">
+      <div className="max-w-6xl mx-auto">
+        {/* Linha Superior: Logo, Descrição e Links */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 md:gap-8 mb-16">
+          {/* Marca Silvia */}
+          <div className="lg:col-span-2 space-y-4">
+            <Link href="/" className="inline-block hover:opacity-90 transition-opacity">
+              <img
+                src="/silvia-logo.svg"
+                alt="Silvia Logo"
+                className="h-9 w-auto"
+              />
+            </Link>
+            <p className="text-sm text-slate-600 font-sans leading-relaxed max-w-sm">
+              Inteligência médica humanizada e orquestração autônoma de ponta para clínicas e consultórios médicos.
+            </p>
+            <div className="pt-2 flex items-center gap-2 text-xs font-mono text-slate-500">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <span>SISTEMA ATIVO NO HOSPITAL OTORRINOS</span>
             </div>
-        </footer>
-    );
+          </div>
+
+          {/* Colunas de Navegação */}
+          {footerLinks.map((column) => (
+            <div key={column.title} className="space-y-4">
+              <p className="text-xs font-mono font-bold uppercase tracking-wider text-slate-900">
+                {column.title}
+              </p>
+              <ul className="space-y-2.5">
+                {column.links.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="text-sm text-slate-600 hover:text-slate-950 transition-colors font-sans flex items-center gap-1 group"
+                    >
+                      <span>{link.label}</span>
+                      <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        {/* Linha Inferior: Copyright e Redes */}
+        <div className="pt-8 border-t border-slate-200/70 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-500">
+          <p>© {new Date().getFullYear()} Silvia. Todos os direitos reservados.</p>
+          <div className="flex items-center gap-6">
+            <a
+              href="https://linkedin.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-slate-900 transition-colors flex items-center gap-1"
+            >
+              <Linkedin className="w-3.5 h-3.5" />
+              <span>LinkedIn</span>
+            </a>
+            <a
+              href="https://instagram.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-slate-900 transition-colors flex items-center gap-1"
+            >
+              <Instagram className="w-3.5 h-3.5" />
+              <span>Instagram</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
 }

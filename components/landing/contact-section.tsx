@@ -1,168 +1,115 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Send, Sparkles, MessageCircle, ArrowRight } from "lucide-react";
-import Image from "next/image";
+import { Send, Sparkles, MessageCircle } from "lucide-react";
 import Link from "next/link";
 
 export function ContactSection() {
-    return (
-        <section className="w-full bg-[#FAFAFA] py-0 select-none overflow-hidden">
-            <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[90vh]">
-
-                {/* ═══ Left — Image ═══ */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    viewport={{ once: true, amount: 0.2 }}
-                    transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-                    className="relative h-[50vh] lg:h-auto overflow-hidden"
-                >
-                    <Image
-                        src="/contact-zen.png"
-                        alt="Silvia AI Experience"
-                        fill
-                        className="object-cover object-center"
-                        sizes="(max-width: 1024px) 100vw, 50vw"
-                    />
-
-                    {/* Gradient overlay — fade to white on right edge (desktop) */}
-                    <div className="hidden lg:block absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-[#FAFAFA]" />
-
-                    {/* Gradient overlay — fade to white on bottom (mobile) */}
-                    <div className="lg:hidden absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#FAFAFA]" />
-
-                    {/* Bottom-left label */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        whileInView={{ opacity: 0.7, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: 0.6, duration: 1 }}
-                        className="absolute bottom-8 left-8 hidden lg:block"
-                    >
-                        <p className="text-[10px] font-inter font-semibold uppercase tracking-[0.2em] text-zinc-400">
-                            Experiência Silvia
-                        </p>
-                        <p className="text-lg font-outfit font-light text-zinc-600 mt-1">
-                            Enhancement of human experience.
-                        </p>
-                    </motion.div>
-                </motion.div>
-
-                {/* ═══ Right — Form ═══ */}
-                <motion.div
-                    initial={{ opacity: 0, x: 30 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true, amount: 0.2 }}
-                    transition={{ duration: 1, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                    className="flex flex-col justify-center px-8 md:px-16 lg:px-20 py-20 lg:py-28 bg-[#FAFAFA]"
-                >
-                    <div className="max-w-lg w-full mx-auto lg:mx-0">
-
-                        {/* Header */}
-                        <p className="text-[11px] font-inter font-medium uppercase tracking-[0.2em] text-teal-600/60 mb-5">
-                            Fale com a Silvia
-                        </p>
-                        <h2 className="font-outfit font-extralight text-[clamp(2rem,4vw,3rem)] leading-[1.1] tracking-[-0.02em] text-zinc-900 mb-3">
-                            Vamos construir{" "}
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-cyan-500">
-                                algo incrível.
-                            </span>
-                        </h2>
-                        <p className="font-inter text-sm text-zinc-400 leading-relaxed mb-10 max-w-sm">
-                            Preencha o formulário e nossa equipe entrará em contato para transformar a gestão da sua clínica.
-                        </p>
-
-                        {/* Form */}
-                        <form className="space-y-5">
-
-                            {/* Name + Email */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-inter font-semibold uppercase tracking-[0.15em] text-zinc-400">
-                                        Nome
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="Seu nome"
-                                        className="w-full h-11 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-inter text-zinc-900 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/40 transition-all"
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-inter font-semibold uppercase tracking-[0.15em] text-zinc-400">
-                                        E-mail
-                                    </label>
-                                    <input
-                                        type="email"
-                                        placeholder="clinica@example.com"
-                                        className="w-full h-11 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-inter text-zinc-900 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/40 transition-all"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Subject */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-inter font-semibold uppercase tracking-[0.15em] text-zinc-400">
-                                    Interesse
-                                </label>
-                                <select className="w-full h-11 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-inter text-zinc-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/40 transition-all appearance-none cursor-pointer">
-                                    <option value="">Selecione um tema...</option>
-                                    <option>Agentes IA para Atendimento</option>
-                                    <option>Automação de Agendamentos</option>
-                                    <option>Gestão de Prontuários</option>
-                                    <option>Analytics e Dashboard</option>
-                                    <option>Integração Completa</option>
-                                    <option>Outro</option>
-                                </select>
-                            </div>
-
-                            {/* Message */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-inter font-semibold uppercase tracking-[0.15em] text-zinc-400">
-                                    Mensagem
-                                </label>
-                                <textarea
-                                    placeholder="Conte-nos sobre os desafios da sua clínica..."
-                                    rows={3}
-                                    className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-inter text-zinc-900 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/40 transition-all resize-none"
-                                />
-                            </div>
-
-                            {/* Buttons */}
-                            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                                <button
-                                    type="submit"
-                                    className="flex-1 h-12 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-500 text-white text-sm font-inter font-semibold tracking-[0.02em] shadow-[0_2px_12px_rgba(13,148,136,0.15)] hover:shadow-[0_4px_20px_rgba(13,148,136,0.25)] hover:brightness-105 transition-all duration-500 flex items-center justify-center gap-2"
-                                >
-                                    <Send className="w-4 h-4" />
-                                    Enviar
-                                </button>
-                                <Link
-                                    href="/login"
-                                    className="flex-1 h-12 rounded-xl bg-zinc-900 text-white text-sm font-inter font-semibold tracking-[0.02em] hover:bg-zinc-800 transition-all duration-500 flex items-center justify-center gap-2"
-                                >
-                                    <Sparkles className="w-4 h-4" />
-                                    Conversar com a Silvia
-                                </Link>
-                            </div>
-
-                            {/* WhatsApp alt */}
-                            <div className="flex items-center gap-3 pt-2">
-                                <div className="w-8 h-px bg-zinc-200" />
-                                <span className="text-[10px] font-inter font-medium uppercase tracking-[0.12em] text-zinc-300">ou via</span>
-                                <Link
-                                    href="#"
-                                    className="inline-flex items-center gap-1 text-[10px] font-inter font-semibold uppercase tracking-[0.12em] text-teal-600 hover:text-teal-500 transition-colors"
-                                >
-                                    <MessageCircle className="w-3 h-3" /> WhatsApp
-                                </Link>
-                            </div>
-
-                        </form>
-                    </div>
-                </motion.div>
-
+  return (
+    <section className="w-full bg-transparent py-24 px-6 md:px-12 select-none overflow-hidden">
+      <div className="max-w-5xl mx-auto rounded-[2.5rem] bg-white/80 backdrop-blur-xl border border-slate-200/70 shadow-[0_25px_60px_-20px_rgba(0,0,0,0.06)] overflow-hidden grid grid-cols-1 lg:grid-cols-2">
+        {/* Esquerda: Informações & Contato Direto */}
+        <div className="p-8 sm:p-12 lg:p-16 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-200/60 bg-gradient-to-br from-white/90 to-amber-50/20">
+          <div>
+            <div className="inline-block font-mono text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">
+              [ AGENDAMENTO DE DEMONSTRAÇÃO ]
             </div>
-        </section>
-    );
+            <h2 className="font-sans font-black text-3xl sm:text-4xl text-slate-900 leading-tight mb-4">
+              Vamos transformar a rotina da sua clínica.
+            </h2>
+            <p className="font-sans text-sm sm:text-base text-slate-600 font-normal leading-relaxed mb-8">
+              Converse com nossa equipe médica e tecnológica para implantar a Silvia com integração nativa ao sistema do seu hospital ou consultório.
+            </p>
+          </div>
+
+          <div className="space-y-4 pt-6 border-t border-slate-200/60">
+            <div className="flex items-center gap-3">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs font-mono font-medium text-slate-700">
+                Implantação assistida em menos de 48h
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-mono text-slate-500">
+              <span>CONTATO DIRETO:</span>
+              <a
+                href="https://wa.me/5561986446934"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-amber-800 font-bold hover:underline"
+              >
+                +55 (61) 98644-6934
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Direita: Formulário Limpo */}
+        <div className="p-8 sm:p-12 lg:p-16 flex flex-col justify-center bg-white/60">
+          <form className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-700">
+                  Nome
+                </label>
+                <input
+                  type="text"
+                  placeholder="Dra. Elara Vance"
+                  className="w-full h-10.5 rounded-xl border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-700">
+                  E-mail
+                </label>
+                <input
+                  type="email"
+                  placeholder="elara@clinica.com.br"
+                  className="w-full h-10.5 rounded-xl border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-xs"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-700">
+                Especialidade ou Instituição
+              </label>
+              <input
+                type="text"
+                placeholder="Ex: Otorrinolaringologia / Hospital Otorrinos"
+                className="w-full h-10.5 rounded-xl border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-700">
+                Mensagem
+              </label>
+              <textarea
+                placeholder="Conte sobre o volume de pacientes ou necessidades da agenda..."
+                rows={3}
+                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-xs resize-none"
+              />
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                className="flex-1 h-11 rounded-xl bg-[#1E2022] hover:bg-black text-white text-sm font-medium shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Send className="w-4 h-4" />
+                <span>Solicitar Demonstração</span>
+              </button>
+              <Link
+                href="/login"
+                className="h-11 px-5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-sm font-medium transition-all flex items-center justify-center gap-2"
+              >
+                <Sparkles className="w-4 h-4 text-amber-600" />
+                <span>Portal Médico</span>
+              </Link>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  );
 }

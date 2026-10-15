@@ -10,11 +10,11 @@ export function HeroIrisEditorial() {
     <section className="relative w-full h-screen min-h-screen flex flex-col justify-between p-6 sm:p-10 lg:p-14 z-10 select-none overflow-hidden">
       
       {/* ============================================================ */}
-      {/* TOP HEADER BAR: Logo & Navigation                            */}
+      {/* BARRA SUPERIOR: Logo Oficial Silvia e Navegação Editorial   */}
       {/* ============================================================ */}
       <div className="relative z-20 flex items-start justify-between">
-        {/* Top Left: Silvia Logo & Version */}
-        <div className="flex flex-col gap-1.5">
+        {/* Logo Silvia */}
+        <div className="flex flex-col gap-1">
           <Link href="/" className="hover:opacity-90 transition-opacity">
             <img
               src="/silvia-logo.svg"
@@ -23,76 +23,76 @@ export function HeroIrisEditorial() {
             />
           </Link>
           <span className="font-mono text-[10px] text-slate-400 tracking-wider">
-            [ v2.4b • HEALTH OS ]
+            [ HOSPITAL OTORRINOS ]
           </span>
         </div>
 
-        {/* Top Right: Editorial Navigation Links with Arrows */}
+        {/* Links Editoriais com Flecha Diagonal */}
         <nav className="flex flex-col items-end space-y-1.5 font-mono text-xs">
           <Link
             href="#features"
-            className="group flex items-center gap-1.5 text-slate-700 hover:text-slate-950 transition-colors"
-          >
-            <span>início</span>
-            <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </Link>
-          <Link
-            href="#n8n-features"
             className="group flex items-center gap-1.5 text-slate-700 hover:text-slate-950 transition-colors"
           >
             <span>recursos</span>
             <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </Link>
           <Link
+            href="#n8n-features"
+            className="group flex items-center gap-1.5 text-slate-700 hover:text-slate-950 transition-colors"
+          >
+            <span>ecossistema</span>
+            <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </Link>
+          <Link
             href="#core"
             className="group flex items-center gap-1.5 text-slate-700 hover:text-slate-950 transition-colors"
           >
-            <span>hospital</span>
+            <span>segurança</span>
             <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </Link>
           <Link
             href="/login"
             className="group flex items-center gap-1.5 font-semibold text-slate-900 hover:text-black transition-colors"
           >
-            <span>portal médico</span>
+            <span>acessar portal</span>
             <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </Link>
         </nav>
       </div>
 
       {/* ============================================================ */}
-      {/* CENTER STAGE: Editorial High-Contrast Typography             */}
+      {/* CENTRO: Tipografia Editorial de Alto Contraste               */}
       {/* ============================================================ */}
       <div className="relative z-20 grid grid-cols-12 gap-6 items-center my-auto pointer-events-none">
         
-        {/* Left Column: Headline */}
+        {/* Coluna Esquerda: Título Principal */}
         <div className="col-span-12 sm:col-span-7 lg:col-span-5 flex flex-col justify-center space-y-5">
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
             className="space-y-4"
           >
-            {/* Clashing High-Fashion Typography: Bold Sans + Italic Serif + Monospace */}
+            {/* Hierarquia Tipográfica: Sans Pesado + Itálico Serif + Monospace */}
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 leading-[1.05] font-sans">
-              <span className="block">WHERE AI</span>
-              <span className="block">MERGES</span>
+              <span className="block">ONDE A IA</span>
+              <span className="block">SE UNE</span>
               <span className="italic font-serif font-normal text-slate-700 mr-2 text-2xl sm:text-3xl lg:text-4xl">
-                with
+                à sua
               </span>
               <span className="font-mono text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 tracking-tight">
-                // YOUR VISION
+                // VISÃO CLÍNICA
               </span>
             </h1>
 
-            {/* Subtitle in Portuguese */}
+            {/* Descrição Humanizada em Português */}
             <p className="text-xs sm:text-sm text-slate-600 font-sans leading-relaxed max-w-sm">
-              Conectando a inteligência clínica profunda da Silvia aos sentidos do cuidado hospitalar em tempo real no Hospital Otorrinos.
+              Conectando a inteligência médica profunda da Silvia aos sentidos do cuidado hospitalar em tempo real no Hospital Otorrinos.
             </p>
           </motion.div>
         </div>
 
-        {/* Right Column: Step Marker */}
+        {/* Coluna Direita: Marcador Editorial do Capítulo 1 */}
         <div className="hidden sm:flex col-span-5 lg:col-span-7 justify-end items-center font-mono text-xs text-slate-600">
           <div className="flex items-center gap-8">
             <span className="text-sm font-semibold tracking-wider text-slate-900">
@@ -106,39 +106,39 @@ export function HeroIrisEditorial() {
       </div>
 
       {/* ============================================================ */}
-      {/* BOTTOM FOOTER BAR: Pill CTA, Controls, Scroll Cue            */}
+      {/* BARRA INFERIOR: Botão Pill CTA e Indicador de Rolagem        */}
       {/* ============================================================ */}
       <div className="relative z-20 flex items-center justify-between">
-        {/* Bottom Left: Share & Sound */}
+        {/* Controles de Som e Compartilhamento */}
         <div className="flex items-center gap-2 text-slate-500">
           <button
             type="button"
-            className="w-8 h-8 rounded-full border border-slate-300 bg-white/60 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:text-black transition-colors pointer-events-auto cursor-pointer shadow-xs"
+            className="w-8 h-8 rounded-full border border-slate-300 bg-white/70 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:text-black transition-colors pointer-events-auto cursor-pointer shadow-xs"
             title="Compartilhar"
           >
             <Share2 className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"
-            className="w-8 h-8 rounded-full border border-slate-300 bg-white/60 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:text-black transition-colors pointer-events-auto cursor-pointer shadow-xs"
+            className="w-8 h-8 rounded-full border border-slate-300 bg-white/70 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:text-black transition-colors pointer-events-auto cursor-pointer shadow-xs"
             title="Áudio imersivo"
           >
             <Volume2 className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Bottom Center: Pill CTA Button */}
+        {/* Botão Pill Central */}
         <div className="absolute left-1/2 -translate-x-1/2 bottom-0 pointer-events-auto">
           <Link
             href="/login"
             className="group flex items-center gap-2 px-6 py-2.5 rounded-full border border-slate-400 bg-white/85 hover:bg-white text-slate-900 font-mono text-xs font-semibold uppercase tracking-wider shadow-sm hover:shadow transition-all duration-200 cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-500 group-hover:rotate-12 transition-transform" />
-            <span>TRY OUR DEMO</span>
+            <span>AGENDAR DEMONSTRAÇÃO</span>
           </Link>
         </div>
 
-        {/* Bottom Right: Scroll to Untwist Cue */}
+        {/* Indicador de Rolagem para Destrançar */}
         <div className="flex items-center gap-2 text-slate-400 font-mono text-[10px] uppercase tracking-wider">
           <span className="hidden sm:inline">Role para destrançar</span>
           <ChevronDown className="w-4 h-4 animate-bounce text-slate-600" />
