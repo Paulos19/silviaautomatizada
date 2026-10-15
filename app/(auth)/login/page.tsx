@@ -4,88 +4,72 @@ import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
 import { FlutedGlassShader } from "@/components/ui/FlutedGlassShader";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
 
 export default function LoginPage() {
   return (
-    <div className="relative min-h-screen w-full bg-white text-slate-900 flex items-center justify-center p-4 sm:p-6 lg:p-8 z-10">
-      {/* Centered Dual-Panel Layout Container */}
-      <div className="w-full max-w-[1240px] min-h-[720px] lg:h-[calc(100vh-64px)] lg:max-h-[820px] grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12 items-center">
+    <div className="relative h-screen w-screen max-h-screen overflow-hidden bg-white text-slate-900 flex items-center justify-center p-4 sm:p-6 lg:p-8 z-10 select-none">
+      {/* Container 100vh sem scroll */}
+      <div className="w-full max-w-[1240px] h-[calc(100vh-32px)] sm:h-[calc(100vh-48px)] max-h-[740px] grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 items-center">
         
         {/* ================================================================ */}
-        {/* LEFT PANEL: Fluted Glass Sunset Shader Art (Canvas-UI / Motion)  */}
+        {/* LADO ESQUERDO: Shader Canelado Sunset Puro (Sem tags)            */}
         {/* ================================================================ */}
         <motion.div
           initial={{ opacity: 0, scale: 0.98, x: -16 }}
           animate={{ opacity: 1, scale: 1, x: 0 }}
           transition={{
-            duration: 0.55,
-            ease: [0.4, 0, 0.2, 1], // Premium archetype curve
+            duration: 0.5,
+            ease: [0.4, 0, 0.2, 1], // Arquétipo Premium
           }}
-          className="relative w-full h-[380px] sm:h-[460px] lg:h-full rounded-[28px] sm:rounded-[36px] overflow-hidden shadow-2xl shadow-rose-950/10 border border-slate-200/70"
+          className="relative w-full h-full rounded-[28px] sm:rounded-[36px] overflow-hidden shadow-2xl shadow-rose-950/10 border border-slate-200/60 hidden lg:block"
         >
-          {/* WebGL Fluted Glass Shader with Sunset Refraction */}
+          {/* WebGL Fluted Glass Shader */}
           <FlutedGlassShader
             ribCount={26}
             speed={0.38}
             className="w-full h-full"
           />
-
-          {/* Floating Luxury Glassmorphism Badge */}
-          <div className="absolute top-5 left-5 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/25 backdrop-blur-md border border-white/20 text-white text-xs font-medium tracking-wide shadow-lg select-none">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span className="font-sans">Silvia Health OS</span>
-            <span className="text-white/40">•</span>
-            <span className="text-white/80 font-normal">v2.4</span>
-          </div>
-
-          {/* Bottom subtle ambient badge */}
-          <div className="absolute bottom-5 left-5 right-5 z-20 flex items-center justify-between text-white/70 text-[11px] font-sans px-2 pointer-events-none select-none">
-            <div className="flex items-center gap-1.5 bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full border border-white/10">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>Ambiente Seguro Criptografado</span>
-            </div>
-            <span className="hidden sm:inline-block bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full border border-white/10">
-              Refração Canelada • WebGL2
-            </span>
-          </div>
         </motion.div>
 
         {/* ================================================================ */}
-        {/* RIGHT PANEL: Clean Luxury Authentication Form                     */}
+        {/* LADO DIREITO: Formulário de Autenticação com Logo Silvia         */}
         {/* ================================================================ */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
-            duration: 0.5,
-            delay: 0.08,
+            duration: 0.45,
+            delay: 0.06,
             ease: [0.4, 0, 0.2, 1],
           }}
-          className="w-full max-w-[400px] mx-auto flex flex-col justify-center px-2 sm:px-4 py-4 lg:py-8"
+          className="w-full max-w-[390px] mx-auto flex flex-col justify-center px-2 sm:px-4 py-2"
         >
-          {/* Header Typography (Faithful to Reference) */}
-          <div className="mb-7">
-            <h1 className="text-3xl sm:text-[34px] font-bold tracking-tight text-slate-900 font-sans leading-tight">
-              Welcome back
-            </h1>
-            <p className="text-sm text-slate-500 font-normal mt-2 font-sans">
-              Welcome back! Please enter your details.
+          {/* Logo Silvia no lugar de Welcome Back */}
+          <div className="mb-6">
+            <Link href="/" className="inline-block hover:opacity-90 transition-opacity mb-3">
+              <img
+                src="/silvia-logo.svg"
+                alt="Silvia Logo"
+                className="h-9 sm:h-10 w-auto"
+              />
+            </Link>
+            <p className="text-sm text-slate-500 font-normal font-sans">
+              Bem-vinda de volta! Por favor, insira seus dados para acessar o sistema.
             </p>
           </div>
 
-          {/* Form Component */}
+          {/* Componente do Formulário */}
           <LoginForm />
 
-          {/* Footer Navigation Link */}
-          <div className="text-center mt-7">
-            <p className="text-sm text-slate-500 font-sans">
-              Don't have an account?{" "}
+          {/* Link para Cadastro */}
+          <div className="text-center mt-6">
+            <p className="text-xs sm:text-sm text-slate-500 font-sans">
+              Não tem uma conta?{" "}
               <Link
                 href="/register"
                 className="font-semibold text-slate-900 hover:underline transition-all underline-offset-2 ml-1"
               >
-                Sign up for free
+                Cadastre-se gratuitamente
               </Link>
             </p>
           </div>
