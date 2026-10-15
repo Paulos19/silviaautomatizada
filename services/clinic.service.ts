@@ -124,6 +124,26 @@ export const ClinicService = {
     return await clinicFetch(url, { method: "PATCH" });
   },
 
+  async setBookingConfirmation(doctorId: string, addressId: string, bookingId: string, status: "confirmed" | "pending" = "confirmed") {
+    const facilityId = FACILITY_ID || "1";
+    const url = `/api/v1/integration/facilities/${facilityId}/doctors/${doctorId}/addresses/${addressId}/bookings/${bookingId}/confirmation?status=${status}`;
+    return await clinicFetch(url, { method: "PATCH" });
+  },
+
+  async getDoctorBookings(doctorId: string, addressId: string, startDate: string, endDate: string, filters: Record<string, string> = {}) {
+    const facilityId = FACILITY_ID || "1";
+    const url = new URL(`${CLINIC_URL}/api/v1/integration/facilities/${facilityId}/doctors/${doctorId}/addresses/${addressId}/bookings`);
+    url.searchParams.append("start_date", startDate);
+    url.searchParams.append("end_date", endDate);
+    url.searchParams.append("date_filter_by", "appointment");
+    for (const [key, val] of Object.entries(filters)) {
+      if (val !== undefined && val !== null && val !== "") {
+        url.searchParams.append(key, val);
+      }
+    }
+    return await clinicFetch(url.pathname + url.search, { method: "GET" });
+  },
+
   async cancelBooking(doctorId: string, addressId: string, bookingId: string, externalId: string = "1") {
     const facilityId = FACILITY_ID || "1";
     // Tenta atualizar o status para canceled no prontuário/histórico da clínica

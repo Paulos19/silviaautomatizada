@@ -10,8 +10,14 @@ import {
   fetchDoctorsAction,
   fetchPatientBookingsAction,
   fetchBookingsByNINAction,
-  createPrescriptionRequestAction
+  createPrescriptionRequestAction,
+  setBookingConfirmationAction,
+  fetchDoctorBookingsAction
 } from "@/actions/clinic.actions";
+import {
+  createWaitlistEntryAction,
+  matchWaitlistForSlotAction,
+} from "@/actions/waitlist.actions";
 import { loadRagAction } from "@/actions/rag.actions";
 
 // Validação de segurança: Só o n8n pode chamar essa rota
@@ -133,6 +139,36 @@ export async function POST(request: Request) {
       // --- NOVA ROTA: SALVAR SOLICITAÇÃO DE RECEITA ---
       case "CREATE_PRESCRIPTION":
         return NextResponse.json(await createPrescriptionRequestAction(payload));
+
+      // --- LISTA DE ESPERA / DESISTÊNCIAS ---
+      case "ADD_WAITLIST":
+        return NextResponse.json(await createWaitlistEntryAction(payload));
+
+      case "MATCH_WAITLIST_SLOT":
+        return NextResponse.json(await matchWaitlistForSlotAction(
+          payload.doctorId,
+          payload.addressId,
+          payload.slotStart
+        ));
+
+      // --- CONFIRMAÇÃO DE PRESENÇA NO CLINIC ---
+      case "CONFIRM_BOOKING":
+        return NextResponse.json(await setBookingConfirmationAction(
+          payload.doctorId,
+          payload.addressId,
+          payload.bookingId,
+          payload.status || "confirmed"
+        ));
+
+      // --- CONSULTA GERAL DE AGENDAMENTOS DO MÉDICO (LEMBRETES 48H/24H) ---
+      case "GET_DOCTOR_BOOKINGS":
+        return NextResponse.json(await fetchDoctorBookingsAction(
+          payload.doctorId,
+          payload.addressId,
+          payload.startDate,
+          payload.endDate,
+          payload.filters || {}
+        ));
 
       // --- PERSONALIDADE DA IA + MÉDICO CONFIGURADO ---
       case "GET_PERSONALITY":

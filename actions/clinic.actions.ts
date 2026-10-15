@@ -256,6 +256,48 @@ export async function cancelBookingAction(doctorId?: string, addressId?: string,
   }
 }
 
+export async function setBookingConfirmationAction(
+  doctorId?: string,
+  addressId?: string,
+  bookingId?: string,
+  status: "confirmed" | "pending" = "confirmed"
+) {
+  const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "10073";
+  const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "1";
+
+  if (!bookingId) return { success: false, error: "ID do agendamento (bookingId) é obrigatório." };
+
+  try {
+    const response = await ClinicService.setBookingConfirmation(finalDoctorId, finalAddressId, bookingId, status);
+    return { success: true, data: response || "Status de confirmação atualizado." };
+  } catch (error: any) {
+    console.error("[Clinic API Error] setBookingConfirmation:", error.message);
+    return { success: false, error: "Falha ao atualizar confirmação do agendamento." };
+  }
+}
+
+export async function fetchDoctorBookingsAction(
+  doctorId?: string,
+  addressId?: string,
+  startDate?: string,
+  endDate?: string,
+  filters: Record<string, string> = {}
+) {
+  const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "10073";
+  const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "1";
+  const todayStr = new Date().toISOString().split("T")[0];
+  const finalStartDate = startDate || todayStr;
+  const finalEndDate = endDate || finalStartDate;
+
+  try {
+    const response = await ClinicService.getDoctorBookings(finalDoctorId, finalAddressId, finalStartDate, finalEndDate, filters);
+    return { success: true, data: response };
+  } catch (error: any) {
+    console.error("[Clinic API Error] fetchDoctorBookings:", error.message);
+    return { success: false, error: "Falha ao buscar agendamentos do médico." };
+  }
+}
+
 export async function fetchPatientBookingsAction(doctorId: string, addressId: string, patientId: string, startDate: string, endDate: string) {
   try {
     const response = await ClinicService.getPatientBookings(doctorId, addressId, patientId, startDate, endDate);
