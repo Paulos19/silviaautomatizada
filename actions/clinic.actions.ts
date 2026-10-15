@@ -324,21 +324,74 @@ export async function createPrescriptionRequestAction(data: {
   unimedCard: string;
   address: string;
   medications: string;
+  passarCarteirinha?: boolean;
 }) {
   try {
+    const rawName = (data.patientName || "").trim();
+    const rawCard = (data.unimedCard || "").replace(/\s+/g, "");
+
+    // Busca se já existe uma solicitação PENDENTE recente deste mesmo paciente (últimas 48h)
+    // para evitar que mensagens sequenciais no WhatsApp multipliquem os cards
+    let existing = null;
+
+    if (rawName || rawCard) {
+      const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+      existing = await prisma.prescriptionRequest.findFirst({
+        where: {
+          status: "PENDENTE",
+          createdAt: { gte: fortyEightHoursAgo },
+          OR: [
+            ...(rawName ? [{ patientName: { equals: rawName, mode: "insensitive" as const } }] : []),
+            ...(rawCard ? [{ unimedCard: { contains: rawCard } }] : []),
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+      });
+    }
+
+    if (existing) {
+      // Atualiza a solicitação pendente existente com as informações mais recentes/completas
+      const updated = await prisma.prescriptionRequest.update({
+        where: { id: existing.id },
+        data: {
+          patientName: rawName || existing.patientName,
+          birthDate: data.birthDate?.trim() || existing.birthDate,
+          unimedCard: (data.unimedCard?.trim() || existing.unimedCard).replace(/\s+/g, ""),
+          address: data.address?.trim() || existing.address,
+          medications: data.medications?.trim() || existing.medications,
+          ...(typeof data.passarCarteirinha === "boolean" ? { passarCarteirinha: data.passarCarteirinha } : {}),
+        },
+      });
+      return { success: true, data: updated, isUpdate: true };
+    }
+
     const request = await prisma.prescriptionRequest.create({
       data: {
-        patientName: data.patientName,
-        birthDate: data.birthDate,
-        unimedCard: data.unimedCard,
-        address: data.address,
-        medications: data.medications,
-      }
+        patientName: rawName || "Paciente sem nome",
+        birthDate: data.birthDate?.trim() || "",
+        unimedCard: (data.unimedCard || "").replace(/\s+/g, ""),
+        address: data.address?.trim() || "",
+        medications: data.medications?.trim() || "",
+        passarCarteirinha: Boolean(data.passarCarteirinha),
+      },
     });
-    return { success: true, data: request };
+    return { success: true, data: request, isUpdate: false };
   } catch (error: any) {
-    console.error("Erro ao criar solicitação de receita:", error);
+    console.error("Erro ao criar ou atualizar solicitação de receita:", error);
     return { success: false, error: "Falha ao salvar a solicitação de receita." };
+  }
+}
+
+export async function togglePassarCarteirinhaAction(id: string, passarCarteirinha: boolean) {
+  try {
+    const updated = await prisma.prescriptionRequest.update({
+      where: { id },
+      data: { passarCarteirinha },
+    });
+    return { success: true, data: updated };
+  } catch (error: any) {
+    console.error("Erro ao alternar tag Passar Carteirinha:", error);
+    return { success: false, error: "Falha ao alternar tag Passar Carteirinha." };
   }
 }
 
@@ -377,4 +430,5 @@ export async function deletePrescriptionRequestAction(id: string) {
     console.error("Erro ao deletar solicitação de receita:", error);
     return { success: false, error: "Falha ao deletar solicitação de receita." };
   }
-}
+}
+

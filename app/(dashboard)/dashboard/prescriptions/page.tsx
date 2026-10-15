@@ -5,6 +5,7 @@ import {
     fetchPrescriptionRequestsAction,
     updatePrescriptionStatusAction,
     deletePrescriptionRequestAction,
+    togglePassarCarteirinhaAction,
 } from "@/actions/clinic.actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,7 @@ import {
     ChevronRight,
     ChevronsLeft,
     ChevronsRight,
+    Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, Variants } from "framer-motion";
@@ -53,6 +55,7 @@ interface PrescriptionRequest {
     address: string;
     medications: string;
     status: string;
+    passarCarteirinha?: boolean;
     createdAt: Date | string;
     updatedAt: Date | string;
 }
@@ -305,7 +308,7 @@ function generatePrescriptionPDF(req: PrescriptionRequest) {
       </div>
       <div class="info-card">
         <div class="label">Carteirinha Unimed</div>
-        <div class="value">${req.unimedCard}</div>
+        <div class="value">${req.unimedCard || "Não informada"}${req.passarCarteirinha ? ' <span class="status-badge" style="background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; font-size: 7.5pt; margin-left: 4px;">⚠️ Passar Carteirinha</span>' : ''}</div>
       </div>
       <div class="info-card">
         <div class="label">Status</div>
@@ -347,6 +350,8 @@ export default function PrescriptionsPage() {
     const [loading, setLoading] = useState(true);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [togglingTagId, setTogglingTagId] = useState<string | null>(null);
+    const [onlyPassarCarteirinha, setOnlyPassarCarteirinha] = useState(false);
     const [filter, setFilter] = useState<"ALL" | "PENDENTE" | "CONCLUIDO" | "REJEITADO">("ALL");
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -376,6 +381,26 @@ export default function PrescriptionsPage() {
         setUpdatingId(null);
     };
 
+    const handleToggleCarteirinha = async (id: string, currentVal: boolean) => {
+        setTogglingTagId(id);
+        const nextVal = !currentVal;
+
+        // Optimistic UI update
+        setRequests((prev) =>
+            prev.map((r) => (r.id === id ? { ...r, passarCarteirinha: nextVal } : r))
+        );
+
+        const res = await togglePassarCarteirinhaAction(id, nextVal);
+        if (!res.success) {
+            // Reverte em caso de falha
+            setRequests((prev) =>
+                prev.map((r) => (r.id === id ? { ...r, passarCarteirinha: currentVal } : r))
+            );
+            alert("Erro ao atualizar a tag 'Passar Carteirinha'.");
+        }
+        setTogglingTagId(null);
+    };
+
     const handleDelete = async (id: string, patientName: string) => {
         const confirmed = window.confirm(
             `Tem certeza que deseja excluir permanentemente a solicitação de receita de "${patientName}"? Esta ação não pode ser desfeita.`
@@ -395,16 +420,19 @@ export default function PrescriptionsPage() {
     // Reset pagination when search, filter or items per page change
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, filter, itemsPerPage]);
+    }, [searchTerm, filter, onlyPassarCarteirinha, itemsPerPage]);
 
-    const searchFilteredRequests = searchTerm === ""
-        ? requests
-        : requests.filter((r) =>
+    const searchFilteredRequests = requests.filter((r) => {
+        const matchesSearch = searchTerm === "" ||
             r.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             r.unimedCard.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (r.medications && r.medications.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (r.address && r.address.toLowerCase().includes(searchTerm.toLowerCase()))
-        );
+            (r.address && r.address.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        const matchesCarteirinha = !onlyPassarCarteirinha || Boolean(r.passarCarteirinha);
+
+        return matchesSearch && matchesCarteirinha;
+    });
 
     const filtered = filter === "ALL" ? searchFilteredRequests : searchFilteredRequests.filter((r) => r.status === filter);
 
@@ -414,6 +442,8 @@ export default function PrescriptionsPage() {
         CONCLUIDO: searchFilteredRequests.filter((r) => r.status === "CONCLUIDO").length,
         REJEITADO: searchFilteredRequests.filter((r) => r.status === "REJEITADO").length,
     };
+
+    const carteirinhaCount = requests.filter((r) => Boolean(r.passarCarteirinha)).length;
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
     const safePage = Math.min(Math.max(1, currentPage), totalPages);
@@ -468,20 +498,45 @@ export default function PrescriptionsPage() {
                 </div>
 
                 {/* ═══ CONTROLS (SEARCH & FILTERS) ═══ */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="relative w-full sm:w-80">
-                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Search className="h-4 w-4 text-slate-400" />
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                        <div className="relative w-full sm:w-80">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                <Search className="h-4 w-4 text-slate-400" />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Buscar paciente ou carteirinha..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-9 pr-4 py-2.5 bg-white border border-[#E8E2D6] rounded-2xl text-xs font-sans text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/40 shadow-sm transition-all"
+                            />
                         </div>
-                        <input
-                            type="text"
-                            placeholder="Buscar paciente ou carteirinha..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2.5 bg-white border border-[#E8E2D6] rounded-2xl text-xs font-sans text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/40 shadow-sm transition-all"
-                        />
+
+                        {/* Botão de Filtro "Passar Carteirinha" */}
+                        <button
+                            type="button"
+                            onClick={() => setOnlyPassarCarteirinha((prev) => !prev)}
+                            className={cn(
+                                "px-3.5 py-2 rounded-2xl text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-2 border shadow-sm cursor-pointer shrink-0",
+                                onlyPassarCarteirinha
+                                    ? "bg-amber-500 text-white border-amber-600 shadow-[0_4px_14px_rgba(245,158,11,0.3)] ring-2 ring-amber-400/30"
+                                    : "bg-white text-slate-700 hover:bg-[#F2ECE0] border-[#E8E2D6]"
+                            )}
+                            title={onlyPassarCarteirinha ? "Mostrando apenas 'Passar Carteirinha'. Clique para ver todas." : "Filtrar receitas com a tag 'Passar Carteirinha'"}
+                        >
+                            <CreditCard className={cn("w-3.5 h-3.5", onlyPassarCarteirinha ? "text-white" : "text-amber-700")} />
+                            <span>Passar Carteirinha</span>
+                            <span className={cn(
+                                "text-[10px] font-bold px-2 py-0.5 rounded-full transition-colors",
+                                onlyPassarCarteirinha ? "bg-white text-amber-950" : "bg-amber-100 text-amber-900"
+                            )}>
+                                {carteirinhaCount}
+                            </span>
+                        </button>
                     </div>
-                    <div className="flex items-center self-start sm:self-auto gap-1 bg-white border border-[#E8E2D6] shadow-sm rounded-full p-1 overflow-x-auto max-w-full shrink-0">
+
+                    <div className="flex items-center self-start lg:self-auto gap-1 bg-white border border-[#E8E2D6] shadow-sm rounded-full p-1 overflow-x-auto max-w-full shrink-0">
                         {(["ALL", "PENDENTE", "CONCLUIDO", "REJEITADO"] as const).map((f) => {
                             const labels: Record<string, string> = {
                                 ALL: "Todas",
@@ -563,15 +618,42 @@ export default function PrescriptionsPage() {
                                     {/* Status + Date header */}
                                     <div>
                                         <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#F0EAE0]">
-                                            <div className={cn(
-                                                "flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                                                req.status === "CONCLUIDO" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" :
-                                                req.status === "REJEITADO" ? "bg-rose-50 text-rose-800 border border-rose-200" :
-                                                "bg-amber-50 text-amber-800 border border-amber-200"
-                                            )}>
-                                                <StatusIcon className="w-3 h-3" />
-                                                {status.label}
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <div className={cn(
+                                                    "flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                                                    req.status === "CONCLUIDO" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" :
+                                                    req.status === "REJEITADO" ? "bg-rose-50 text-rose-800 border border-rose-200" :
+                                                    "bg-amber-50 text-amber-800 border border-amber-200"
+                                                )}>
+                                                    <StatusIcon className="w-3 h-3" />
+                                                    {status.label}
+                                                </div>
+
+                                                {/* Tag Passar Carteirinha (Badge Clicável no Header) */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleToggleCarteirinha(req.id, Boolean(req.passarCarteirinha))}
+                                                    disabled={togglingTagId === req.id}
+                                                    className={cn(
+                                                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer shadow-xs",
+                                                        req.passarCarteirinha
+                                                            ? "bg-amber-500 hover:bg-amber-600 text-white border border-amber-600/30 ring-2 ring-amber-400/20"
+                                                            : "bg-[#F8F5EE] hover:bg-amber-100/80 text-slate-600 hover:text-amber-900 border border-[#E8E2D6]"
+                                                    )}
+                                                    title={req.passarCarteirinha ? "Tag 'Passar Carteirinha' ATIVA. Clique para desativar." : "Clique para ativar a tag 'Passar Carteirinha'"}
+                                                >
+                                                    {togglingTagId === req.id ? (
+                                                        <Loader2 className="w-3 h-3 animate-spin text-current" />
+                                                    ) : (
+                                                        <CreditCard className="w-3 h-3" />
+                                                    )}
+                                                    <span>Passar Carteirinha</span>
+                                                    {req.passarCarteirinha && (
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                                                    )}
+                                                </button>
                                             </div>
+
                                             <div className="flex items-center gap-1 text-[11px] text-slate-700 font-mono">
                                                 <CalendarDays className="w-3.5 h-3.5 text-slate-500" />
                                                 {formatDate(req.createdAt)}
@@ -595,12 +677,50 @@ export default function PrescriptionsPage() {
                                             </div>
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                                                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#FBF9F4] border border-[#E8E2D6]">
-                                                    <CreditCard className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                                                    <div className="min-w-0">
-                                                        <p className="text-[9px] text-slate-700 uppercase font-semibold">Carteirinha</p>
-                                                        <p className="text-xs font-mono font-medium text-slate-900 truncate">{req.unimedCard || "Não informada"}</p>
+                                                {/* Carteirinha com Ação de Ativar Tag */}
+                                                <div className={cn(
+                                                    "flex items-center justify-between p-2.5 rounded-xl border transition-all",
+                                                    req.passarCarteirinha
+                                                        ? "bg-amber-50/90 border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.12)]"
+                                                        : "bg-[#FBF9F4] border-[#E8E2D6]"
+                                                )}>
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <CreditCard className={cn(
+                                                            "w-3.5 h-3.5 shrink-0",
+                                                            req.passarCarteirinha ? "text-amber-600" : "text-amber-700"
+                                                        )} />
+                                                        <div className="min-w-0">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <p className="text-[9px] text-slate-700 uppercase font-semibold">Carteirinha</p>
+                                                                {req.passarCarteirinha && (
+                                                                    <span className="text-[8px] bg-amber-500 text-white font-bold px-1.5 py-0.2 rounded-md uppercase tracking-wider">
+                                                                        Ativa
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-xs font-mono font-medium text-slate-900 truncate">{req.unimedCard || "Não informada"}</p>
+                                                        </div>
                                                     </div>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleToggleCarteirinha(req.id, Boolean(req.passarCarteirinha))}
+                                                        disabled={togglingTagId === req.id}
+                                                        className={cn(
+                                                            "px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all shrink-0 ml-2 flex items-center gap-1 shadow-xs cursor-pointer",
+                                                            req.passarCarteirinha
+                                                                ? "bg-amber-500 hover:bg-amber-600 text-white"
+                                                                : "bg-white hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-[#E8E2D6]"
+                                                        )}
+                                                        title={req.passarCarteirinha ? "Tag ativa. Clique para desativar." : "Clique para ativar a tag 'Passar Carteirinha'"}
+                                                    >
+                                                        {togglingTagId === req.id ? (
+                                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                                        ) : (
+                                                            <CreditCard className="w-3 h-3" />
+                                                        )}
+                                                        <span>{req.passarCarteirinha ? "Ativa" : "Ativar Tag"}</span>
+                                                    </button>
                                                 </div>
                                                 <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#FBF9F4] border border-[#E8E2D6]">
                                                     <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
