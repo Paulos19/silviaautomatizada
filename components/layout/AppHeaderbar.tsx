@@ -13,8 +13,10 @@ import {
     Bell,
     Menu,
     X,
-    LayoutDashboard
+    LayoutDashboard,
+    LogOut
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { ThreeLogo } from "@/components/ui/ThreeLogo";
 import { LiveNotificationsModal, NotificationItem } from "@/components/dashboard/LiveNotificationsModal";
 import { cn } from "@/lib/utils";
@@ -222,6 +224,15 @@ export function AppHeaderbar() {
                             />
                         </Link>
 
+                        {/* Botão de Logout Desktop */}
+                        <button
+                            onClick={() => signOut({ callbackUrl: "/login" })}
+                            className="w-8 h-8 rounded-full bg-white border border-[#E8E2D6] shadow-sm flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-all active:scale-95 shrink-0 cursor-pointer"
+                            title="Sair do sistema (Logout)"
+                        >
+                            <LogOut className="w-3.5 h-3.5" />
+                        </button>
+
                         {/* Botão Hambúrguer Mobile / Telas menores que XL */}
                         <button
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -258,6 +269,15 @@ export function AppHeaderbar() {
                                 </Link>
                             );
                         })}
+
+                        {/* Botão de Logout Mobile */}
+                        <button
+                            onClick={() => signOut({ callbackUrl: "/login" })}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-xs font-semibold text-rose-700 bg-rose-50/70 border border-rose-200/70 hover:bg-rose-100 transition-colors cursor-pointer mt-2"
+                        >
+                            <LogOut className="w-4 h-4 text-rose-600" />
+                            <span>Sair do sistema (Logout)</span>
+                        </button>
                     </div>
                 )}
             </header>
