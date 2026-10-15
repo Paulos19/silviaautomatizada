@@ -86,10 +86,11 @@ export async function runMorningConfirmationDispatchAction(): Promise<{
           const bookings = bookingsRes.result?.items || [];
 
           for (const b of bookings) {
+            const item = b as any;
             result.totalProcessed++;
-            const bookingId = String(b.id || b.booking_id);
-            const patientName = b.patient_name || b.patient?.name || "Paciente";
-            const rawPhone = b.patient_phone || b.patient?.mobile || b.patient?.phone || "";
+            const bookingId = String(item.id || item.booking_id || "");
+            const patientName = String(item.patient_name || item.patient?.name || "Paciente");
+            const rawPhone = String(item.patient_phone || item.patient?.mobile || item.patient?.phone || "");
             const cleanPhone = rawPhone.replace(/\D/g, "");
 
             if (!cleanPhone) {
@@ -127,13 +128,14 @@ export async function runMorningConfirmationDispatchAction(): Promise<{
             }
 
             // Formatação humanizada da data e hora
-            const apptDateObj = new Date(b.slot_start || b.date || target.dateStr);
+            const rawDateValue = item.slot_start || item.date || target.dateStr;
+            const apptDateObj = new Date(typeof rawDateValue === "string" ? rawDateValue : target.dateStr);
             const dateFmt = apptDateObj.toLocaleDateString("pt-BR", {
               weekday: "long",
               day: "2-digit",
               month: "2-digit",
             });
-            const timeFmt = b.time || apptDateObj.toLocaleTimeString("pt-BR", {
+            const timeFmt = item.time || apptDateObj.toLocaleTimeString("pt-BR", {
               hour: "2-digit",
               minute: "2-digit",
             });
