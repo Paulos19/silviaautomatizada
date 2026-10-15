@@ -24,6 +24,7 @@ import {
     Sparkles,
     Check,
     Filter,
+    ChevronLeft,
     ChevronRight,
     ChevronDown,
     ArrowUpRight,
@@ -261,6 +262,8 @@ export default function OrchestratorBentoPage() {
     const [selectedChatPhone, setSelectedChatPhone] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<string>("ALL");
     const [activeAccordion, setActiveAccordion] = useState<string>("devices");
+    const [bookedPage, setBookedPage] = useState<number>(1);
+    const [handoffsPage, setHandoffsPage] = useState<number>(1);
 
     const gridContainerRef = useRef<HTMLDivElement | null>(null);
     const wsRef = useRef<WebSocket | null>(null);
@@ -415,6 +418,29 @@ export default function OrchestratorBentoPage() {
     const bookedPct = totalMsgs > 0 ? Math.round((bookedCount / totalMsgs) * 100) : 0;
     const handoffPct = totalMsgs > 0 ? Math.round((handoffsCount / totalMsgs) * 100) : 0;
 
+    // Paginação padronizada em 5 itens por card
+    const ITEMS_PER_PAGE = 5;
+
+    const bookedList = summary?.booked_appointments_list || [];
+    const totalBookedPages = Math.ceil(bookedList.length / ITEMS_PER_PAGE) || 1;
+    const paginatedBookings = bookedList.slice((bookedPage - 1) * ITEMS_PER_PAGE, bookedPage * ITEMS_PER_PAGE);
+
+    const handoffsList = summary?.handoffs_to_ana || [];
+    const totalHandoffsPages = Math.ceil(handoffsList.length / ITEMS_PER_PAGE) || 1;
+    const paginatedHandoffs = handoffsList.slice((handoffsPage - 1) * ITEMS_PER_PAGE, handoffsPage * ITEMS_PER_PAGE);
+
+    useEffect(() => {
+        if (bookedPage > totalBookedPages && totalBookedPages > 0) {
+            setBookedPage(totalBookedPages);
+        }
+    }, [totalBookedPages, bookedPage]);
+
+    useEffect(() => {
+        if (handoffsPage > totalHandoffsPages && totalHandoffsPages > 0) {
+            setHandoffsPage(totalHandoffsPages);
+        }
+    }, [totalHandoffsPages, handoffsPage]);
+
     return (
         <div ref={gridContainerRef} className="w-full space-y-8 pb-16">
             
@@ -517,8 +543,8 @@ export default function OrchestratorBentoPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 
                 {/* Card 1: Perfil Silvia com foto do Hospital Otorrinos Curitiba */}
-                <div className="bento-card rounded-[32px] overflow-hidden bg-white border border-[#E8E2D6] shadow-[0_10px_30px_rgba(0,0,0,0.03)] group flex flex-col justify-between">
-                    <div className="relative h-[240px] w-full overflow-hidden bg-[#EFEAE2]">
+                <div className="bento-card rounded-[32px] overflow-hidden bg-white border border-[#E8E2D6] shadow-[0_10px_30px_rgba(0,0,0,0.03)] group flex flex-col justify-between h-full">
+                    <div className="relative flex-1 min-h-[260px] w-full overflow-hidden bg-[#EFEAE2]">
                         <img
                             src="/silvia-avatar-warm.jpg"
                             alt="Silvia Concierge • Hospital Otorrinos Curitiba"
@@ -562,8 +588,8 @@ export default function OrchestratorBentoPage() {
                     </div>
                 </div>
 
-                {/* Card 2: Consultas Agendadas Hoje no Clinic API (Dados 100% Reais) */}
-                <div className="bento-card p-5 rounded-[32px] bg-white border border-[#E8E2D6] shadow-[0_10px_30px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+                {/* Card 2: Consultas Agendadas Hoje no Clinic API (Dados 100% Reais com Paginação de 5 itens) */}
+                <div className="bento-card p-5 rounded-[32px] bg-white border border-[#E8E2D6] shadow-[0_10px_30px_rgba(0,0,0,0.03)] flex flex-col justify-between h-full">
                     <div>
                         <div className="flex items-center justify-between text-xs text-slate-700 font-medium">
                             <span className="flex items-center gap-1.5 font-semibold text-slate-900">
@@ -575,26 +601,64 @@ export default function OrchestratorBentoPage() {
                             </span>
                         </div>
 
-                        <div className="mt-3.5 space-y-2.5">
-                            {(summary?.booked_appointments_list || []).map((booking, idx) => (
-                                <div key={idx} className="p-2.5 rounded-2xl bg-[#FBF9F4] border border-[#E8E2D6] flex items-center justify-between text-xs">
-                                    <div className="flex flex-col">
-                                        <span className="font-semibold text-slate-900 text-[11px]">
-                                            {booking.patient_name}
-                                        </span>
-                                        <span className="text-[10px] text-slate-700">
-                                            {booking.slot_date.includes("T") ? booking.slot_date.split("T")[0].split("-").reverse().join("/") : booking.slot_date} • {booking.insurance}
+                        <div className="mt-3.5 space-y-2.5 min-h-[285px]">
+                            {paginatedBookings.length > 0 ? (
+                                paginatedBookings.map((booking, idx) => (
+                                    <div key={idx} className="p-2.5 rounded-2xl bg-[#FBF9F4] border border-[#E8E2D6] flex items-center justify-between text-xs hover:border-amber-300 transition-colors">
+                                        <div className="flex flex-col">
+                                            <span className="font-semibold text-slate-900 text-[11px]">
+                                                {booking.patient_name}
+                                            </span>
+                                            <span className="text-[10px] text-slate-700">
+                                                {booking.slot_date.includes("T") ? booking.slot_date.split("T")[0].split("-").reverse().join("/") : booking.slot_date} • {booking.insurance}
+                                            </span>
+                                        </div>
+                                        <span className="px-2 py-0.5 rounded bg-[#1E2022] text-white text-[10px] font-mono">
+                                            #{booking.booking_id}
                                         </span>
                                     </div>
-                                    <span className="px-2 py-0.5 rounded bg-[#1E2022] text-white text-[10px] font-mono">
-                                        #{booking.booking_id}
-                                    </span>
+                                ))
+                            ) : (
+                                <div className="h-[285px] flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-[#FBF9F4] border border-dashed border-[#E8E2D6] text-slate-400">
+                                    <CalendarCheck className="w-8 h-8 text-slate-300 mb-2" />
+                                    <p className="text-xs font-medium text-slate-500">Nenhuma consulta confirmada</p>
+                                    <p className="text-[10px] text-slate-400 mt-0.5">As consultas confirmadas de hoje aparecerão aqui.</p>
                                 </div>
-                            ))}
+                            )}
                         </div>
+
+                        {/* Paginação Card 2 */}
+                        {totalBookedPages > 1 && (
+                            <div className="mt-3 pt-2.5 border-t border-[#F0EAE0] flex items-center justify-between text-[11px]">
+                                <span className="text-slate-500 font-medium">
+                                    Página {bookedPage} de {totalBookedPages}
+                                </span>
+                                <div className="flex items-center gap-1.5">
+                                    <button
+                                        onClick={() => setBookedPage((p) => Math.max(1, p - 1))}
+                                        disabled={bookedPage === 1}
+                                        className="h-6 w-6 rounded-lg flex items-center justify-center border border-[#E8E2D6] bg-white text-slate-700 hover:bg-[#F4EFE6] disabled:opacity-30 disabled:pointer-events-none transition-all shadow-xs"
+                                        title="Página anterior"
+                                    >
+                                        <ChevronLeft className="w-3.5 h-3.5" />
+                                    </button>
+                                    <span className="px-1.5 py-0.5 text-[10px] font-mono font-semibold text-slate-700 bg-[#F4EFE6] rounded-md">
+                                        {bookedPage}/{totalBookedPages}
+                                    </span>
+                                    <button
+                                        onClick={() => setBookedPage((p) => Math.min(totalBookedPages, p + 1))}
+                                        disabled={bookedPage === totalBookedPages}
+                                        className="h-6 w-6 rounded-lg flex items-center justify-center border border-[#E8E2D6] bg-white text-slate-700 hover:bg-[#F4EFE6] disabled:opacity-30 disabled:pointer-events-none transition-all shadow-xs"
+                                        title="Próxima página"
+                                    >
+                                        <ChevronRight className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="pt-3 border-t border-[#F0EAE0] flex items-center justify-between text-[11px] text-slate-700">
+                    <div className="pt-3 border-t border-[#F0EAE0] flex items-center justify-between text-[11px] text-slate-700 mt-3">
                         <span>Clinic API Facility #1</span>
                         <span className="font-medium text-emerald-800 flex items-center gap-1">
                             <CheckCheck className="w-3.5 h-3.5" /> Sincronizado
@@ -602,8 +666,8 @@ export default function OrchestratorBentoPage() {
                     </div>
                 </div>
 
-                {/* Card 3: Transferências / Handoffs da Secretária Ana (Dados 100% Reais) */}
-                <div className="bento-card p-5 rounded-[32px] bg-white border border-[#E8E2D6] shadow-[0_10px_30px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+                {/* Card 3: Transferências / Handoffs da Secretária Ana (Dados 100% Reais com Paginação de 5 itens) */}
+                <div className="bento-card p-5 rounded-[32px] bg-white border border-[#E8E2D6] shadow-[0_10px_30px_rgba(0,0,0,0.03)] flex flex-col justify-between h-full">
                     <div>
                         <div className="flex items-center justify-between text-xs text-slate-700 font-medium">
                             <span className="flex items-center gap-1.5 font-semibold text-slate-900">
@@ -615,26 +679,64 @@ export default function OrchestratorBentoPage() {
                             </span>
                         </div>
 
-                        <div className="mt-3.5 space-y-2.5">
-                            {(summary?.handoffs_to_ana || []).map((handoff, idx) => (
-                                <div key={idx} className="p-2.5 rounded-2xl bg-[#FBF9F4] border border-[#E8E2D6] space-y-1 text-xs">
-                                    <div className="flex items-center justify-between">
-                                        <span className="font-semibold text-slate-900 text-[11px]">
-                                            {handoff.patient_name}
-                                        </span>
-                                        <span className="text-[10px] text-slate-700 font-mono">
-                                            {handoff.time}
-                                        </span>
+                        <div className="mt-3.5 space-y-2.5 min-h-[285px]">
+                            {paginatedHandoffs.length > 0 ? (
+                                paginatedHandoffs.map((handoff, idx) => (
+                                    <div key={idx} className="p-2.5 rounded-2xl bg-[#FBF9F4] border border-[#E8E2D6] space-y-1 text-xs hover:border-emerald-300 transition-colors">
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-semibold text-slate-900 text-[11px]">
+                                                {handoff.patient_name}
+                                            </span>
+                                            <span className="text-[10px] text-slate-700 font-mono">
+                                                {handoff.time}
+                                            </span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-700 line-clamp-2 leading-relaxed">
+                                            {handoff.reason}
+                                        </p>
                                     </div>
-                                    <p className="text-[10px] text-slate-700 line-clamp-2 leading-relaxed">
-                                        {handoff.reason}
-                                    </p>
+                                ))
+                            ) : (
+                                <div className="h-[285px] flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-[#FBF9F4] border border-dashed border-[#E8E2D6] text-slate-400">
+                                    <Phone className="w-8 h-8 text-slate-300 mb-2" />
+                                    <p className="text-xs font-medium text-slate-500">Nenhum handoff no momento</p>
+                                    <p className="text-[10px] text-slate-400 mt-0.5">Transferências para a Ana serão listadas aqui.</p>
                                 </div>
-                            ))}
+                            )}
                         </div>
+
+                        {/* Paginação Card 3 */}
+                        {totalHandoffsPages > 1 && (
+                            <div className="mt-3 pt-2.5 border-t border-[#F0EAE0] flex items-center justify-between text-[11px]">
+                                <span className="text-slate-500 font-medium">
+                                    Página {handoffsPage} de {totalHandoffsPages}
+                                </span>
+                                <div className="flex items-center gap-1.5">
+                                    <button
+                                        onClick={() => setHandoffsPage((p) => Math.max(1, p - 1))}
+                                        disabled={handoffsPage === 1}
+                                        className="h-6 w-6 rounded-lg flex items-center justify-center border border-[#E8E2D6] bg-white text-slate-700 hover:bg-[#F4EFE6] disabled:opacity-30 disabled:pointer-events-none transition-all shadow-xs"
+                                        title="Página anterior"
+                                    >
+                                        <ChevronLeft className="w-3.5 h-3.5" />
+                                    </button>
+                                    <span className="px-1.5 py-0.5 text-[10px] font-mono font-semibold text-slate-700 bg-[#F4EFE6] rounded-md">
+                                        {handoffsPage}/{totalHandoffsPages}
+                                    </span>
+                                    <button
+                                        onClick={() => setHandoffsPage((p) => Math.min(totalHandoffsPages, p + 1))}
+                                        disabled={handoffsPage === totalHandoffsPages}
+                                        className="h-6 w-6 rounded-lg flex items-center justify-center border border-[#E8E2D6] bg-white text-slate-700 hover:bg-[#F4EFE6] disabled:opacity-30 disabled:pointer-events-none transition-all shadow-xs"
+                                        title="Próxima página"
+                                    >
+                                        <ChevronRight className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="pt-3 border-t border-[#F0EAE0] flex items-center justify-between">
+                    <div className="pt-3 border-t border-[#F0EAE0] flex items-center justify-between mt-3">
                         <span className="text-[11px] text-slate-700">Ana: (41) 9147-4579</span>
                         <Button
                             onClick={handleTriggerReport}
