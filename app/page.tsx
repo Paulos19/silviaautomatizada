@@ -1,5 +1,5 @@
-import { LandingHeader } from "@/components/landing/landing-header";
-import { HeroFuturistic } from "@/components/landing/hero-futuristic";
+import { IrisGlobalCanvas } from "@/components/landing/IrisGlobalCanvas";
+import { HeroIrisEditorial } from "@/components/landing/hero-iris-editorial";
 import { DeconstructedFeatures } from "@/components/landing/deconstructed-features";
 import { N8nFeaturesGrid } from "@/components/landing/n8n-features-grid";
 import { ScrollDiveShowcase } from "@/components/landing/scroll-dive-showcase";
@@ -12,40 +12,46 @@ import { LandingScrollWrapper } from "@/components/landing/landing-scroll-wrappe
 export default function Home() {
   return (
     <LandingScrollWrapper>
-      {/* Dynamic Header */}
-      <LandingHeader />
+      {/* 1. Canvas 3D Global em Fundo Branco/Gradiente: Fibras se destrançam ao longo de 100% do scroll da LP */}
+      <IrisGlobalCanvas />
 
-      {/* 1. Light Theme Hero */}
-      <HeroFuturistic />
+      {/* 2. Hero Editorial 100vh e 100% width em tons brancos e gradientes */}
+      <HeroIrisEditorial />
 
-      {/* 2. Deconstructed Modules - Light */}
-      <div id="features">
+      {/* 3. Recursos & Módulos Clínicos */}
+      <div id="features" className="relative z-10">
         <DeconstructedFeatures />
       </div>
 
-      {/* 3. n8n Integrations - Light Bento Grid */}
-      <div id="n8n-features">
+      {/* 4. Integrações n8n & Automação Inteligente */}
+      <div id="n8n-features" className="relative z-10">
         <N8nFeaturesGrid />
       </div>
 
-      {/* 4. The Dive - Dark Cinematic Showcase */}
-      <div id="core">
+      {/* 5. Showcase de Inteligência Médica */}
+      <div id="core" className="relative z-10">
         <ScrollDiveShowcase />
       </div>
 
-      {/* 5. Product — Cinematic Video Section */}
-      <VideoSection />
+      {/* 6. Vídeo & Demonstração do Produto */}
+      <div className="relative z-10">
+        <VideoSection />
+      </div>
 
-      {/* 6. Trust Strip — Stats & Social Proof */}
-      <ScrollMorphHero />
+      {/* 7. Prova Social & Números do Hospital */}
+      <div className="relative z-10">
+        <ScrollMorphHero />
+      </div>
 
-      {/* 7. CTA — Final Call to Action */}
-      <div id="contact">
+      {/* 8. Chamada para Ação / Contato */}
+      <div id="contact" className="relative z-10">
         <ContactSection />
       </div>
 
-      {/* 8. Footer */}
-      <SuperFooter />
+      {/* 9. Rodapé Oficial */}
+      <div className="relative z-10">
+        <SuperFooter />
+      </div>
     </LandingScrollWrapper>
   );
 }
