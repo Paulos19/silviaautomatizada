@@ -14,7 +14,8 @@ import {
   Pill,
   Settings,
   LogOut,
-  Activity
+  Activity,
+  Send
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,7 @@ export function DashboardSidebar({ isOpen, setIsOpen }: SidebarProps) {
     { icon: LayoutDashboard, label: "Visão Geral", href: "/dashboard" },
     { icon: Activity, label: "Orquestrador IA", href: "/dashboard/orchestrator" },
     { icon: CalendarDays, label: "Agendamentos", href: "/dashboard/bookings" },
+    { icon: Send, label: "Disparos", href: "/dashboard/disparos" },
     { icon: Clock, label: "Lista de Espera", href: "/dashboard/waitlist" },
     { icon: Users, label: "Pacientes", href: "/dashboard/patients" },
     { icon: Stethoscope, label: "Corpo Clínico", href: "/dashboard/doctors" },
