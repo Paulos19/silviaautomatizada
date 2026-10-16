@@ -473,4 +473,110 @@ export async function deletePrescriptionRequestAction(id: string) {
     return { success: false, error: "Falha ao deletar solicitação de receita." };
   }
 }
+
+export async function searchPatientsAction(query: string) {
+  if (!query || !query.trim()) {
+    return { success: false, error: "Termo de busca obrigatório." };
+  }
+  const clean = query.trim();
+  const digitsOnly = clean.replace(/\D/g, "");
+
+  try {
+    if (digitsOnly.length >= 7) {
+      const res = await ClinicService.getPatients(digitsOnly, 1, 10);
+      return { success: true, data: res.result?.items || [] };
+    }
+
+    const res = await ClinicService.getPatients(undefined, 1, 100);
+    const items = res.result?.items || [];
+    const lowerQuery = clean.toLowerCase();
+    const filtered = items.filter((p: any) => 
+      (p.name && p.name.toLowerCase().includes(lowerQuery)) ||
+      (p.mobile && p.mobile.includes(digitsOnly)) ||
+      (p.phone && p.phone.includes(digitsOnly))
+    );
+    return { success: true, data: filtered.slice(0, 15) };
+  } catch (error: any) {
+    console.error("[Clinic API Error] searchPatientsAction:", error);
+    return { success: false, error: "Falha ao buscar pacientes: " + error.message };
+  }
+}
+
+export async function moveBookingAction(
+  doctorId?: string,
+  addressId?: string,
+  bookingId?: string,
+  newSlotStart?: string
+) {
+  const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "10073";
+  const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "1";
+
+  if (!bookingId || !newSlotStart) {
+    return { success: false, error: "bookingId e newSlotStart são obrigatórios." };
+  }
+
+  try {
+    const response = await ClinicService.moveBooking(finalDoctorId, finalAddressId, bookingId, newSlotStart);
+    return { success: true, data: response || "Consulta reagendada com sucesso." };
+  } catch (error: any) {
+    console.error("[Clinic API Error] moveBookingAction:", error.message);
+    return { success: false, error: "Falha ao reagendar consulta: " + error.message };
+  }
+}
+
+export async function updatePrescriptionAction(id: string, data: {
+  patientName?: string;
+  birthDate?: string;
+  unimedCard?: string;
+  address?: string;
+  medications?: string;
+  status?: string;
+  passarCarteirinha?: boolean;
+}) {
+  if (!id) return { success: false, error: "ID da receita é obrigatório." };
+  try {
+    const updated = await prisma.prescriptionRequest.update({
+      where: { id },
+      data: {
+        ...(data.patientName ? { patientName: data.patientName.trim() } : {}),
+        ...(data.birthDate ? { birthDate: data.birthDate.trim() } : {}),
+        ...(data.unimedCard !== undefined ? { unimedCard: data.unimedCard.replace(/\s+/g, "") } : {}),
+        ...(data.address ? { address: data.address.trim() } : {}),
+        ...(data.medications ? { medications: data.medications.trim() } : {}),
+        ...(data.status ? { status: data.status.trim() } : {}),
+        ...(typeof data.passarCarteirinha === "boolean" ? { passarCarteirinha: data.passarCarteirinha } : {}),
+      },
+    });
+    return { success: true, data: updated };
+  } catch (error: any) {
+    console.error("Erro ao atualizar receita médica:", error);
+    return { success: false, error: "Falha ao atualizar receita médica." };
+  }
+}
+
+export async function searchPrescriptionsAction(query?: string, status?: string) {
+  try {
+    const where: any = {};
+    if (query?.trim()) {
+      where.OR = [
+        { patientName: { contains: query.trim(), mode: "insensitive" } },
+        { medications: { contains: query.trim(), mode: "insensitive" } },
+        { unimedCard: { contains: query.trim() } },
+      ];
+    }
+    if (status?.trim()) {
+      where.status = { equals: status.trim(), mode: "insensitive" };
+    }
+    const list = await prisma.prescriptionRequest.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+    return { success: true, data: list };
+  } catch (error: any) {
+    console.error("Erro ao buscar receitas:", error);
+    return { success: false, error: "Falha ao buscar receitas." };
+  }
+}
+
 

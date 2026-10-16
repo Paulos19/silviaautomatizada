@@ -12,7 +12,13 @@ import {
   fetchBookingsByNINAction,
   createPrescriptionRequestAction,
   setBookingConfirmationAction,
-  fetchDoctorBookingsAction
+  fetchDoctorBookingsAction,
+  moveBookingAction,
+  searchPatientsAction,
+  updatePrescriptionAction,
+  updatePrescriptionStatusAction,
+  searchPrescriptionsAction,
+  fetchPrescriptionRequestsAction,
 } from "@/actions/clinic.actions";
 import {
   createWaitlistEntryAction,
@@ -169,6 +175,30 @@ export async function POST(request: Request) {
           payload.endDate,
           payload.filters || {}
         ));
+
+      // --- REMARCAR / MOVER CONSULTA ---
+      case "MOVE_BOOKING":
+        return NextResponse.json(await moveBookingAction(
+          payload.doctorId,
+          payload.addressId,
+          payload.bookingId,
+          payload.slotStart
+        ));
+
+      // --- BUSCA AVANÇADA DE PACIENTES (NOME OU CPF) ---
+      case "SEARCH_PATIENTS":
+        return NextResponse.json(await searchPatientsAction(payload.query));
+
+      // --- RECEITAS: ATUALIZAR STATUS OU DADOS ---
+      case "UPDATE_PRESCRIPTION":
+        return NextResponse.json(await updatePrescriptionAction(payload.id, payload.data || {}));
+
+      case "UPDATE_PRESCRIPTION_STATUS":
+        return NextResponse.json(await updatePrescriptionStatusAction(payload.id, payload.status));
+
+      case "GET_PRESCRIPTIONS":
+      case "SEARCH_PRESCRIPTIONS":
+        return NextResponse.json(await searchPrescriptionsAction(payload.query, payload.status));
 
       // --- PERSONALIDADE DA IA + MÉDICO CONFIGURADO ---
       case "GET_PERSONALITY":

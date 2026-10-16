@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { runMorningConfirmationDispatchAction } from "@/actions/confirmation.actions";
+import {
+  runMorningConfirmationDispatchAction,
+  runAfternoonConfirmationDispatchAction,
+  cancelUnconfirmedAppointmentsAndNotifyWaitlistAction
+} from "@/actions/confirmation.actions";
 
 export async function GET(request: Request) {
   try {
@@ -12,8 +16,30 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const res = await runMorningConfirmationDispatchAction();
-    return NextResponse.json(res);
+    const type = searchParams.get("type"); // "morning", "afternoon", "cancellations" ou auto
+
+    if (type === "morning") {
+      const res = await runMorningConfirmationDispatchAction();
+      return NextResponse.json(res);
+    } else if (type === "afternoon") {
+      const res = await runAfternoonConfirmationDispatchAction();
+      return NextResponse.json(res);
+    } else if (type === "cancellations") {
+      const res = await cancelUnconfirmedAppointmentsAndNotifyWaitlistAction();
+      return NextResponse.json(res);
+    }
+
+    // Auto-detecção com base no horário local de São Paulo
+    const nowSp = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+    const currentHour = nowSp.getHours();
+
+    if (currentHour >= 13 && currentHour <= 17) {
+      const res = await runAfternoonConfirmationDispatchAction();
+      return NextResponse.json({ routine: "afternoon_14h", ...res });
+    } else {
+      const res = await runMorningConfirmationDispatchAction();
+      return NextResponse.json({ routine: "morning_08h", ...res });
+    }
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Erro no cron de confirmações" }, { status: 500 });
   }

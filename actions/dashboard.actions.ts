@@ -1,9 +1,7 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/prisma";
 import { ClinicService } from "@/services/clinic.service";
-
-const prisma = new PrismaClient();
 
 export async function getDashboardMetricsAction() {
     try {

@@ -130,6 +130,13 @@ export const ClinicService = {
     return await clinicFetch(url, { method: "PATCH" });
   },
 
+  async moveBooking(doctorId: string, addressId: string, bookingId: string, newSlotStart: string) {
+    const facilityId = FACILITY_ID || "1";
+    const slotPath = encodeURIComponent(newSlotStart);
+    const url = `/api/v1/integration/facilities/${facilityId}/doctors/${doctorId}/addresses/${addressId}/booking/${bookingId}/move?slot_start=${slotPath}`;
+    return await clinicFetch(url, { method: "POST" });
+  },
+
   async getDoctorBookings(doctorId: string, addressId: string, startDate: string, endDate: string, filters: Record<string, string> = {}) {
     const facilityId = FACILITY_ID || "1";
     const url = new URL(`${CLINIC_URL}/api/v1/integration/facilities/${facilityId}/doctors/${doctorId}/addresses/${addressId}/bookings`);

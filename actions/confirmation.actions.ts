@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { ClinicService } from "@/services/clinic.service";
+import { matchWaitlistForSlotAction, notifyWaitlistOfferAction } from "@/actions/waitlist.actions";
 
 const DOCTOR_ID = process.env.CLINIC_DOCTOR_ID || "10073";
 const ADDRESS_ID = process.env.CLINIC_ADDRESS_ID || "1";
@@ -9,6 +10,14 @@ const ORCHESTRATOR_API_URL =
   process.env.ORCHESTRATOR_API_URL ||
   process.env.NEXT_PUBLIC_ORCHESTRATOR_API_URL ||
   "https://n8n-silvia-py.yyuhkk.easypanel.host";
+
+export type NoticeType =
+  | "48H"               // 1º Aviso (08h00 - 48h antes)
+  | "24H_AVISO"         // 2º e último aviso com alerta de cancelamento (14h00 - 24h antes)
+  | "24H_LEMBRETE"      // Lembrete passivo para quem já confirmou (14h00 - 24h antes)
+  | "ANTECIPADO_SEXTA"  // Antecipação de segunda/terça enviada na sexta (08h00)
+  | "CANCELADO_INACAO"  // Cancelado por falta de retorno e vaga dada à lista de espera
+  | "MANUAL";
 
 export interface UpcomingBookingItem {
   id: string; // Booking ID na Clinic
@@ -26,13 +35,16 @@ export interface UpcomingBookingItem {
   healthInsurance: string;
   confirm: string; // "A Confirmar" | "Confirmado"
   status: string; // "Paciente atendido", "Paciente faltou", etc.
-  dayOffset: number; // 0 = Hoje, 1 = Amanhã (24h), 2 = Depois de amanhã (48h)
-  dayLabel: "Hoje" | "Amanhã" | "Em 2 dias" | "Outro";
+  dayOffset: number; // 0 = Hoje, 1 = Amanhã (24h), 2 = Em 2 dias (48h), 3 = Segunda (72h), etc.
+  dayLabel: "Hoje" | "Amanhã" | "Em 2 dias" | "Segunda (72h)" | "Terça (96h)" | "Outro";
   isDispatched: boolean;
   dispatchStatus: "ENVIADO" | "ERRO" | "CONFIRMADO" | null;
   lastDispatchedAt?: string | null;
   notificationType?: string | null;
   previewMessage: string;
+  targetNoticeType: NoticeType;
+  suggestedScheduleTime: "08:00" | "14:00";
+  noticeTitle: string;
 }
 
 export interface UpcomingBookingsSummary {
@@ -43,6 +55,9 @@ export interface UpcomingBookingsSummary {
   todayCount: number;
   tomorrowCount: number;
   dayAfterCount: number;
+  pendingMorningCount: number; // 08h00 (48h e antecipações)
+  pendingAfternoonNoticeCount: number; // 14h00 (24h - 2º aviso)
+  pendingAfternoonReminderCount: number; // 14h00 (24h - lembrete confirmado)
 }
 
 /**
@@ -133,14 +148,32 @@ function parseClinicDate(rawDate: string): { displayDate: string; dateObj: Date 
   return { displayDate: rawDate, dateObj: null };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TEMPLATES INTELIGENTES DE MENSAGENS (48h, 24h Não Confirmada, 24h Confirmada, Cancelamento)
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Template oficial e humanizado de confirmação de consulta
+ * 1º Aviso de Confirmação (Disparo das 08h00 - 48h antes ou antecipado na sexta)
  */
-function buildConfirmationMessage(
+function buildFirstNoticeMessage(
   firstName: string,
   dateSchedule: string,
-  hourSchedule: string
+  hourSchedule: string,
+  isAdvanceWeekend: boolean = false
 ): string {
+  if (isAdvanceWeekend) {
+    return (
+      `Olá, ${firstName}! Tudo bem? 😊\n` +
+      `Aqui é a Silv.IA do consultório do Dr. Marco Antonio.\n\n` +
+      `Como nosso consultório não opera aos finais de semana, estamos antecipando o contato para confirmar sua consulta da próxima *segunda-feira, ${dateSchedule}* às *${hourSchedule}*.\n\n` +
+      `📍 *Nosso endereço:*\n` +
+      `Rua Dr. Roberto Barrozo, 1379, 2º andar\n` +
+      `Hospital Otorrinos Curitiba\n` +
+      `https://maps.google.com/?q=-25.415823,-49.282524\n\n` +
+      `Você confirma sua presença para este dia?`
+    );
+  }
+
   return (
     `Olá, ${firstName}! Tudo bem? 😊\n` +
     `Aqui é a Silv.IA do consultório do Dr. Marco Antonio.\n\n` +
@@ -154,10 +187,95 @@ function buildConfirmationMessage(
 }
 
 /**
- * Busca agendamentos próximos (D+0, D+1, D+2) diretamente da API da clínica,
- * normaliza os campos com dados reais e cruza com os disparos do banco de dados.
+ * 2º e Último Aviso de Confirmação (Disparo das 14h00 - 24h antes, caso AINDA NÃO confirmada)
+ * Alerta com urgência sobre cancelamento e liberação para a Lista de Espera.
  */
-export async function fetchUpcomingBookingsAction(daysAhead: number = 2): Promise<{
+function buildSecondNoticeMessage(
+  firstName: string,
+  dateSchedule: string,
+  hourSchedule: string
+): string {
+  return (
+    `Olá, ${firstName}! Aqui é a Silv.IA do consultório do Dr. Marco Antonio.\n\n` +
+    `Este é o nosso *segundo e último aviso* para confirmação da sua consulta de amanhã, *${dateSchedule}* às *${hourSchedule}*.\n\n` +
+    `⚠️ Como ainda não tivemos seu retorno, precisamos que nos confirme sua presença com urgência. Caso não haja confirmação, sua consulta infelizmente precisará ser cancelada e disponibilizada para um paciente que aguarda na nossa lista de espera.\n\n` +
+    `📍 *Endereço:* Rua Dr. Roberto Barrozo, 1379, 2º andar - Hospital Otorrinos Curitiba\n\n` +
+    `Podemos confirmar sua consulta para amanhã?`
+  );
+}
+
+/**
+ * Lembrete de Presença (Disparo das 14h00 - 24h antes, caso JÁ CONFIRMADA)
+ * Mensagem cordial informativa, sem necessidade de resposta do paciente.
+ */
+function buildReminderConfirmedMessage(
+  firstName: string,
+  dateSchedule: string,
+  hourSchedule: string
+): string {
+  return (
+    `Olá, ${firstName}! Tudo bem? 😊\n` +
+    `Aqui é a Silv.IA do consultório do Dr. Marco Antonio.\n\n` +
+    `Passando apenas para lembrar da sua consulta agendada para amanhã, dia *${dateSchedule}* às *${hourSchedule}*.\n\n` +
+    `Como você já confirmou sua presença anteriormente, *não é necessário responder esta mensagem*. Estamos te aguardando!\n\n` +
+    `📍 *Nosso endereço:*\n` +
+    `Rua Dr. Roberto Barrozo, 1379, 2º andar\n` +
+    `Hospital Otorrinos Curitiba\n` +
+    `https://maps.google.com/?q=-25.415823,-49.282524\n\n` +
+    `Até amanhã!`
+  );
+}
+
+/**
+ * Aviso de Cancelamento por Falta de Confirmação (Ao dar a vaga para a Lista de Espera)
+ */
+function buildCancellationDueToInactionMessage(
+  firstName: string,
+  dateSchedule: string,
+  hourSchedule: string
+): string {
+  return (
+    `Olá, ${firstName}. Aqui é a Silv.IA do consultório do Dr. Marco Antonio.\n\n` +
+    `Como não tivemos a confirmação da sua consulta agendada para hoje (*${dateSchedule} às ${hourSchedule}*), o horário foi cancelado no sistema e disponibilizado para o próximo paciente da lista de espera.\n\n` +
+    `Caso queira remarcar sua consulta para uma nova data, basta nos responder por aqui que te ajudaremos com os novos horários disponíveis. Tenha um ótimo dia!`
+  );
+}
+
+/**
+ * Seleciona o template correto para o agendamento
+ */
+function resolveMessageForBooking(
+  firstName: string,
+  dateSchedule: string,
+  hourSchedule: string,
+  noticeType: NoticeType
+): string {
+  switch (noticeType) {
+    case "48H":
+      return buildFirstNoticeMessage(firstName, dateSchedule, hourSchedule, false);
+    case "ANTECIPADO_SEXTA":
+      return buildFirstNoticeMessage(firstName, dateSchedule, hourSchedule, true);
+    case "24H_AVISO":
+      return buildSecondNoticeMessage(firstName, dateSchedule, hourSchedule);
+    case "24H_LEMBRETE":
+      return buildReminderConfirmedMessage(firstName, dateSchedule, hourSchedule);
+    case "CANCELADO_INACAO":
+      return buildCancellationDueToInactionMessage(firstName, dateSchedule, hourSchedule);
+    default:
+      return buildFirstNoticeMessage(firstName, dateSchedule, hourSchedule, false);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONSULTA E PROCESSAMENTO DE AGENDAMENTOS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Busca agendamentos próximos diretamente da API da clínica,
+ * normaliza os campos com dados reais, classifica o tipo de aviso (48h/24h)
+ * e o horário programado de disparo (08h00 ou 14h00), aplicando a regra de fim de semana.
+ */
+export async function fetchUpcomingBookingsAction(daysAhead: number = 4): Promise<{
   success: boolean;
   data?: {
     bookings: UpcomingBookingItem[];
@@ -168,9 +286,14 @@ export async function fetchUpcomingBookingsAction(daysAhead: number = 2): Promis
   try {
     const today = new Date();
     const todayStr = today.toISOString().split("T")[0];
+    const todayDayOfWeek = today.getDay(); // 0 = Domingo, 1 = Segunda, ..., 5 = Sexta, 6 = Sábado
+    const isFriday = todayDayOfWeek === 5;
+
+    // Na sexta-feira, buscamos pelo menos até terça-feira (D+4) para capturar segunda (D+3) e terça
+    const actualDaysAhead = isFriday ? Math.max(daysAhead, 4) : Math.max(daysAhead, 2);
 
     const endDate = new Date(today);
-    endDate.setDate(endDate.getDate() + daysAhead);
+    endDate.setDate(endDate.getDate() + actualDaysAhead);
     const endDateStr = endDate.toISOString().split("T")[0];
 
     // Consulta na API da Clinic
@@ -204,6 +327,9 @@ export async function fetchUpcomingBookingsAction(daysAhead: number = 2): Promis
             todayCount: 0,
             tomorrowCount: 0,
             dayAfterCount: 0,
+            pendingMorningCount: 0,
+            pendingAfternoonNoticeCount: 0,
+            pendingAfternoonReminderCount: 0,
           },
         },
       };
@@ -219,16 +345,8 @@ export async function fetchUpcomingBookingsAction(daysAhead: number = 2): Promis
       orderBy: { sentAt: "desc" },
     });
 
-    const confirmationMap = new Map<string, any>();
-    for (const conf of existingConfirmations) {
-      if (!confirmationMap.has(conf.bookingId)) {
-        confirmationMap.set(conf.bookingId, conf);
-      }
-    }
-
     // Mapeamento e normalização estrita
     const bookings: UpcomingBookingItem[] = [];
-
     const todayDayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     for (const item of rawItems) {
@@ -254,25 +372,76 @@ export async function fetchUpcomingBookingsAction(daysAhead: number = 2): Promis
 
       // Calcula a diferença em dias a partir de hoje
       let dayOffset = 0;
-      let dayLabel: "Hoje" | "Amanhã" | "Em 2 dias" | "Outro" = "Outro";
+      let dayLabel: "Hoje" | "Amanhã" | "Em 2 dias" | "Segunda (72h)" | "Terça (96h)" | "Outro" = "Outro";
 
       if (dateObj) {
         const itemDayOnly = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
         const diffMs = itemDayOnly.getTime() - todayDayOnly.getTime();
         dayOffset = Math.round(diffMs / (1000 * 60 * 60 * 24));
-
-        if (dayOffset === 0) dayLabel = "Hoje";
-        else if (dayOffset === 1) dayLabel = "Amanhã";
-        else if (dayOffset === 2) dayLabel = "Em 2 dias";
       }
 
-      const conf = confirmationMap.get(id);
-      const isDispatched = !!conf && conf.status === "ENVIADO";
-      const dispatchStatus = conf ? (conf.status as any) : null;
-      const lastDispatchedAt = conf ? conf.sentAt.toISOString() : null;
-      const notificationType = conf ? conf.notificationType : null;
+      // Identifica se a consulta já está confirmada (na Clinic ou no banco)
+      const isClinicConfirmed = confirm.toLowerCase().includes("confirmado");
+      const dbConfirmRecord = existingConfirmations.find(
+        (c: any) => c.bookingId === id && c.status === "CONFIRMADO"
+      );
+      const isConfirmed = isClinicConfirmed || Boolean(dbConfirmRecord);
 
-      const previewMessage = buildConfirmationMessage(firstName, dateSchedule, hourSchedule);
+      // Determinação do Tipo de Aviso e Horário Programado de Envio:
+      // - 08h00: 48h (D+2), e na sexta-feira antecipações de segunda (D+3) e terça (D+4)
+      // - 14h00: 24h (D+1) — 2º aviso se pendente, ou lembrete cordial se já confirmado
+      let targetNoticeType: NoticeType = "48H";
+      let suggestedScheduleTime: "08:00" | "14:00" = "08:00";
+      let noticeTitle = "1º Aviso de Confirmação";
+
+      if (dayOffset === 0) {
+        dayLabel = "Hoje";
+        suggestedScheduleTime = "08:00";
+        targetNoticeType = isConfirmed ? "24H_LEMBRETE" : "24H_AVISO";
+        noticeTitle = isConfirmed ? "Lembrete do Dia (Confirmado)" : "Urgente (Hoje - Pendente)";
+      } else if (dayOffset === 1) {
+        dayLabel = "Amanhã";
+        suggestedScheduleTime = "14:00"; // 24h é SEMPRE às 14h!
+        targetNoticeType = isConfirmed ? "24H_LEMBRETE" : "24H_AVISO";
+        noticeTitle = isConfirmed ? "Lembrete de Presença (24h - Confirmado)" : "2º e Último Aviso (24h - Urgente)";
+      } else if (dayOffset === 2) {
+        dayLabel = "Em 2 dias";
+        suggestedScheduleTime = "08:00"; // 48h é às 08h!
+        targetNoticeType = "48H";
+        noticeTitle = "1º Aviso de Confirmação (48h)";
+      } else if (dayOffset === 3) {
+        dayLabel = "Segunda (72h)";
+        suggestedScheduleTime = "08:00";
+        targetNoticeType = isFriday ? "ANTECIPADO_SEXTA" : "48H";
+        noticeTitle = isFriday ? "1º Aviso Antecipado de Segunda (Sexta)" : "Aviso de Confirmação (72h)";
+      } else if (dayOffset === 4) {
+        dayLabel = "Terça (96h)";
+        suggestedScheduleTime = "08:00";
+        targetNoticeType = isFriday ? "ANTECIPADO_SEXTA" : "48H";
+        noticeTitle = isFriday ? "Aviso Antecipado de Terça (Sexta)" : "Aviso de Confirmação (96h)";
+      } else {
+        dayLabel = "Outro";
+        suggestedScheduleTime = "08:00";
+        targetNoticeType = "48H";
+        noticeTitle = "Aviso de Confirmação";
+      }
+
+      const previewMessage = resolveMessageForBooking(firstName, dateSchedule, hourSchedule, targetNoticeType);
+
+      // Checa se JÁ foi disparado ESPECIFICAMENTE o aviso correspondente para esta consulta
+      const matchingNotice = existingConfirmations.find((c: any) => {
+        if (c.bookingId !== id) return false;
+        if (suggestedScheduleTime === "14:00") {
+          return c.notificationType?.startsWith("24H") || c.notificationType === "24H";
+        } else {
+          return c.notificationType === "48H" || c.notificationType === "ANTECIPADO_SEXTA";
+        }
+      });
+
+      const isDispatched = !!matchingNotice && matchingNotice.status === "ENVIADO";
+      const dispatchStatus = matchingNotice ? (matchingNotice.status as any) : null;
+      const lastDispatchedAt = matchingNotice ? matchingNotice.sentAt.toISOString() : null;
+      const notificationType = matchingNotice ? matchingNotice.notificationType : null;
 
       bookings.push({
         id,
@@ -297,6 +466,9 @@ export async function fetchUpcomingBookingsAction(daysAhead: number = 2): Promis
         lastDispatchedAt,
         notificationType,
         previewMessage,
+        targetNoticeType,
+        suggestedScheduleTime,
+        noticeTitle,
       });
     }
 
@@ -310,10 +482,19 @@ export async function fetchUpcomingBookingsAction(daysAhead: number = 2): Promis
       total: bookings.length,
       pendingDispatch: bookings.filter((b) => !b.isDispatched).length,
       dispatchedCount: bookings.filter((b) => b.isDispatched).length,
-      confirmedCount: bookings.filter((b) => b.confirm === "Confirmado").length,
+      confirmedCount: bookings.filter((b) => b.confirm.toLowerCase().includes("confirmado")).length,
       todayCount: bookings.filter((b) => b.dayOffset === 0).length,
       tomorrowCount: bookings.filter((b) => b.dayOffset === 1).length,
       dayAfterCount: bookings.filter((b) => b.dayOffset === 2).length,
+      pendingMorningCount: bookings.filter(
+        (b) => !b.isDispatched && b.suggestedScheduleTime === "08:00"
+      ).length,
+      pendingAfternoonNoticeCount: bookings.filter(
+        (b) => !b.isDispatched && b.suggestedScheduleTime === "14:00" && b.targetNoticeType === "24H_AVISO"
+      ).length,
+      pendingAfternoonReminderCount: bookings.filter(
+        (b) => !b.isDispatched && b.suggestedScheduleTime === "14:00" && b.targetNoticeType === "24H_LEMBRETE"
+      ).length,
     };
 
     return { success: true, data: { bookings, summary } };
@@ -322,6 +503,10 @@ export async function fetchUpcomingBookingsAction(daysAhead: number = 2): Promis
     return { success: false, error: "Falha ao carregar agendamentos próximos." };
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DISPAROS DE CONFIRMAÇÃO (INDIVIDUAL E EM LOTE)
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Dispara uma única confirmação específica via Silvia (registrando na memória da IA)
@@ -336,6 +521,8 @@ export async function dispatchSingleConfirmationAction(booking: {
   doctorName?: string;
   healthInsurance?: string;
   dayOffset?: number;
+  noticeType?: NoticeType;
+  customMessage?: string;
 }): Promise<{
   success: boolean;
   message?: string;
@@ -361,7 +548,13 @@ export async function dispatchSingleConfirmationAction(booking: {
 
     const patientName = toTitleCase(rawClient);
     const firstName = patientName.split(" ")[0];
-    const messageText = buildConfirmationMessage(firstName, dateSchedule, hourSchedule);
+
+    // Infere o noticeType se não for fornecido
+    const noticeType: NoticeType = booking.noticeType || (
+      booking.dayOffset === 1 ? "24H_AVISO" : booking.dayOffset === 2 ? "48H" : "MANUAL"
+    );
+
+    const messageText = booking.customMessage || resolveMessageForBooking(firstName, dateSchedule, hourSchedule, noticeType);
 
     let sentViaOrchestrator = false;
 
@@ -378,6 +571,8 @@ export async function dispatchSingleConfirmationAction(booking: {
           hour_schedule: hourSchedule,
           doctor: booking.doctorName || "Dr. Marco Antonio",
           healthInsurance: booking.healthInsurance || "Particular",
+          notice_type: noticeType,
+          custom_message: messageText,
         }),
       });
 
@@ -419,13 +614,12 @@ export async function dispatchSingleConfirmationAction(booking: {
     }
 
     // 3. Registra no banco de dados para rastreamento e auditoria
-    const notificationType = booking.dayOffset === 1 ? "24H" : booking.dayOffset === 2 ? "48H" : "MANUAL";
     const { dateObj } = parseClinicDate(dateSchedule);
 
     await (prisma as any).appointmentConfirmation.upsert({
       where: {
         id: (await (prisma as any).appointmentConfirmation.findFirst({
-          where: { bookingId: String(booking.id), notificationType },
+          where: { bookingId: String(booking.id), notificationType: noticeType },
           select: { id: true },
         }))?.id || "temp-new-id",
       },
@@ -435,7 +629,7 @@ export async function dispatchSingleConfirmationAction(booking: {
         phone,
         doctorName: booking.doctorName || "Dr. Marco Antonio Teixeira da Silva",
         appointmentDate: dateObj || new Date(),
-        notificationType,
+        notificationType: noticeType,
         status: "ENVIADO",
         sentAt: new Date(),
       },
@@ -449,7 +643,7 @@ export async function dispatchSingleConfirmationAction(booking: {
 
     return {
       success: true,
-      message: `Mensagem enviada com sucesso para ${firstName} (${dateSchedule} às ${hourSchedule})!`,
+      message: `Mensagem (${noticeType}) enviada com sucesso para ${firstName} (${dateSchedule} às ${hourSchedule})!`,
     };
   } catch (err: any) {
     console.error("[dispatchSingleConfirmationAction] Erro:", err);
@@ -479,12 +673,13 @@ export async function batchDispatchConfirmationsAction(bookings: UpcomingBooking
         doctorName: b.doctorName,
         healthInsurance: b.healthInsurance,
         dayOffset: b.dayOffset,
+        noticeType: b.targetNoticeType,
       });
 
       if (res.success) dispatched++;
       else errors++;
 
-      // Pequena pausa para evitar bloqueios ou rate limit no WhatsApp
+      // Intervalo suave de 1.2s para evitar bloqueios no WhatsApp
       await new Promise((r) => setTimeout(r, 1200));
     } catch {
       errors++;
@@ -520,23 +715,112 @@ export async function confirmBookingInClinicAction(bookingId: string): Promise<{
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ROTINAS CRON: 08h00 (MANHÃ) E 14h00 (TARDE) + CANCELAMENTO AUTOMÁTICO
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Rotina automática das 08h00 para disparos matinais (mantém compatibilidade)
+ * Rotina automática das 08h00:
+ * - Se for Sábado ou Domingo: pula (clínica fechada)
+ * - De Segunda a Quinta: dispara 48h (D+2)
+ * - Na Sexta-feira: antecipa disparos de Segunda-feira (D+3) e Terça-feira (D+4)
+ * - Executa cancelamento e repasse à lista de espera de consultas de HOJE (D+0) não confirmadas após o aviso de 24h
  */
 export async function runMorningConfirmationDispatchAction(): Promise<{
   success: boolean;
+  skipped?: boolean;
+  message?: string;
   data?: any;
   error?: string;
 }> {
   try {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = Domingo, 5 = Sexta, 6 = Sábado
+
+    // Regra: Não opera sábado e domingo
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      return {
+        success: true,
+        skipped: true,
+        message: "Fim de semana: a clínica não opera aos sábados e domingos. Disparos suspensos."
+      };
+    }
+
+    const isFriday = dayOfWeek === 5;
+    const upcoming = await fetchUpcomingBookingsAction(isFriday ? 4 : 2);
+    if (!upcoming.success || !upcoming.data) {
+      return { success: false, error: upcoming.error || "Falha ao buscar agendamentos." };
+    }
+
+    // Filtra candidatos para as 08h00:
+    // Na sexta: D+2 (se houver), D+3 (Segunda) e D+4 (Terça)
+    // De segunda a quinta: D+2 (48h)
+    const candidates = upcoming.data.bookings.filter((b) => {
+      if (b.isDispatched || !b.mobile) return false;
+      if (isFriday) {
+        return (b.dayOffset === 2 || b.dayOffset === 3 || b.dayOffset === 4) && b.suggestedScheduleTime === "08:00";
+      } else {
+        return b.dayOffset === 2 && b.suggestedScheduleTime === "08:00";
+      }
+    });
+
+    const batchRes = await batchDispatchConfirmationsAction(candidates);
+
+    // Processa também cancelamento e repasse para lista de espera das consultas de hoje não confirmadas
+    const cancelRes = await cancelUnconfirmedAppointmentsAndNotifyWaitlistAction();
+
+    return {
+      success: true,
+      data: {
+        routine: "08h00_matinal",
+        totalProcessed: candidates.length,
+        dispatched: batchRes.dispatched,
+        errors: batchRes.errors,
+        cancellationsProcessed: cancelRes.cancelledCount || 0,
+        waitlistNotifiedCount: cancelRes.waitlistNotifiedCount || 0,
+      },
+    };
+  } catch (error: any) {
+    console.error("[runMorningConfirmationDispatchAction] Erro:", error);
+    return { success: false, error: "Falha ao executar rotina matinal das 08h00." };
+  }
+}
+
+/**
+ * Rotina automática das 14h00:
+ * - Se for Sábado ou Domingo: pula
+ * - Dispara para consultas de amanhã (D+1):
+ *   - Se confirmada: envia 24H_LEMBRETE (lembrete passivo de presença)
+ *   - Se pendente: envia 24H_AVISO (2º e último aviso com alerta de cancelamento)
+ * - Na Sexta-feira: se houver consultas no Sábado (D+1), envia às 14h00
+ */
+export async function runAfternoonConfirmationDispatchAction(): Promise<{
+  success: boolean;
+  skipped?: boolean;
+  message?: string;
+  data?: any;
+  error?: string;
+}> {
+  try {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      return {
+        success: true,
+        skipped: true,
+        message: "Fim de semana: a clínica não opera aos sábados e domingos. Disparos suspensos."
+      };
+    }
+
     const upcoming = await fetchUpcomingBookingsAction(2);
     if (!upcoming.success || !upcoming.data) {
       return { success: false, error: upcoming.error || "Falha ao buscar agendamentos." };
     }
 
-    // Filtra agendamentos de amanhã (D+1) e depois de amanhã (D+2) ainda não disparados
+    // Candidatos das 14h00: agendamentos de amanhã (D+1) ainda não disparados no período da tarde
     const candidates = upcoming.data.bookings.filter(
-      (b) => (b.dayOffset === 1 || b.dayOffset === 2) && !b.isDispatched && b.mobile
+      (b) => b.dayOffset === 1 && !b.isDispatched && b.mobile
     );
 
     const batchRes = await batchDispatchConfirmationsAction(candidates);
@@ -544,14 +828,146 @@ export async function runMorningConfirmationDispatchAction(): Promise<{
     return {
       success: true,
       data: {
+        routine: "14h00_vespertina",
         totalProcessed: candidates.length,
         dispatched: batchRes.dispatched,
         errors: batchRes.errors,
       },
     };
   } catch (error: any) {
-    console.error("[runMorningConfirmationDispatchAction] Erro:", error);
-    return { success: false, error: "Falha ao executar rotina matinal." };
+    console.error("[runAfternoonConfirmationDispatchAction] Erro:", error);
+    return { success: false, error: "Falha ao executar rotina vespertina das 14h00." };
+  }
+}
+
+/**
+ * Cancela consultas de HOJE (D+0) que continuam sem confirmação após o aviso de 24h
+ * e repassa automaticamente a vaga liberada para o próximo paciente da Lista de Espera.
+ */
+export async function cancelUnconfirmedAppointmentsAndNotifyWaitlistAction(): Promise<{
+  success: boolean;
+  cancelledCount: number;
+  waitlistNotifiedCount: number;
+  error?: string;
+}> {
+  try {
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    // 1. Busca agendamentos de hoje na Clinic API
+    const rawRes = await ClinicService.getDoctorBookings(
+      DOCTOR_ID,
+      ADDRESS_ID,
+      todayStr,
+      todayStr
+    ).catch(() => ({ result: { items: [] } }));
+
+    let items: any[] = [];
+    if (Array.isArray(rawRes)) {
+      items = rawRes;
+    } else if (rawRes && typeof rawRes === "object") {
+      items = rawRes.items || rawRes.result?.items || rawRes.data || [];
+    }
+
+    let cancelledCount = 0;
+    let waitlistNotifiedCount = 0;
+
+    for (const item of items) {
+      const bookingId = String(item.id || "");
+      if (!bookingId) continue;
+
+      const confirmStatus = String(item.confirm || "").toLowerCase();
+      // Se já está confirmado ou já foi atendido/cancelado, ignora
+      if (
+        confirmStatus.includes("confirmado") ||
+        confirmStatus.includes("atendido") ||
+        confirmStatus.includes("cancelado")
+      ) {
+        continue;
+      }
+
+      // Verifica se o paciente recebeu o 2º aviso de 24h
+      const sentNotice = await (prisma as any).appointmentConfirmation.findFirst({
+        where: {
+          bookingId,
+          notificationType: { in: ["24H", "24H_AVISO"] },
+        },
+      });
+
+      // Se recebeu o aviso de 24h e ainda assim não confirmou:
+      if (sentNotice && sentNotice.status !== "CONFIRMADO") {
+        console.log(`[Auto-Cancel] Cancelando agendamento não confirmado #${bookingId} de ${item.client}...`);
+
+        // A. Cancela na Clinic API para desocupar o slot na agenda
+        try {
+          await ClinicService.cancelBooking(DOCTOR_ID, ADDRESS_ID, bookingId);
+        } catch (e: any) {
+          console.error(`[Auto-Cancel] Erro ao cancelar booking #${bookingId}:`, e.message);
+        }
+
+        // B. Atualiza registro no banco
+        await (prisma as any).appointmentConfirmation.updateMany({
+          where: { bookingId },
+          data: {
+            status: "CANCELADO_INACAO",
+            responseReceived: "Sem confirmação após 24h do último aviso. Vaga liberada para lista de espera."
+          }
+        });
+
+        // C. Envia mensagem cordial avisando o paciente do cancelamento
+        const rawPhone = String(item.mobile || item.phone || "");
+        const { clean: phone } = normalizePhone(rawPhone);
+        const rawClient = String(item.client || item.patient_name || "").trim();
+        const patientName = toTitleCase(rawClient);
+        const firstName = patientName.split(" ")[0];
+        const rawHour = String(item.hour_schedule || item.hour || "");
+        const hourSchedule = normalizeTime(rawHour);
+        const { displayDate } = parseClinicDate(String(item.date_schedule || item.date || todayStr));
+
+        if (phone) {
+          const cancelMsg = buildCancellationDueToInactionMessage(firstName, displayDate, hourSchedule);
+          try {
+            const evoUrl = process.env.EVOLUTION_API_URL;
+            const evoKey = process.env.EVOLUTION_API_KEY;
+            const evoInst = process.env.EVOLUTION_INSTANCE || "henrique";
+            if (evoUrl && evoKey) {
+              await fetch(`${evoUrl}/message/sendText/${evoInst}`, {
+                method: "POST",
+                headers: { apikey: evoKey, "Content-Type": "application/json" },
+                body: JSON.stringify({ number: phone, text: cancelMsg })
+              });
+            }
+          } catch (msgErr: any) {
+            console.error(`[Auto-Cancel] Falha ao enviar aviso de cancelamento para ${phone}:`, msgErr.message);
+          }
+        }
+
+        cancelledCount++;
+
+        // D. Cruza a vaga liberada com a lista de espera e dispara notificação para o melhor candidato
+        const slotIso = `${todayStr}T${hourSchedule}:00`;
+        try {
+          const waitlistMatch = await matchWaitlistForSlotAction(DOCTOR_ID, ADDRESS_ID, slotIso);
+
+          if (waitlistMatch.success && waitlistMatch.bestMatch) {
+            const bestCandidate = waitlistMatch.bestMatch;
+            console.log(`[Auto-Cancel] Vaga liberada ofertada para ${bestCandidate.patientName} (${bestCandidate.phone})`);
+            await notifyWaitlistOfferAction(bestCandidate.id, slotIso);
+            waitlistNotifiedCount++;
+          }
+        } catch (wlErr: any) {
+          console.error(`[Auto-Cancel] Erro ao cruzar lista de espera:`, wlErr.message);
+        }
+      }
+    }
+
+    return {
+      success: true,
+      cancelledCount,
+      waitlistNotifiedCount
+    };
+  } catch (error: any) {
+    console.error("[cancelUnconfirmedAppointmentsAndNotifyWaitlistAction] Erro:", error);
+    return { success: false, cancelledCount: 0, waitlistNotifiedCount: 0, error: error.message };
   }
 }
 
