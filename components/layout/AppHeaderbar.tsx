@@ -136,31 +136,96 @@ export function AppHeaderbar() {
 
     const unreadCount = notifications.filter((n) => !n.read).length;
 
-    const navItems = [
-        { label: "Orquestrador IA", href: "/dashboard/orchestrator", icon: Activity },
+    // Dropdown states
+    const [isClinicaOpen, setIsClinicaOpen] = useState(false);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const clinicaRef = React.useRef<HTMLDivElement>(null);
+    const profileRef = React.useRef<HTMLDivElement>(null);
+
+    // Fecha dropdowns ao clicar fora
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (clinicaRef.current && !clinicaRef.current.contains(event.target as Node)) {
+                setIsClinicaOpen(false);
+            }
+            if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+                setIsProfileOpen(false);
+            }
+        }
+        function handleKeyDown(event: KeyboardEvent) {
+            if (event.key === "Escape") {
+                setIsClinicaOpen(false);
+                setIsProfileOpen(false);
+                setIsMobileMenuOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        document.addEventListener("keydown", handleKeyDown);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("keydown", handleKeyDown);
+        };
+    }, []);
+
+    // Fecha menus ao trocar de rota
+    useEffect(() => {
+        setIsClinicaOpen(false);
+        setIsProfileOpen(false);
+        setIsMobileMenuOpen(false);
+    }, [pathname]);
+
+    // 1. Operações Principais (Acesso Direto Diário)
+    const primaryNavItems = [
         { label: "Visão Geral", href: "/dashboard", icon: LayoutDashboard },
+        { label: "Orquestrador IA", href: "/dashboard/orchestrator", icon: Activity, badge: "IA" },
         { label: "Agendamentos", href: "/dashboard/bookings", icon: CalendarDays },
         { label: "Disparos", href: "/dashboard/disparos", icon: Send },
         { label: "Lista de Espera", href: "/dashboard/waitlist", icon: Clock },
-        { label: "Pacientes", href: "/dashboard/patients", icon: Users },
-        { label: "Corpo Clínico", href: "/dashboard/doctors", icon: Stethoscope },
-        { label: "Receitas", href: "/dashboard/prescriptions", icon: FileText },
-        { label: "Configurações", href: "/dashboard/settings", icon: Settings },
     ];
+
+    // 2. Módulos Clínicos e Cadastros (Menu Suspenso Especializado)
+    const clinicaNavItems = [
+        {
+            label: "Pacientes",
+            href: "/dashboard/patients",
+            icon: Users,
+            desc: "Cadastros, convênios e histórico de contatos",
+            iconColor: "text-blue-500 bg-blue-50 border-blue-100"
+        },
+        {
+            label: "Corpo Clínico",
+            href: "/dashboard/doctors",
+            icon: Stethoscope,
+            desc: "Médicos, agendas e especialidades ativas",
+            iconColor: "text-emerald-600 bg-emerald-50 border-emerald-100"
+        },
+        {
+            label: "Receitas",
+            href: "/dashboard/prescriptions",
+            icon: FileText,
+            desc: "Pedidos de renovação e emissão de receituários",
+            iconColor: "text-amber-600 bg-amber-50 border-amber-100"
+        },
+    ];
+
+    // Detecta se a rota atual pertence ao submenu Clínico
+    const currentClinicaItem = clinicaNavItems.find((item) => pathname === item.href);
+    const isClinicaActive = Boolean(currentClinicaItem);
 
     return (
         <>
-            <header className="sticky top-0 z-50 w-full max-w-full px-4 sm:px-6 lg:px-8 py-3 border-b border-[#E8E2D6]/70 bg-[#FBF9F4]/90 backdrop-blur-xl shadow-[0_2px_12px_rgba(0,0,0,0.02)] transition-all">
-                <div className="mx-auto flex items-center justify-between gap-3 max-w-[1600px] w-full">
+            <header className="sticky top-0 z-50 w-full max-w-full px-4 sm:px-6 lg:px-8 py-2.5 border-b border-[#E8E2D6]/80 bg-[#FBF9F4]/95 backdrop-blur-xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-all">
+                <div className="mx-auto flex items-center justify-between gap-4 max-w-[1600px] w-full">
                     
-                    {/* Esquerda: Logo Oficial Silvia (Fiel à Referência 2) */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    {/* Esquerda: Logo Oficial Silvia */}
+                    <div className="flex items-center gap-3 shrink-0">
                         <ThreeLogo />
                     </div>
 
-                    {/* Centro: Barra de Pílulas de Navegação Global (Responsiva e sem sobreposição) */}
-                    <nav className="hidden lg:flex items-center gap-1 p-1 rounded-full bg-white/95 border border-[#E8E2D6] shadow-[0_2px_10px_rgba(0,0,0,0.03)] backdrop-blur-md shrink-0">
-                        {navItems.map((item) => {
+                    {/* Centro: Barra de Pílulas de Navegação Central Organizada */}
+                    <nav className="hidden lg:flex items-center gap-1 p-1 rounded-full bg-white/95 border border-[#E8E2D6] shadow-[0_2px_12px_rgba(0,0,0,0.04)] backdrop-blur-md">
+                        {/* 1. Itens Principais */}
+                        {primaryNavItems.map((item) => {
                             const Icon = item.icon;
                             const isActive = pathname === item.href;
 
@@ -169,27 +234,118 @@ export function AppHeaderbar() {
                                     key={item.href}
                                     href={item.href}
                                     className={cn(
-                                        "px-3 2xl:px-3.5 py-1.5 rounded-full text-[11px] 2xl:text-xs font-medium transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap group",
+                                        "px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap group relative",
                                         isActive
                                             ? "bg-[#1E2022] text-white shadow-[0_2px_10px_rgba(0,0,0,0.18)] font-semibold"
                                             : "text-slate-700 hover:text-slate-900 hover:bg-[#F4EFE6]/80"
                                     )}
                                 >
-                                    <Icon className={cn("w-3.5 h-3.5 shrink-0", isActive ? "text-amber-400" : "text-slate-600 group-hover:text-slate-800")} />
+                                    <Icon className={cn("w-3.5 h-3.5 shrink-0 transition-colors", isActive ? "text-amber-400" : "text-slate-500 group-hover:text-slate-800")} />
                                     <span>{item.label}</span>
+                                    {item.badge && !isActive && (
+                                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 border border-amber-200/60 leading-tight">
+                                            {item.badge}
+                                        </span>
+                                    )}
                                 </Link>
                             );
                         })}
+
+                        {/* Divisor Visual Sutil */}
+                        <div className="h-4 w-px bg-[#E8E2D6] mx-0.5" />
+
+                        {/* 2. Menu Dropdown: Gestão Clínica */}
+                        <div className="relative" ref={clinicaRef}>
+                            <button
+                                onClick={() => setIsClinicaOpen(!isClinicaOpen)}
+                                className={cn(
+                                    "px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap group cursor-pointer",
+                                    isClinicaActive
+                                        ? "bg-[#1E2022] text-white shadow-[0_2px_10px_rgba(0,0,0,0.18)] font-semibold"
+                                        : isClinicaOpen
+                                        ? "bg-[#F4EFE6] text-slate-900 font-semibold"
+                                        : "text-slate-700 hover:text-slate-900 hover:bg-[#F4EFE6]/80"
+                                )}
+                            >
+                                <Stethoscope className={cn("w-3.5 h-3.5 shrink-0", isClinicaActive ? "text-amber-400" : "text-slate-500 group-hover:text-slate-800")} />
+                                <span>{currentClinicaItem ? `Clínica: ${currentClinicaItem.label}` : "Clínica"}</span>
+                                <span className={cn(
+                                    "text-[10px] transition-transform duration-200",
+                                    isClinicaOpen ? "rotate-180" : ""
+                                )}>
+                                    ▾
+                                </span>
+                            </button>
+
+                            {/* Dropdown Menu Card */}
+                            {isClinicaOpen && (
+                                <div className="absolute top-full right-0 mt-2.5 w-72 rounded-2xl bg-white/95 backdrop-blur-xl border border-[#E8E2D6] shadow-[0_14px_36px_rgba(0,0,0,0.1)] p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                                    <div className="px-3 py-1.5 mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                                        Módulos Clínicos & Registros
+                                    </div>
+                                    <div className="space-y-1">
+                                        {clinicaNavItems.map((item) => {
+                                            const Icon = item.icon;
+                                            const isActive = pathname === item.href;
+
+                                            return (
+                                                <Link
+                                                    key={item.href}
+                                                    href={item.href}
+                                                    onClick={() => setIsClinicaOpen(false)}
+                                                    className={cn(
+                                                        "flex items-start gap-2.5 p-2 rounded-xl transition-all duration-150 group",
+                                                        isActive
+                                                            ? "bg-[#FBF9F4] border border-[#E8E2D6]"
+                                                            : "hover:bg-slate-50 hover:translate-x-0.5"
+                                                    )}
+                                                >
+                                                    <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border mt-0.5", item.iconColor)}>
+                                                        <Icon className="w-3.5 h-3.5" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0 text-left">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className={cn("text-xs font-semibold", isActive ? "text-slate-900" : "text-slate-800 group-hover:text-slate-950")}>
+                                                                {item.label}
+                                                            </span>
+                                                            {isActive && (
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                                            )}
+                                                        </div>
+                                                        <p className="text-[10px] text-slate-500 line-clamp-1 leading-tight">
+                                                            {item.desc}
+                                                        </p>
+                                                    </div>
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </nav>
 
-                    {/* Direita: Notificações com Modal, Perfil Silvia e Logout */}
-                    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                    {/* Direita: Utilitários do Sistema (Configurações, Notificações, Perfil e Menu) */}
+                    <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
 
+                        {/* Botão de Atalho Rápido para Configurações */}
+                        <Link
+                            href="/dashboard/settings"
+                            className={cn(
+                                "w-8 h-8 rounded-full border shadow-sm flex items-center justify-center transition-all duration-200 active:scale-95 shrink-0 cursor-pointer",
+                                pathname === "/dashboard/settings"
+                                    ? "bg-[#1E2022] text-white border-[#1E2022] shadow-[0_2px_8px_rgba(0,0,0,0.15)]"
+                                    : "bg-white border-[#E8E2D6] text-slate-700 hover:text-slate-900 hover:bg-[#F4EFE6]"
+                            )}
+                            title="Configurações do Sistema"
+                        >
+                            <Settings className={cn("w-3.5 h-3.5", pathname === "/dashboard/settings" ? "text-amber-400" : "")} />
+                        </Link>
 
-                        {/* Botão de Sino com Modal Interativo ao Vivo */}
+                        {/* Botão de Notificações com Modal Interativo ao Vivo */}
                         <button
                             onClick={() => setIsNotificationsOpen(true)}
-                            className="w-8 h-8 rounded-full bg-white border border-[#E8E2D6] shadow-sm flex items-center justify-center text-slate-700 hover:bg-[#F4EFE6] relative transition-all active:scale-95 shrink-0"
+                            className="w-8 h-8 rounded-full bg-white border border-[#E8E2D6] shadow-sm flex items-center justify-center text-slate-700 hover:bg-[#F4EFE6] relative transition-all duration-200 active:scale-95 shrink-0 cursor-pointer"
                             title="Abrir Notificações ao Vivo"
                         >
                             <Bell className="w-3.5 h-3.5" />
@@ -200,76 +356,198 @@ export function AppHeaderbar() {
                             )}
                         </button>
 
-                        {/* Avatar Silvia com o retrato do Hospital Otorrinos */}
-                        <Link
-                            href="/dashboard/orchestrator"
-                            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-amber-400/80 shadow-sm relative group cursor-pointer shrink-0"
-                            title="Silvia • Hospital Otorrinos Curitiba"
-                        >
-                            <img
-                                src="/silvia-avatar-warm.jpg"
-                                alt="Silvia Avatar"
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                onError={(e) => {
-                                    e.currentTarget.src = "/silvia-profile-3d.png";
-                                }}
-                            />
-                        </Link>
+                        {/* Divisor Vertical */}
+                        <div className="h-5 w-px bg-[#E8E2D6] mx-0.5 hidden sm:block" />
 
-                        {/* Botão de Logout Desktop */}
-                        <button
-                            onClick={() => signOut({ callbackUrl: "/login" })}
-                            className="w-8 h-8 rounded-full bg-white border border-[#E8E2D6] shadow-sm flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-all active:scale-95 shrink-0 cursor-pointer"
-                            title="Sair do sistema (Logout)"
-                        >
-                            <LogOut className="w-3.5 h-3.5" />
-                        </button>
+                        {/* Menu de Perfil / Usuário Silvia com Dropdown */}
+                        <div className="relative" ref={profileRef}>
+                            <button
+                                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                                className="flex items-center gap-2 pl-1 pr-1.5 sm:pr-2.5 py-1 rounded-full bg-white border border-[#E8E2D6] shadow-sm hover:bg-[#F4EFE6] transition-all cursor-pointer active:scale-95"
+                                title="Menu de Usuário e Clínica"
+                            >
+                                <div className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full overflow-hidden border border-amber-400/80 shrink-0">
+                                    <img
+                                        src="/silvia-avatar-warm.jpg"
+                                        alt="Silvia Avatar"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            e.currentTarget.src = "/silvia-profile-3d.png";
+                                        }}
+                                    />
+                                </div>
+                                <div className="hidden 2xl:flex flex-col text-left leading-none pr-0.5">
+                                    <span className="text-xs font-bold text-slate-800 tracking-tight">Silvia Concierge</span>
+                                    <span className="text-[10px] text-slate-500">Otorrinos Curitiba</span>
+                                </div>
+                                <span className={cn(
+                                    "text-[9px] text-slate-400 transition-transform duration-200 hidden 2xl:inline-block",
+                                    isProfileOpen ? "rotate-180" : ""
+                                )}>
+                                    ▾
+                                </span>
+                            </button>
 
-                        {/* Botão Hambúrguer Mobile / Telas menores que XL */}
+                            {/* Dropdown Card do Perfil */}
+                            {isProfileOpen && (
+                                <div className="absolute top-full right-0 mt-2.5 w-64 rounded-2xl bg-white/95 backdrop-blur-xl border border-[#E8E2D6] shadow-[0_16px_40px_rgba(0,0,0,0.12)] p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                                    {/* Cabeçalho do Card */}
+                                    <div className="flex items-center gap-3 p-2 rounded-xl bg-[#FBF9F4] border border-[#E8E2D6]/80 mb-2">
+                                        <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-amber-400 shrink-0">
+                                            <img
+                                                src="/silvia-avatar-warm.jpg"
+                                                alt="Silvia"
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    e.currentTarget.src = "/silvia-profile-3d.png";
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-bold text-slate-900 truncate">Hospital Otorrinos</p>
+                                            <p className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                                Atendente IA Ativa
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Opções de Navegação */}
+                                    <div className="space-y-1">
+                                        <Link
+                                            href="/dashboard/orchestrator"
+                                            onClick={() => setIsProfileOpen(false)}
+                                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-[#F4EFE6]/70 transition-colors"
+                                        >
+                                            <Activity className="w-3.5 h-3.5 text-amber-500" />
+                                            <span>Orquestrador em Tempo Real</span>
+                                        </Link>
+
+                                        <Link
+                                            href="/dashboard/settings"
+                                            onClick={() => setIsProfileOpen(false)}
+                                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-[#F4EFE6]/70 transition-colors"
+                                        >
+                                            <Settings className="w-3.5 h-3.5 text-slate-600" />
+                                            <span>Configurações da Clínica</span>
+                                        </Link>
+                                    </div>
+
+                                    {/* Divisor */}
+                                    <div className="h-px bg-slate-100 my-1.5" />
+
+                                    {/* Botão de Logout */}
+                                    <button
+                                        onClick={() => signOut({ callbackUrl: "/login" })}
+                                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer text-left"
+                                    >
+                                        <LogOut className="w-3.5 h-3.5 text-rose-500" />
+                                        <span>Sair do Sistema</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Botão Hambúrguer Mobile / Telas menores que LG */}
                         <button
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            className="xl:hidden p-1.5 sm:p-2 rounded-xl bg-white border border-[#E8E2D6] text-slate-700 hover:bg-[#F4EFE6] transition-colors shrink-0"
+                            className="lg:hidden p-2 rounded-xl bg-white border border-[#E8E2D6] text-slate-700 hover:bg-[#F4EFE6] transition-colors shrink-0 cursor-pointer"
                             title="Menu de navegação"
                         >
-                            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                            {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
                         </button>
                     </div>
 
                 </div>
 
-                {/* Menu Mobile / Tablet Dropdown */}
+                {/* Menu Mobile / Tablet Dropdown Organizado por Seções */}
                 {isMobileMenuOpen && (
-                    <div className="xl:hidden mt-3 pt-3 border-t border-[#E8E2D6] space-y-1.5 animate-in fade-in slide-in-from-top-2">
-                        {navItems.map((item) => {
-                            const Icon = item.icon;
-                            const isActive = pathname === item.href;
+                    <div className="lg:hidden mt-3 pt-3 border-t border-[#E8E2D6] space-y-3 animate-in fade-in slide-in-from-top-2 max-h-[80vh] overflow-y-auto">
+                        
+                        {/* Seção 1: Operações Principais */}
+                        <div>
+                            <p className="px-3 mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                Operações Principais
+                            </p>
+                            <div className="space-y-1">
+                                {primaryNavItems.map((item) => {
+                                    const Icon = item.icon;
+                                    const isActive = pathname === item.href;
 
-                            return (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                    className={cn(
-                                        "flex items-center gap-3 px-4 py-2.5 rounded-2xl text-xs font-medium transition-colors",
-                                        isActive
-                                            ? "bg-[#1E2022] text-white font-semibold"
-                                            : "text-slate-700 hover:text-slate-900 hover:bg-white"
-                                    )}
-                                >
-                                    <Icon className={cn("w-4 h-4", isActive ? "text-amber-400" : "text-slate-700")} />
-                                    <span>{item.label}</span>
-                                </Link>
-                            );
-                        })}
+                                    return (
+                                        <Link
+                                            key={item.href}
+                                            href={item.href}
+                                            onClick={() => setIsMobileMenuOpen(false)}
+                                            className={cn(
+                                                "flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors",
+                                                isActive
+                                                    ? "bg-[#1E2022] text-white font-semibold"
+                                                    : "text-slate-700 hover:text-slate-900 hover:bg-white"
+                                            )}
+                                        >
+                                            <Icon className={cn("w-4 h-4", isActive ? "text-amber-400" : "text-slate-600")} />
+                                            <span>{item.label}</span>
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        </div>
 
-                        {/* Botão de Logout Mobile */}
-                        <button
-                            onClick={() => signOut({ callbackUrl: "/login" })}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-xs font-semibold text-rose-700 bg-rose-50/70 border border-rose-200/70 hover:bg-rose-100 transition-colors cursor-pointer mt-2"
-                        >
-                            <LogOut className="w-4 h-4 text-rose-600" />
-                            <span>Sair do sistema (Logout)</span>
-                        </button>
+                        {/* Seção 2: Gestão Clínica */}
+                        <div>
+                            <p className="px-3 mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                Gestão Clínica
+                            </p>
+                            <div className="space-y-1">
+                                {clinicaNavItems.map((item) => {
+                                    const Icon = item.icon;
+                                    const isActive = pathname === item.href;
+
+                                    return (
+                                        <Link
+                                            key={item.href}
+                                            href={item.href}
+                                            onClick={() => setIsMobileMenuOpen(false)}
+                                            className={cn(
+                                                "flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors",
+                                                isActive
+                                                    ? "bg-[#1E2022] text-white font-semibold"
+                                                    : "text-slate-700 hover:text-slate-900 hover:bg-white"
+                                            )}
+                                        >
+                                            <Icon className={cn("w-4 h-4", isActive ? "text-amber-400" : "text-slate-600")} />
+                                            <span>{item.label}</span>
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Seção 3: Sistema e Sessão */}
+                        <div className="pt-2 border-t border-[#E8E2D6]">
+                            <Link
+                                href="/dashboard/settings"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className={cn(
+                                    "flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors mb-1.5",
+                                    pathname === "/dashboard/settings"
+                                        ? "bg-[#1E2022] text-white font-semibold"
+                                        : "text-slate-700 hover:text-slate-900 hover:bg-white"
+                                )}
+                            >
+                                <Settings className="w-4 h-4 text-slate-600" />
+                                <span>Configurações do Sistema</span>
+                            </Link>
+
+                            <button
+                                onClick={() => signOut({ callbackUrl: "/login" })}
+                                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-rose-700 bg-rose-50/80 border border-rose-200/80 hover:bg-rose-100 transition-colors cursor-pointer"
+                            >
+                                <LogOut className="w-4 h-4 text-rose-600" />
+                                <span>Sair do sistema (Logout)</span>
+                            </button>
+                        </div>
                     </div>
                 )}
             </header>
