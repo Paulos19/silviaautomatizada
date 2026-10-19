@@ -895,14 +895,8 @@ export async function cancelUnconfirmedAppointmentsAndNotifyWaitlistAction(): Pr
 
       // Se recebeu o aviso de 24h e ainda assim não confirmou:
       if (sentNotice && sentNotice.status !== "CONFIRMADO") {
-        console.log(`[Auto-Cancel] Cancelando agendamento não confirmado #${bookingId} de ${item.client}...`);
-
-        // A. Cancela na Clinic API para desocupar o slot na agenda
-        try {
-          await ClinicService.cancelBooking(DOCTOR_ID, ADDRESS_ID, bookingId);
-        } catch (e: any) {
-          console.error(`[Auto-Cancel] Erro ao cancelar booking #${bookingId}:`, e.message);
-        }
+        console.warn(`[Auto-Cancel] Agendamento não confirmado #${bookingId} de ${item.client}. Cancelamento automático suspenso por segurança (a cargo da recepção).`);
+        // CANCELAMENTO AUTOMÁTICO DESATIVADO: apenas a recepção humana ou pedido expresso do paciente cancela na Clinic API.
 
         // B. Atualiza registro no banco
         await (prisma as any).appointmentConfirmation.updateMany({
