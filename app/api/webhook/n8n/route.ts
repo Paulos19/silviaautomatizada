@@ -25,6 +25,11 @@ import {
   matchWaitlistForSlotAction,
 } from "@/actions/waitlist.actions";
 import { loadRagAction } from "@/actions/rag.actions";
+import {
+  fetchUpcomingBookingsAction,
+  runMorningConfirmationDispatchAction,
+  runAfternoonConfirmationDispatchAction,
+} from "@/actions/confirmation.actions";
 
 // Validação de segurança: Só o n8n pode chamar essa rota
 function verifyN8nAuth(request: Request) {
@@ -203,6 +208,16 @@ export async function POST(request: Request) {
       // --- PERSONALIDADE DA IA + MÉDICO CONFIGURADO ---
       case "GET_PERSONALITY":
         return NextResponse.json(await loadRagAction());
+
+      // --- DISPAROS DE CONFIRMAÇÕES (48H / 24H) ---
+      case "GET_UPCOMING_BOOKINGS":
+        return NextResponse.json(await fetchUpcomingBookingsAction(payload?.daysAhead || 4));
+
+      case "RUN_MORNING_DISPATCH":
+        return NextResponse.json(await runMorningConfirmationDispatchAction());
+
+      case "RUN_AFTERNOON_DISPATCH":
+        return NextResponse.json(await runAfternoonConfirmationDispatchAction());
 
       default:
         return NextResponse.json({ success: false, error: `Action '${action}' not supported.` }, { status: 400 });
