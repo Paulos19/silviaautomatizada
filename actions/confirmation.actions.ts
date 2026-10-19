@@ -590,7 +590,7 @@ export async function dispatchSingleConfirmationAction(booking: {
     if (!sentViaOrchestrator) {
       const evoUrl = process.env.EVOLUTION_API_URL;
       const evoKey = process.env.EVOLUTION_API_KEY;
-      const evoInst = process.env.EVOLUTION_INSTANCE || "henrique";
+      const evoInst = process.env.EVOLUTION_INSTANCE || "Silvia";
 
       if (!evoUrl || !evoKey) {
         return { success: false, error: "Credenciais de WhatsApp não configuradas no servidor." };
