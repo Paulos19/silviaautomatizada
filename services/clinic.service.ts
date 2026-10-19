@@ -20,8 +20,8 @@ const FACILITY_ID = process.env.CLINIC_FACILITY_ID || "1";
 let cachedToken: string | null = null;
 let tokenExpiresAt: number | null = null;
 
-async function getAccessToken(): Promise<string> {
-  if (cachedToken && tokenExpiresAt && Date.now() < tokenExpiresAt - 30000) {
+async function getAccessToken(forceRefresh: boolean = false): Promise<string> {
+  if (!forceRefresh && cachedToken && tokenExpiresAt && Date.now() < tokenExpiresAt - 30000) {
     return cachedToken;
   }
   const authString = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
@@ -40,8 +40,8 @@ async function getAccessToken(): Promise<string> {
   return cachedToken!;
 }
 
-async function clinicFetch(endpoint: string, options: RequestInit = {}) {
-  const token = await getAccessToken();
+async function clinicFetch(endpoint: string, options: RequestInit = {}, isRetry: boolean = false): Promise<any> {
+  const token = await getAccessToken(isRetry);
   const response = await fetch(`${CLINIC_URL}${endpoint}`, {
     ...options,
     headers: {
@@ -53,6 +53,14 @@ async function clinicFetch(endpoint: string, options: RequestInit = {}) {
 
   if (!response.ok) {
     const errorBody = await response.text();
+    // Se o token foi invalidado (401, 403, ou 530 com erro de autorização após reinício do Clinic), tenta renovar o token 1 vez
+    if (!isRetry && (response.status === 401 || response.status === 403 || (response.status === 530 && errorBody.includes("authorization")))) {
+      console.warn(`[Clinic API] Token expirado ou rejeitado (${response.status}). Renovando token automaticamente...`);
+      cachedToken = null;
+      tokenExpiresAt = null;
+      return clinicFetch(endpoint, options, true);
+    }
+
     console.error(`[Clinic API Error] ${response.status}: ${errorBody}`);
     throw new Error(`Erro na integração Clinic: Status ${response.status}`);
   }
