@@ -370,6 +370,8 @@ export async function createPrescriptionRequestAction(data: {
   address: string;
   medications: string;
   passarCarteirinha?: boolean;
+  status?: string;
+  forceCreate?: boolean;
 }) {
   try {
     const rawName = (data.patientName || "").trim();
@@ -379,7 +381,7 @@ export async function createPrescriptionRequestAction(data: {
     // para evitar que mensagens sequenciais no WhatsApp multipliquem os cards
     let existing = null;
 
-    if (rawName || rawCard) {
+    if (!data.forceCreate && (rawName || rawCard)) {
       const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
       existing = await prisma.prescriptionRequest.findFirst({
         where: {
@@ -405,6 +407,7 @@ export async function createPrescriptionRequestAction(data: {
           address: data.address?.trim() || existing.address,
           medications: data.medications?.trim() || existing.medications,
           ...(typeof data.passarCarteirinha === "boolean" ? { passarCarteirinha: data.passarCarteirinha } : {}),
+          ...(data.status ? { status: data.status } : {}),
         },
       });
       return { success: true, data: updated, isUpdate: true };
@@ -418,6 +421,7 @@ export async function createPrescriptionRequestAction(data: {
         address: data.address?.trim() || "",
         medications: data.medications?.trim() || "",
         passarCarteirinha: Boolean(data.passarCarteirinha),
+        status: data.status || "PENDENTE",
       },
     });
     return { success: true, data: request, isUpdate: false };
