@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
     fetchPrescriptionRequestsAction,
     updatePrescriptionStatusAction,
@@ -362,6 +363,7 @@ export default function PrescriptionsPage() {
     const [itemsPerPage, setItemsPerPage] = useState(6);
 
     // Modal de Cadastro Manual de Prescrição
+    const [mounted, setMounted] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [creating, setCreating] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
@@ -434,6 +436,7 @@ export default function PrescriptionsPage() {
     };
 
     useEffect(() => {
+        setMounted(true);
         loadRequests();
     }, []);
 
@@ -990,19 +993,19 @@ export default function PrescriptionsPage() {
                 </div>
             )}
 
-            {/* ═══ MODAL: CADASTRO MANUAL DE PRESCRIÇÃO ═══ */}
-            {isCreateModalOpen && (
+            {/* ═══ MODAL: CADASTRO MANUAL DE PRESCRIÇÃO (Portaled to document.body) ═══ */}
+            {mounted && isCreateModalOpen && createPortal(
                 <div 
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200"
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
                     onClick={(e) => {
                         if (e.target === e.currentTarget && !creating) {
                             setIsCreateModalOpen(false);
                         }
                     }}
                 >
-                    <div className="bg-[#FAF7F0] border border-[#E8E2D6] rounded-[32px] p-6 sm:p-7 max-w-xl w-full shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200">
-                        {/* Header */}
-                        <div className="flex items-center justify-between pb-3 border-b border-[#F0EAE0]">
+                    <div className="bg-[#FAF7F0] border border-[#E8E2D6] rounded-[32px] p-6 sm:p-7 max-w-xl w-full shadow-2xl flex flex-col max-h-[88vh] animate-in zoom-in-95 duration-200">
+                        {/* Header (Fixo no topo do card) */}
+                        <div className="flex items-center justify-between pb-3.5 border-b border-[#F0EAE0] shrink-0">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-700 shrink-0">
                                     <Pill className="w-5 h-5" />
@@ -1021,163 +1024,168 @@ export default function PrescriptionsPage() {
                             </button>
                         </div>
 
-                        {createError && (
-                            <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-                                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                                <span>{createError}</span>
-                            </div>
-                        )}
+                        {/* Corpo com Scroll Suave */}
+                        <div className="flex-1 overflow-y-auto py-3.5 pr-1 space-y-4">
+                            {createError && (
+                                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+                                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                                    <span>{createError}</span>
+                                </div>
+                            )}
 
-                        <form onSubmit={handleCreatePrescription} className="space-y-4 text-xs">
-                            {/* Nome do Paciente */}
-                            <div>
-                                <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
-                                    <User className="w-3.5 h-3.5 text-amber-700" />
-                                    <span>Nome Completo do Paciente *</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.patientName}
-                                    onChange={(e) => setFormData({ ...formData, patientName: e.target.value })}
-                                    placeholder="Ex: João da Silva Gomes"
-                                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 shadow-xs transition-all"
-                                />
-                            </div>
-
-                            {/* Data de Nascimento & Convênio */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            <form id="create-prescription-form" onSubmit={handleCreatePrescription} className="space-y-4 text-xs">
+                                {/* Nome do Paciente */}
                                 <div>
                                     <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
-                                        <CalendarDays className="w-3.5 h-3.5 text-amber-700" />
-                                        <span>Data de Nascimento</span>
+                                        <User className="w-3.5 h-3.5 text-amber-700" />
+                                        <span>Nome Completo do Paciente *</span>
                                     </label>
                                     <input
                                         type="text"
-                                        value={formData.birthDate}
-                                        onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-                                        placeholder="Ex: 25/08/1982"
+                                        required
+                                        value={formData.patientName}
+                                        onChange={(e) => setFormData({ ...formData, patientName: e.target.value })}
+                                        placeholder="Ex: João da Silva Gomes"
                                         className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 shadow-xs transition-all"
                                     />
                                 </div>
+
+                                {/* Data de Nascimento & Convênio */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                    <div>
+                                        <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
+                                            <CalendarDays className="w-3.5 h-3.5 text-amber-700" />
+                                            <span>Data de Nascimento</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.birthDate}
+                                            onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                                            placeholder="Ex: 25/08/1982"
+                                            className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 shadow-xs transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
+                                            <CreditCard className="w-3.5 h-3.5 text-amber-700" />
+                                            <span>Carteirinha Unimed / Convênio</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.unimedCard}
+                                            onChange={(e) => setFormData({ ...formData, unimedCard: e.target.value })}
+                                            placeholder="Ex: 0032... ou PARTICULAR"
+                                            className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 shadow-xs transition-all font-mono"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Endereço */}
                                 <div>
                                     <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
-                                        <CreditCard className="w-3.5 h-3.5 text-amber-700" />
-                                        <span>Carteirinha Unimed / Convênio</span>
+                                        <MapPin className="w-3.5 h-3.5 text-amber-700" />
+                                        <span>Endereço Completo</span>
                                     </label>
                                     <input
                                         type="text"
-                                        value={formData.unimedCard}
-                                        onChange={(e) => setFormData({ ...formData, unimedCard: e.target.value })}
-                                        placeholder="Ex: 0032... ou PARTICULAR"
-                                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 shadow-xs transition-all font-mono"
+                                        value={formData.address}
+                                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                        placeholder="Ex: Rua Presidente Taunay, 1200 - Batel, Curitiba - PR"
+                                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 shadow-xs transition-all"
                                     />
                                 </div>
-                            </div>
 
-                            {/* Endereço */}
-                            <div>
-                                <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
-                                    <MapPin className="w-3.5 h-3.5 text-amber-700" />
-                                    <span>Endereço Completo</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.address}
-                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                    placeholder="Ex: Rua Presidente Taunay, 1200 - Batel, Curitiba - PR"
-                                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 shadow-xs transition-all"
-                                />
-                            </div>
-
-                            {/* Medicamentos Solicitados */}
-                            <div>
-                                <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
-                                    <FileText className="w-3.5 h-3.5 text-amber-700" />
-                                    <span>Medicamentos Solicitados *</span>
-                                </label>
-                                <textarea
-                                    required
-                                    rows={3}
-                                    value={formData.medications}
-                                    onChange={(e) => setFormData({ ...formData, medications: e.target.value })}
-                                    placeholder="Ex:&#10;1. Losartana 50mg — 1 comp. ao dia pela manhã&#10;2. Sinvastatina 20mg — 1 comp. à noite"
-                                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 shadow-xs transition-all font-sans leading-relaxed resize-y"
-                                />
-                            </div>
-
-                            {/* Status & Opção Passar Carteirinha */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-stretch">
+                                {/* Medicamentos Solicitados */}
                                 <div>
                                     <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
-                                        <Clock className="w-3.5 h-3.5 text-amber-700" />
-                                        <span>Status Inicial</span>
+                                        <FileText className="w-3.5 h-3.5 text-amber-700" />
+                                        <span>Medicamentos Solicitados *</span>
                                     </label>
-                                    <select
-                                        value={formData.status}
-                                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                                        className="w-full px-3 py-2.5 rounded-xl border border-[#E8E2D6] bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400/50 shadow-xs transition-all font-medium cursor-pointer"
+                                    <textarea
+                                        required
+                                        rows={3}
+                                        value={formData.medications}
+                                        onChange={(e) => setFormData({ ...formData, medications: e.target.value })}
+                                        placeholder="Ex:&#10;1. Losartana 50mg — 1 comp. ao dia pela manhã&#10;2. Sinvastatina 20mg — 1 comp. à noite"
+                                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 shadow-xs transition-all font-sans leading-relaxed resize-y"
+                                    />
+                                </div>
+
+                                {/* Status & Opção Passar Carteirinha */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-stretch">
+                                    <div>
+                                        <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
+                                            <Clock className="w-3.5 h-3.5 text-amber-700" />
+                                            <span>Status Inicial</span>
+                                        </label>
+                                        <select
+                                            value={formData.status}
+                                            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                            className="w-full px-3 py-2.5 rounded-xl border border-[#E8E2D6] bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400/50 shadow-xs transition-all font-medium cursor-pointer"
+                                        >
+                                            <option value="PENDENTE">⏳ Pendente (Aguardando Médico)</option>
+                                            <option value="CONCLUIDO">✅ Concluído (Já emitido/entregue)</option>
+                                        </select>
+                                    </div>
+
+                                    <div
+                                        onClick={() => setFormData((prev) => ({ ...prev, passarCarteirinha: !prev.passarCarteirinha }))}
+                                        className={cn(
+                                            "p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 select-none self-end h-[42px]",
+                                            formData.passarCarteirinha
+                                                ? "bg-amber-500 text-white border-amber-600 shadow-xs"
+                                                : "bg-white text-slate-700 hover:bg-[#F2ECE0] border-[#E8E2D6]"
+                                        )}
                                     >
-                                        <option value="PENDENTE">⏳ Pendente (Aguardando Médico)</option>
-                                        <option value="CONCLUIDO">✅ Concluído (Já emitido/entregue)</option>
-                                    </select>
-                                </div>
-
-                                <div
-                                    onClick={() => setFormData((prev) => ({ ...prev, passarCarteirinha: !prev.passarCarteirinha }))}
-                                    className={cn(
-                                        "p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 select-none self-end h-[42px]",
-                                        formData.passarCarteirinha
-                                            ? "bg-amber-500 text-white border-amber-600 shadow-xs"
-                                            : "bg-white text-slate-700 hover:bg-[#F2ECE0] border-[#E8E2D6]"
-                                    )}
-                                >
-                                    <div className={cn(
-                                        "w-4 h-4 rounded flex items-center justify-center border transition-colors shrink-0",
-                                        formData.passarCarteirinha ? "bg-white border-white text-amber-900" : "border-slate-300 bg-white"
-                                    )}>
-                                        {formData.passarCarteirinha && <Check className="w-3 h-3 stroke-[3]" />}
-                                    </div>
-                                    <div className="flex-1 leading-tight">
-                                        <span className="font-semibold text-[11px] block">
-                                            Passar Carteirinha no Balcão
-                                        </span>
+                                        <div className={cn(
+                                            "w-4 h-4 rounded flex items-center justify-center border transition-colors shrink-0",
+                                            formData.passarCarteirinha ? "bg-white border-white text-amber-900" : "border-slate-300 bg-white"
+                                        )}>
+                                            {formData.passarCarteirinha && <Check className="w-3 h-3 stroke-[3]" />}
+                                        </div>
+                                        <div className="flex-1 leading-tight">
+                                            <span className="font-semibold text-[11px] block">
+                                                Passar Carteirinha no Balcão
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </form>
+                        </div>
 
-                            {/* Modal Actions */}
-                            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#F0EAE0]">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setIsCreateModalOpen(false)}
-                                    disabled={creating}
-                                    className="rounded-xl border-[#E8E2D6] hover:bg-[#F2ECE0] text-slate-700 text-xs"
-                                >
-                                    Cancelar
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={creating}
-                                    className="rounded-xl bg-[#1E2022] hover:bg-slate-800 text-white text-xs font-semibold gap-2 shadow-sm transition-all cursor-pointer"
-                                >
-                                    {creating ? (
-                                        <>
-                                            <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
-                                            Salvando...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Plus className="w-3.5 h-3.5 text-amber-400" />
-                                            Cadastrar Prescrição
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
-                        </form>
+                        {/* Modal Actions (Fixo na base do card) */}
+                        <div className="flex items-center justify-end gap-2.5 pt-3.5 border-t border-[#F0EAE0] shrink-0">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsCreateModalOpen(false)}
+                                disabled={creating}
+                                className="rounded-xl border-[#E8E2D6] hover:bg-[#F2ECE0] text-slate-700 text-xs"
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="submit"
+                                form="create-prescription-form"
+                                disabled={creating}
+                                className="rounded-xl bg-[#1E2022] hover:bg-slate-800 text-white text-xs font-semibold gap-2 shadow-sm transition-all cursor-pointer"
+                            >
+                                {creating ? (
+                                    <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                                        Salvando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Plus className="w-3.5 h-3.5 text-amber-400" />
+                                        Cadastrar Prescrição
+                                    </>
+                                )}
+                            </Button>
+                        </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </motion.div>
     );
