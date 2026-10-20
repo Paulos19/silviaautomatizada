@@ -135,11 +135,14 @@ export async function createPatientAction(payload: Record<string, any>) {
     }
 
     // 3. Tratamento de Data de Nascimento (Garante o formato YYYY-MM-DD)
-    if (payload.birthday && payload.birthday.includes('/')) {
-      const [day, month, year] = payload.birthday.split('/');
-      // Converte DD/MM/YYYY para YYYY-MM-DD
-      if (day && month && year) {
-        payload.birthday = `${year}-${month}-${day}`;
+    if (payload.birthday && typeof payload.birthday === 'string' && payload.birthday.includes('/')) {
+      const parts = payload.birthday.split('/');
+      if (parts.length === 3) {
+        let [day, month, year] = parts.map((p: string) => p.trim());
+        if (year.length === 2) {
+          year = parseInt(year, 10) > 30 ? `19${year}` : `20${year}`;
+        }
+        payload.birthday = `${year.padStart(4, '0')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
       }
     }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
     fetchWaitlistAction,
     createWaitlistEntryAction,
@@ -33,6 +33,7 @@ import {
     Sparkles,
     Calendar,
     ChevronRight,
+    ChevronLeft,
     RefreshCw,
     MessageSquare,
     ExternalLink
@@ -261,6 +262,29 @@ export default function WaitlistPage() {
         );
     });
 
+    // ═══ PAGINAÇÃO ═══
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(5);
+
+    // Reinicia para a página 1 ao alterar filtros, busca ou itens por página
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, priorityFilter, statusFilter, itemsPerPage]);
+
+    const totalPages = Math.ceil(filteredEntries.length / itemsPerPage) || 1;
+
+    // Garante que a página atual não fique fora do limite se os itens diminuírem
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [totalPages, currentPage]);
+
+    const paginatedEntries = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return filteredEntries.slice(start, start + itemsPerPage);
+    }, [filteredEntries, currentPage, itemsPerPage]);
+
     const urgentCount = entries.filter((e) => e.priority === 3).length;
     const highCount = entries.filter((e) => e.priority === 2).length;
     const waitingCount = entries.filter((e) => e.status === "AGUARDANDO").length;
@@ -472,7 +496,7 @@ export default function WaitlistPage() {
             {/* ═══ RANKED CARDS LIST ═══ */}
             {!loading && filteredEntries.length > 0 && (
                 <div className="space-y-4">
-                    {filteredEntries.map((entry) => {
+                    {paginatedEntries.map((entry) => {
                         const priorityInfo = priorityConfig[entry.priority] || priorityConfig[1];
                         const PriorityIcon = priorityInfo.icon;
                         const isActionLoading = actionLoadingId === entry.id;
@@ -685,6 +709,83 @@ export default function WaitlistPage() {
                             </motion.div>
                         );
                     })}
+
+                    {/* Controles de Paginação */}
+                    <div className="bg-white border border-[#E8E2D6] rounded-[24px] p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-600 mt-2">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div>
+                                Mostrando <b className="text-slate-900 font-bold">{(currentPage - 1) * itemsPerPage + 1}</b> a{" "}
+                                <b className="text-slate-900 font-bold">{Math.min(currentPage * itemsPerPage, filteredEntries.length)}</b> de{" "}
+                                <b className="text-slate-900 font-bold">{filteredEntries.length}</b> pacientes na fila
+                            </div>
+
+                            <div className="h-4 w-px bg-[#E8E2D6] hidden sm:block" />
+
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-slate-500">Exibir:</span>
+                                <select
+                                    value={itemsPerPage}
+                                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                                    className="bg-[#F8F5EE] border border-[#E8E2D6] rounded-xl px-2.5 py-1 text-slate-700 font-semibold text-xs focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer"
+                                >
+                                    <option value={5}>5 por pág</option>
+                                    <option value={10}>10 por pág</option>
+                                    <option value={20}>20 por pág</option>
+                                    <option value={50}>50 por pág</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="p-2 rounded-xl border border-[#E8E2D6] bg-white text-slate-700 hover:bg-[#F3EFE6] disabled:opacity-40 disabled:pointer-events-none transition-all shadow-xs flex items-center justify-center cursor-pointer"
+                                title="Página anterior"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+
+                            {/* Botões numéricos de página */}
+                            {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                .filter((p) => {
+                                    if (totalPages <= 7) return true;
+                                    if (p === 1 || p === totalPages) return true;
+                                    if (Math.abs(p - currentPage) <= 1) return true;
+                                    return false;
+                                })
+                                .map((pageNum, idx, arr) => {
+                                    const prev = arr[idx - 1];
+                                    const showEllipsis = prev && pageNum - prev > 1;
+
+                                    return (
+                                        <div key={pageNum} className="flex items-center gap-1">
+                                            {showEllipsis && <span className="px-1 text-slate-400 select-none">...</span>}
+                                            <button
+                                                onClick={() => setCurrentPage(pageNum)}
+                                                className={cn(
+                                                    "min-w-8 h-8 px-2 rounded-xl text-xs font-semibold transition-all border cursor-pointer",
+                                                    currentPage === pageNum
+                                                        ? "bg-[#1E2022] text-white border-[#1E2022] shadow-xs font-bold"
+                                                        : "bg-white text-slate-700 border-[#E8E2D6] hover:bg-[#F3EFE6]"
+                                                )}
+                                            >
+                                                {pageNum}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+
+                            <button
+                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="p-2 rounded-xl border border-[#E8E2D6] bg-white text-slate-700 hover:bg-[#F3EFE6] disabled:opacity-40 disabled:pointer-events-none transition-all shadow-xs flex items-center justify-center cursor-pointer"
+                                title="Próxima página"
+                            >
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
