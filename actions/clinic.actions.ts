@@ -399,35 +399,81 @@ export async function createPrescriptionRequestAction(data: {
 
     if (existing) {
       // Atualiza a solicitação pendente existente com as informações mais recentes/completas
-      const updated = await (prisma as any).prescriptionRequest.update({
-        where: { id: existing.id },
-        data: {
-          patientName: rawName || existing.patientName,
-          birthDate: data.birthDate?.trim() || existing.birthDate,
-          unimedCard: (data.unimedCard?.trim() || existing.unimedCard).replace(/\s+/g, ""),
-          address: data.address?.trim() || existing.address,
-          medications: data.medications?.trim() || existing.medications,
-          ...(typeof data.passarCarteirinha === "boolean" ? { passarCarteirinha: data.passarCarteirinha } : {}),
-          ...(typeof data.receitaAzul === "boolean" ? { receitaAzul: data.receitaAzul } : {}),
-          ...(data.status ? { status: data.status } : {}),
-        },
-      });
-      return { success: true, data: updated, isUpdate: true };
+      try {
+        const updated = await (prisma as any).prescriptionRequest.update({
+          where: { id: existing.id },
+          data: {
+            patientName: rawName || existing.patientName,
+            birthDate: data.birthDate?.trim() || existing.birthDate,
+            unimedCard: (data.unimedCard?.trim() || existing.unimedCard).replace(/\s+/g, ""),
+            address: data.address?.trim() || existing.address,
+            medications: data.medications?.trim() || existing.medications,
+            ...(typeof data.passarCarteirinha === "boolean" ? { passarCarteirinha: data.passarCarteirinha } : {}),
+            ...(typeof data.receitaAzul === "boolean" ? { receitaAzul: data.receitaAzul } : {}),
+            ...(data.status ? { status: data.status } : {}),
+          },
+        });
+        return { success: true, data: updated, isUpdate: true };
+      } catch (updateErr: any) {
+        const updated = await (prisma as any).prescriptionRequest.update({
+          where: { id: existing.id },
+          data: {
+            patientName: rawName || existing.patientName,
+            birthDate: data.birthDate?.trim() || existing.birthDate,
+            unimedCard: (data.unimedCard?.trim() || existing.unimedCard).replace(/\s+/g, ""),
+            address: data.address?.trim() || existing.address,
+            medications: data.medications?.trim() || existing.medications,
+            ...(typeof data.passarCarteirinha === "boolean" ? { passarCarteirinha: data.passarCarteirinha } : {}),
+            ...(data.status ? { status: data.status } : {}),
+          },
+        });
+        if (typeof data.receitaAzul === "boolean") {
+          await prisma.$executeRawUnsafe(
+            'UPDATE "PrescriptionRequest" SET "receitaAzul" = $1, "updatedAt" = NOW() WHERE "id" = $2',
+            data.receitaAzul,
+            existing.id
+          );
+          updated.receitaAzul = data.receitaAzul;
+        }
+        return { success: true, data: updated, isUpdate: true };
+      }
     }
 
-    const request = await (prisma as any).prescriptionRequest.create({
-      data: {
-        patientName: rawName || "Paciente sem nome",
-        birthDate: data.birthDate?.trim() || "",
-        unimedCard: (data.unimedCard || "").replace(/\s+/g, ""),
-        address: data.address?.trim() || "",
-        medications: data.medications?.trim() || "",
-        passarCarteirinha: Boolean(data.passarCarteirinha),
-        receitaAzul: Boolean(data.receitaAzul),
-        status: data.status || "PENDENTE",
-      },
-    });
-    return { success: true, data: request, isUpdate: false };
+    try {
+      const request = await (prisma as any).prescriptionRequest.create({
+        data: {
+          patientName: rawName || "Paciente sem nome",
+          birthDate: data.birthDate?.trim() || "",
+          unimedCard: (data.unimedCard || "").replace(/\s+/g, ""),
+          address: data.address?.trim() || "",
+          medications: data.medications?.trim() || "",
+          passarCarteirinha: Boolean(data.passarCarteirinha),
+          receitaAzul: Boolean(data.receitaAzul),
+          status: data.status || "PENDENTE",
+        },
+      });
+      return { success: true, data: request, isUpdate: false };
+    } catch (createErr: any) {
+      const request = await (prisma as any).prescriptionRequest.create({
+        data: {
+          patientName: rawName || "Paciente sem nome",
+          birthDate: data.birthDate?.trim() || "",
+          unimedCard: (data.unimedCard || "").replace(/\s+/g, ""),
+          address: data.address?.trim() || "",
+          medications: data.medications?.trim() || "",
+          passarCarteirinha: Boolean(data.passarCarteirinha),
+          status: data.status || "PENDENTE",
+        },
+      });
+      if (data.receitaAzul) {
+        await prisma.$executeRawUnsafe(
+          'UPDATE "PrescriptionRequest" SET "receitaAzul" = true WHERE "id" = $1',
+          request.id
+        );
+        request.receitaAzul = true;
+      }
+      return { success: true, data: request, isUpdate: false };
+    }
   } catch (error: any) {
     console.error("Erro ao criar ou atualizar solicitação de receita:", error);
     return { success: false, error: "Falha ao salvar a solicitação de receita." };
@@ -449,11 +495,25 @@ export async function togglePassarCarteirinhaAction(id: string, passarCarteirinh
 
 export async function toggleReceitaAzulAction(id: string, receitaAzul: boolean) {
   try {
-    const updated = await (prisma as any).prescriptionRequest.update({
-      where: { id },
-      data: { receitaAzul },
-    });
-    return { success: true, data: updated };
+    try {
+      const updated = await (prisma as any).prescriptionRequest.update({
+        where: { id },
+        data: { receitaAzul },
+      });
+      return { success: true, data: updated };
+    } catch (prismaErr: any) {
+      // Fallback via raw SQL caso o Prisma Client em memória no dev server ainda não tenha recarregado o modelo
+      await prisma.$executeRawUnsafe(
+        'UPDATE "PrescriptionRequest" SET "receitaAzul" = $1, "updatedAt" = NOW() WHERE "id" = $2',
+        receitaAzul,
+        id
+      );
+      const rows: any[] = await prisma.$queryRawUnsafe(
+        'SELECT * FROM "PrescriptionRequest" WHERE "id" = $1 LIMIT 1',
+        id
+      );
+      return { success: true, data: rows[0] };
+    }
   } catch (error: any) {
     console.error("Erro ao alternar tag Receita Azul:", error);
     return { success: false, error: "Falha ao alternar tag Receita Azul." };
@@ -462,10 +522,19 @@ export async function toggleReceitaAzulAction(id: string, receitaAzul: boolean) 
 
 export async function fetchPrescriptionRequestsAction() {
   try {
-    const requests = await prisma.prescriptionRequest.findMany({
-      orderBy: { createdAt: "desc" },
-    });
-    return { success: true, data: requests };
+    // Busca via $queryRawUnsafe para garantir que a coluna receitaAzul venha mapeada
+    // mesmo se o Prisma Client em memória não tiver sido reiniciado ainda
+    try {
+      const requests = await prisma.$queryRawUnsafe<any[]>(
+        'SELECT * FROM "PrescriptionRequest" ORDER BY "createdAt" DESC'
+      );
+      return { success: true, data: requests };
+    } catch (rawErr) {
+      const requests = await prisma.prescriptionRequest.findMany({
+        orderBy: { createdAt: "desc" },
+      });
+      return { success: true, data: requests };
+    }
   } catch (error: any) {
     console.error("Erro ao buscar solicitações de receita:", error);
     return { success: false, error: "Falha ao buscar solicitações." };
@@ -559,20 +628,44 @@ export async function updatePrescriptionAction(id: string, data: {
 }) {
   if (!id) return { success: false, error: "ID da receita é obrigatório." };
   try {
-    const updated = await (prisma as any).prescriptionRequest.update({
-      where: { id },
-      data: {
-        ...(data.patientName ? { patientName: data.patientName.trim() } : {}),
-        ...(data.birthDate ? { birthDate: data.birthDate.trim() } : {}),
-        ...(data.unimedCard !== undefined ? { unimedCard: data.unimedCard.replace(/\s+/g, "") } : {}),
-        ...(data.address ? { address: data.address.trim() } : {}),
-        ...(data.medications ? { medications: data.medications.trim() } : {}),
-        ...(data.status ? { status: data.status.trim() } : {}),
-        ...(typeof data.passarCarteirinha === "boolean" ? { passarCarteirinha: data.passarCarteirinha } : {}),
-        ...(typeof data.receitaAzul === "boolean" ? { receitaAzul: data.receitaAzul } : {}),
-      },
-    });
-    return { success: true, data: updated };
+    try {
+      const updated = await (prisma as any).prescriptionRequest.update({
+        where: { id },
+        data: {
+          ...(data.patientName ? { patientName: data.patientName.trim() } : {}),
+          ...(data.birthDate ? { birthDate: data.birthDate.trim() } : {}),
+          ...(data.unimedCard !== undefined ? { unimedCard: data.unimedCard.replace(/\s+/g, "") } : {}),
+          ...(data.address ? { address: data.address.trim() } : {}),
+          ...(data.medications ? { medications: data.medications.trim() } : {}),
+          ...(data.status ? { status: data.status.trim() } : {}),
+          ...(typeof data.passarCarteirinha === "boolean" ? { passarCarteirinha: data.passarCarteirinha } : {}),
+          ...(typeof data.receitaAzul === "boolean" ? { receitaAzul: data.receitaAzul } : {}),
+        },
+      });
+      return { success: true, data: updated };
+    } catch (err) {
+      const updated = await (prisma as any).prescriptionRequest.update({
+        where: { id },
+        data: {
+          ...(data.patientName ? { patientName: data.patientName.trim() } : {}),
+          ...(data.birthDate ? { birthDate: data.birthDate.trim() } : {}),
+          ...(data.unimedCard !== undefined ? { unimedCard: data.unimedCard.replace(/\s+/g, "") } : {}),
+          ...(data.address ? { address: data.address.trim() } : {}),
+          ...(data.medications ? { medications: data.medications.trim() } : {}),
+          ...(data.status ? { status: data.status.trim() } : {}),
+          ...(typeof data.passarCarteirinha === "boolean" ? { passarCarteirinha: data.passarCarteirinha } : {}),
+        },
+      });
+      if (typeof data.receitaAzul === "boolean") {
+        await prisma.$executeRawUnsafe(
+          'UPDATE "PrescriptionRequest" SET "receitaAzul" = $1, "updatedAt" = NOW() WHERE "id" = $2',
+          data.receitaAzul,
+          id
+        );
+        updated.receitaAzul = data.receitaAzul;
+      }
+      return { success: true, data: updated };
+    }
   } catch (error: any) {
     console.error("Erro ao atualizar receita médica:", error);
     return { success: false, error: "Falha ao atualizar receita médica." };
