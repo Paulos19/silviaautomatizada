@@ -13,7 +13,7 @@ const ORCHESTRATOR_API_URL =
 
 export type NoticeType =
   | "48H"               // 1º Aviso (08h00 - 48h antes)
-  | "24H_AVISO"         // 2º e último aviso com alerta de cancelamento (14h00 - 24h antes)
+  | "24H_AVISO"         // Lembrete cordial de consulta para quem ainda não confirmou (14h00 - 24h antes)
   | "24H_LEMBRETE"      // Lembrete passivo para quem já confirmou (14h00 - 24h antes)
   | "ANTECIPADO_SEXTA"  // Antecipação de segunda/terça enviada na sexta (08h00)
   | "CANCELADO_INACAO"  // Cancelado por falta de retorno e vaga dada à lista de espera
@@ -187,19 +187,23 @@ function buildFirstNoticeMessage(
 }
 
 /**
- * 2º e Último Aviso de Confirmação (Disparo das 14h00 - 24h antes, caso AINDA NÃO confirmada)
- * Alerta com urgência sobre cancelamento e liberação para a Lista de Espera.
+ * Lembrete de Consulta (Disparo das 14h00 - 24h antes, caso AINDA NÃO confirmada)
+ * Mensagem cordial e atenciosa para lembrar o paciente e confirmar presença.
  */
 function buildSecondNoticeMessage(
   firstName: string,
   dateSchedule: string,
   hourSchedule: string
 ): string {
+  const timePart = hourSchedule ? ` às *${hourSchedule}*` : "";
   return (
-    `Olá, ${firstName}! Aqui é a Silv.IA do consultório do Dr. Marco Antonio.\n\n` +
-    `Este é o nosso *segundo e último aviso* para confirmação da sua consulta de amanhã, *${dateSchedule}* às *${hourSchedule}*.\n\n` +
-    `⚠️ Como ainda não tivemos seu retorno, precisamos que nos confirme sua presença com urgência. Caso não haja confirmação, sua consulta infelizmente precisará ser cancelada e disponibilizada para um paciente que aguarda na nossa lista de espera.\n\n` +
-    `📍 *Endereço:* Rua Dr. Roberto Barrozo, 1379, 2º andar - Hospital Otorrinos Curitiba\n\n` +
+    `Olá, ${firstName}! Tudo bem? 😊\n` +
+    `Aqui é a Silv.IA do consultório do Dr. Marco Antonio.\n\n` +
+    `Passando para lembrar da sua consulta agendada para amanhã, dia *${dateSchedule}*${timePart}.\n\n` +
+    `Como ainda não registramos sua confirmação, você poderia nos confirmar se comparecerá? Assim conseguimos organizar a agenda e deixar tudo pronto para o seu atendimento!\n\n` +
+    `📍 *Endereço:*\n` +
+    `Rua Dr. Roberto Barrozo, 1379, 2º andar - Hospital Otorrinos Curitiba\n` +
+    `https://maps.google.com/?q=-25.415823,-49.282524\n\n` +
     `Podemos confirmar sua consulta para amanhã?`
   );
 }
@@ -403,7 +407,7 @@ export async function fetchUpcomingBookingsAction(daysAhead: number = 4): Promis
         dayLabel = "Amanhã";
         suggestedScheduleTime = "14:00"; // 24h é SEMPRE às 14h!
         targetNoticeType = isConfirmed ? "24H_LEMBRETE" : "24H_AVISO";
-        noticeTitle = isConfirmed ? "Lembrete de Presença (24h - Confirmado)" : "2º e Último Aviso (24h - Urgente)";
+        noticeTitle = isConfirmed ? "Lembrete de Presença (24h - Confirmado)" : "Lembrete de Consulta (24h)";
       } else if (dayOffset === 2) {
         dayLabel = "Em 2 dias";
         suggestedScheduleTime = "08:00"; // 48h é às 08h!
@@ -791,7 +795,7 @@ export async function runMorningConfirmationDispatchAction(): Promise<{
  * - Se for Sábado ou Domingo: pula
  * - Dispara para consultas de amanhã (D+1):
  *   - Se confirmada: envia 24H_LEMBRETE (lembrete passivo de presença)
- *   - Se pendente: envia 24H_AVISO (2º e último aviso com alerta de cancelamento)
+ *   - Se pendente: envia 24H_AVISO (lembrete cordial de consulta para quem ainda não confirmou)
  * - Na Sexta-feira: se houver consultas no Sábado (D+1), envia às 14h00
  */
 export async function runAfternoonConfirmationDispatchAction(): Promise<{

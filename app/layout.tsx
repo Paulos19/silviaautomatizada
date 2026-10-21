@@ -14,8 +14,8 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Silvia Dashboard",
-  description: "Painel Administrativo Hospitalar",
+  title: "Silv.IA | Sistema de Agendamento Inteligente & IA Clínica",
+  description: "Plataforma avançada de orquestração clínica, agendamento autônomo com IA e gestão hospitalar inteligente.",
 };
 
 export default function RootLayout({

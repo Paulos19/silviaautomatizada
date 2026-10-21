@@ -439,20 +439,20 @@ export default function DisparosPage() {
           </p>
         </div>
 
-        {/* Card 3: 14h00 2º Aviso Urgente (24h) */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-rose-200/80 shadow-[0_2px_12px_rgba(244,63,94,0.05)] relative overflow-hidden bg-gradient-to-br from-white to-rose-50/30">
+        {/* Card 3: 14h00 Lembrete 24h (Não confirmados) */}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-amber-200/80 shadow-[0_2px_12px_rgba(245,158,11,0.05)] relative overflow-hidden bg-gradient-to-br from-white to-amber-50/30">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-rose-800 uppercase tracking-wider">14:00 (2º Aviso 24h)</span>
-            <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center">
-              <AlertTriangle className="w-4 h-4" />
+            <span className="text-xs font-semibold text-amber-800 uppercase tracking-wider">14:00 (Lembrete 24h)</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+              <Clock className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-extrabold text-rose-900">{summary.pendingAfternoonNoticeCount}</span>
-            <span className="text-xs text-rose-700">não confirmados</span>
+            <span className="text-2xl sm:text-3xl font-extrabold text-amber-900">{summary.pendingAfternoonNoticeCount}</span>
+            <span className="text-xs text-amber-700">não confirmados</span>
           </div>
-          <p className="mt-2 text-[10px] text-rose-800/80">
-            Último aviso antes de cancelar para lista
+          <p className="mt-2 text-[10px] text-amber-800/80">
+            Lembrete cordial para consultas de amanhã
           </p>
         </div>
 
