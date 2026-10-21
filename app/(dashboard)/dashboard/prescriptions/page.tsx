@@ -9,6 +9,7 @@ import {
     togglePassarCarteirinhaAction,
     toggleReceitaAzulAction,
     createPrescriptionRequestAction,
+    updatePrescriptionAction,
 } from "@/actions/clinic.actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +36,7 @@ import {
     Plus,
     X,
     Check,
+    Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, Variants } from "framer-motion";
@@ -439,6 +441,82 @@ export default function PrescriptionsPage() {
             setCreateError(err.message || "Erro inesperado ao salvar solicitação.");
         } finally {
             setCreating(false);
+        }
+    };
+
+    // Modal de Edição de Informações da Prescrição
+    const [editingRequest, setEditingRequest] = useState<PrescriptionRequest | null>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editing, setEditing] = useState(false);
+    const [editError, setEditError] = useState<string | null>(null);
+    const [editFormData, setEditFormData] = useState({
+        patientName: "",
+        birthDate: "",
+        unimedCard: "",
+        address: "",
+        medications: "",
+        passarCarteirinha: false,
+        receitaAzul: false,
+        status: "PENDENTE",
+    });
+
+    const handleOpenEditModal = (req: PrescriptionRequest) => {
+        setEditingRequest(req);
+        setEditFormData({
+            patientName: req.patientName || "",
+            birthDate: req.birthDate || "",
+            unimedCard: req.unimedCard || "",
+            address: req.address || "",
+            medications: req.medications || "",
+            passarCarteirinha: Boolean(req.passarCarteirinha),
+            receitaAzul: Boolean(req.receitaAzul),
+            status: req.status || "PENDENTE",
+        });
+        setEditError(null);
+        setIsEditModalOpen(true);
+    };
+
+    const handleSaveEdit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingRequest) return;
+        if (!editFormData.patientName.trim()) {
+            setEditError("O nome completo do paciente é obrigatório.");
+            return;
+        }
+        if (!editFormData.medications.trim()) {
+            setEditError("Informe os medicamentos solicitados.");
+            return;
+        }
+
+        setEditing(true);
+        setEditError(null);
+
+        try {
+            const res = await updatePrescriptionAction(editingRequest.id, {
+                patientName: editFormData.patientName.trim(),
+                birthDate: editFormData.birthDate.trim(),
+                unimedCard: editFormData.unimedCard.trim(),
+                address: editFormData.address.trim(),
+                medications: editFormData.medications.trim(),
+                passarCarteirinha: editFormData.passarCarteirinha,
+                receitaAzul: editFormData.receitaAzul,
+                status: editFormData.status,
+            });
+
+            if (res.success && res.data) {
+                const updated = res.data as PrescriptionRequest;
+                setRequests((prev) =>
+                    prev.map((r) => (r.id === editingRequest.id ? { ...r, ...updated } : r))
+                );
+                setIsEditModalOpen(false);
+                setEditingRequest(null);
+            } else {
+                setEditError(res.error || "Falha ao salvar as alterações da prescrição.");
+            }
+        } catch (err: any) {
+            setEditError(err.message || "Erro inesperado ao salvar alterações.");
+        } finally {
+            setEditing(false);
         }
     };
 
@@ -851,9 +929,19 @@ export default function PrescriptionsPage() {
                                                     {req.patientName.charAt(0)}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <h3 className="text-sm font-semibold text-slate-900 truncate">
-                                                        {req.patientName}
-                                                    </h3>
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <h3 className="text-sm font-semibold text-slate-900 truncate">
+                                                            {req.patientName}
+                                                        </h3>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleOpenEditModal(req)}
+                                                            title="Editar informações do paciente e receita"
+                                                            className="p-1 rounded-lg text-slate-400 hover:text-amber-700 hover:bg-amber-50 transition-colors shrink-0 cursor-pointer"
+                                                        >
+                                                            <Pencil className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
                                                     <p className="text-[11px] text-slate-700 mt-0.5">
                                                         Data Nasc.: {req.birthDate}
                                                     </p>
@@ -957,15 +1045,27 @@ export default function PrescriptionsPage() {
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="flex items-center gap-2 mt-5 pt-4 border-t border-[#F0EAE0]">
+                                    <div className="flex items-center gap-2 mt-5 pt-4 border-t border-[#F0EAE0] flex-wrap">
                                         <Button
                                             size="sm"
                                             variant="outline"
                                             onClick={() => generatePrescriptionPDF(req)}
-                                            className="rounded-xl bg-white border-[#E8E2D6] text-slate-800 hover:bg-[#F4EFE6] gap-1.5 transition-all text-xs font-semibold flex-1 shadow-sm"
+                                            className="rounded-xl bg-white border-[#E8E2D6] text-slate-800 hover:bg-[#F4EFE6] gap-1.5 transition-all text-xs font-semibold flex-1 min-w-[130px] shadow-sm"
                                         >
                                             <Download className="w-3.5 h-3.5 text-amber-600" />
                                             Gerar PDF Timbrado
+                                        </Button>
+
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => handleOpenEditModal(req)}
+                                            disabled={isUpdating || deletingId === req.id}
+                                            title="Editar informações do paciente e receita"
+                                            className="rounded-xl bg-white border-[#E8E2D6] text-slate-800 hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 gap-1.5 transition-all text-xs font-semibold shadow-sm cursor-pointer"
+                                        >
+                                            <Pencil className="w-3.5 h-3.5 text-amber-600" />
+                                            Editar
                                         </Button>
 
                                         {req.status === "PENDENTE" && (
@@ -1307,6 +1407,222 @@ export default function PrescriptionsPage() {
                                     <>
                                         <Plus className="w-3.5 h-3.5 text-amber-400" />
                                         Cadastrar Prescrição
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* ═══ MODAL DE EDIÇÃO DE PRESCRIÇÃO ═══ */}
+            {mounted && isEditModalOpen && editingRequest && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-[#FAF7F0] border border-[#E8E2D6] rounded-[28px] sm:rounded-[32px] shadow-[0_25px_60px_rgba(0,0,0,0.25)] max-w-2xl w-[94vw] sm:w-[92vw] max-h-[90vh] overflow-hidden flex flex-col p-5 sm:p-6 text-slate-800 animate-in fade-in zoom-in-95 duration-200"
+                    >
+                        {/* Header Modal */}
+                        <div className="flex items-center justify-between pb-3.5 border-b border-[#F0EAE0] shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-300 text-amber-800 flex items-center justify-center shrink-0">
+                                    <Pencil className="w-5 h-5 text-amber-700" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-slate-900">Editar Solicitação de Receita</h3>
+                                    <p className="text-xs text-slate-600 mt-0.5">
+                                        Editando dados de <span className="font-semibold text-slate-800">{editingRequest.patientName}</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => !editing && setIsEditModalOpen(false)}
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 transition-colors cursor-pointer"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {/* Corpo com Scroll Suave */}
+                        <div className="flex-1 overflow-y-auto py-3.5 pr-1 space-y-4">
+                            {editError && (
+                                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+                                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                                    <span>{editError}</span>
+                                </div>
+                            )}
+
+                            <form id="edit-prescription-form" onSubmit={handleSaveEdit} className="space-y-4 text-xs">
+                                {/* Nome do Paciente */}
+                                <div>
+                                    <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
+                                        <User className="w-3.5 h-3.5 text-amber-700" />
+                                        <span>Nome Completo do Paciente *</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={editFormData.patientName}
+                                        onChange={(e) => setEditFormData({ ...editFormData, patientName: e.target.value })}
+                                        placeholder="Ex: João da Silva Gomes"
+                                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 shadow-xs transition-all"
+                                    />
+                                </div>
+
+                                {/* Data de Nascimento & Convênio */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                    <div>
+                                        <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
+                                            <CalendarDays className="w-3.5 h-3.5 text-amber-700" />
+                                            <span>Data de Nascimento</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={editFormData.birthDate}
+                                            onChange={(e) => setEditFormData({ ...editFormData, birthDate: e.target.value })}
+                                            placeholder="Ex: 25/08/1982"
+                                            className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 shadow-xs transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
+                                            <CreditCard className="w-3.5 h-3.5 text-amber-700" />
+                                            <span>Carteirinha Unimed / Convênio</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={editFormData.unimedCard}
+                                            onChange={(e) => setEditFormData({ ...editFormData, unimedCard: e.target.value })}
+                                            placeholder="Ex: 0032... ou PARTICULAR"
+                                            className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 shadow-xs transition-all font-mono"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Endereço */}
+                                <div>
+                                    <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
+                                        <MapPin className="w-3.5 h-3.5 text-amber-700" />
+                                        <span>Endereço Completo</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.address}
+                                        onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                                        placeholder="Ex: Rua Presidente Taunay, 1200 - Batel, Curitiba - PR"
+                                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 shadow-xs transition-all"
+                                    />
+                                </div>
+
+                                {/* Medicamentos Solicitados */}
+                                <div>
+                                    <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
+                                        <FileText className="w-3.5 h-3.5 text-amber-700" />
+                                        <span>Medicamentos Solicitados *</span>
+                                    </label>
+                                    <textarea
+                                        required
+                                        rows={3}
+                                        value={editFormData.medications}
+                                        onChange={(e) => setEditFormData({ ...editFormData, medications: e.target.value })}
+                                        placeholder="Ex:&#10;1. Losartana 50mg — 1 comp. ao dia pela manhã&#10;2. Sinvastatina 20mg — 1 comp. à noite"
+                                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E2D6] bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 shadow-xs transition-all font-sans leading-relaxed resize-y"
+                                    />
+                                </div>
+
+                                {/* Status & Tags Especiais */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-stretch">
+                                    <div>
+                                        <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
+                                            <Clock className="w-3.5 h-3.5 text-amber-700" />
+                                            <span>Status da Receita</span>
+                                        </label>
+                                        <select
+                                            value={editFormData.status}
+                                            onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                                            className="w-full px-3 py-2.5 rounded-xl border border-[#E8E2D6] bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400/50 shadow-xs transition-all font-medium cursor-pointer"
+                                        >
+                                            <option value="PENDENTE">⏳ Pendente (Aguardando Médico)</option>
+                                            <option value="CONCLUIDO">✅ Concluído (Emitido/Entregue)</option>
+                                            <option value="REJEITADO">❌ Rejeitado</option>
+                                        </select>
+                                    </div>
+
+                                    <div
+                                        onClick={() => setEditFormData((prev) => ({ ...prev, passarCarteirinha: !prev.passarCarteirinha }))}
+                                        className={cn(
+                                            "p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 select-none self-end h-[42px]",
+                                            editFormData.passarCarteirinha
+                                                ? "bg-amber-500 text-white border-amber-600 shadow-xs"
+                                                : "bg-white text-slate-700 hover:bg-[#F2ECE0] border-[#E8E2D6]"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "w-4 h-4 rounded flex items-center justify-center border transition-colors shrink-0",
+                                            editFormData.passarCarteirinha ? "bg-white border-white text-amber-900" : "border-slate-300 bg-white"
+                                        )}>
+                                            {editFormData.passarCarteirinha && <Check className="w-3 h-3 stroke-[3]" />}
+                                        </div>
+                                        <div className="flex-1 leading-tight">
+                                            <span className="font-semibold text-[11px] block">
+                                                Passar Carteirinha
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        onClick={() => setEditFormData((prev) => ({ ...prev, receitaAzul: !prev.receitaAzul }))}
+                                        className={cn(
+                                            "p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 select-none self-end h-[42px]",
+                                            editFormData.receitaAzul
+                                                ? "bg-blue-600 text-white border-blue-700 shadow-xs"
+                                                : "bg-white text-slate-700 hover:bg-blue-50/70 border-[#E8E2D6]"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "w-4 h-4 rounded flex items-center justify-center border transition-colors shrink-0",
+                                            editFormData.receitaAzul ? "bg-white border-white text-blue-900" : "border-slate-300 bg-white"
+                                        )}>
+                                            {editFormData.receitaAzul && <Check className="w-3 h-3 stroke-[3]" />}
+                                        </div>
+                                        <div className="flex-1 leading-tight">
+                                            <span className="font-semibold text-[11px] block">
+                                                Receita Azul (Notif. B)
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        {/* Modal Actions */}
+                        <div className="flex items-center justify-end gap-2.5 pt-3.5 border-t border-[#F0EAE0] shrink-0">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsEditModalOpen(false)}
+                                disabled={editing}
+                                className="rounded-xl border-[#E8E2D6] hover:bg-[#F2ECE0] text-slate-700 text-xs"
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="submit"
+                                form="edit-prescription-form"
+                                disabled={editing}
+                                className="rounded-xl bg-[#1E2022] hover:bg-slate-800 text-white text-xs font-semibold gap-2 shadow-sm transition-all cursor-pointer"
+                            >
+                                {editing ? (
+                                    <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                                        Salvando alterações...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Check className="w-3.5 h-3.5 text-amber-400" />
+                                        Salvar Alterações
                                     </>
                                 )}
                             </Button>
