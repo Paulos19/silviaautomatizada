@@ -45,6 +45,7 @@ model PrescriptionRequest {
   medications       String
   status            String   @default("PENDENTE") // PENDENTE, CONCLUIDO, REJEITADO
   passarCarteirinha Boolean  @default(false)
+  receitaAzul       Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }

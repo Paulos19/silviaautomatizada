@@ -7,6 +7,7 @@ import {
     updatePrescriptionStatusAction,
     deletePrescriptionRequestAction,
     togglePassarCarteirinhaAction,
+    toggleReceitaAzulAction,
     createPrescriptionRequestAction,
 } from "@/actions/clinic.actions";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,7 @@ interface PrescriptionRequest {
     medications: string;
     status: string;
     passarCarteirinha?: boolean;
+    receitaAzul?: boolean;
     createdAt: Date | string;
     updatedAt: Date | string;
 }
@@ -313,7 +315,7 @@ function generatePrescriptionPDF(req: PrescriptionRequest) {
       </div>
       <div class="info-card">
         <div class="label">Carteirinha Unimed</div>
-        <div class="value">${req.unimedCard || "Não informada"}${req.passarCarteirinha ? ' <span class="status-badge" style="background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; font-size: 7.5pt; margin-left: 4px;">⚠️ Passar Carteirinha</span>' : ''}</div>
+        <div class="value">${req.unimedCard || "Não informada"}${req.passarCarteirinha ? ' <span class="status-badge" style="background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; font-size: 7.5pt; margin-left: 4px;">⚠️ Passar Carteirinha</span>' : ''}${req.receitaAzul ? ' <span class="status-badge" style="background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; font-size: 7.5pt; margin-left: 4px;">🔵 Receita Azul</span>' : ''}</div>
       </div>
       <div class="info-card">
         <div class="label">Status</div>
@@ -356,7 +358,9 @@ export default function PrescriptionsPage() {
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [togglingTagId, setTogglingTagId] = useState<string | null>(null);
+    const [togglingReceitaAzulId, setTogglingReceitaAzulId] = useState<string | null>(null);
     const [onlyPassarCarteirinha, setOnlyPassarCarteirinha] = useState(false);
+    const [onlyReceitaAzul, setOnlyReceitaAzul] = useState(false);
     const [filter, setFilter] = useState<"ALL" | "PENDENTE" | "CONCLUIDO" | "REJEITADO">("ALL");
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -374,6 +378,7 @@ export default function PrescriptionsPage() {
         address: "",
         medications: "",
         passarCarteirinha: false,
+        receitaAzul: false,
         status: "PENDENTE",
     });
 
@@ -385,6 +390,7 @@ export default function PrescriptionsPage() {
             address: "",
             medications: "",
             passarCarteirinha: false,
+            receitaAzul: false,
             status: "PENDENTE",
         });
         setCreateError(null);
@@ -412,6 +418,7 @@ export default function PrescriptionsPage() {
                 address: formData.address.trim(),
                 medications: formData.medications.trim(),
                 passarCarteirinha: formData.passarCarteirinha,
+                receitaAzul: formData.receitaAzul,
                 status: formData.status,
                 forceCreate: true,
             });
@@ -480,6 +487,26 @@ export default function PrescriptionsPage() {
         setTogglingTagId(null);
     };
 
+    const handleToggleReceitaAzul = async (id: string, currentVal: boolean) => {
+        setTogglingReceitaAzulId(id);
+        const nextVal = !currentVal;
+
+        // Optimistic UI update
+        setRequests((prev) =>
+            prev.map((r) => (r.id === id ? { ...r, receitaAzul: nextVal } : r))
+        );
+
+        const res = await toggleReceitaAzulAction(id, nextVal);
+        if (!res.success) {
+            // Reverte em caso de falha
+            setRequests((prev) =>
+                prev.map((r) => (r.id === id ? { ...r, receitaAzul: currentVal } : r))
+            );
+            alert("Erro ao atualizar a tag 'Receita Azul'.");
+        }
+        setTogglingReceitaAzulId(null);
+    };
+
     const handleDelete = async (id: string, patientName: string) => {
         const confirmed = window.confirm(
             `Tem certeza que deseja excluir permanentemente a solicitação de receita de "${patientName}"? Esta ação não pode ser desfeita.`
@@ -499,7 +526,7 @@ export default function PrescriptionsPage() {
     // Reset pagination when search, filter or items per page change
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, filter, onlyPassarCarteirinha, itemsPerPage]);
+    }, [searchTerm, filter, onlyPassarCarteirinha, onlyReceitaAzul, itemsPerPage]);
 
     const searchFilteredRequests = requests.filter((r) => {
         const matchesSearch = searchTerm === "" ||
@@ -509,8 +536,9 @@ export default function PrescriptionsPage() {
             (r.address && r.address.toLowerCase().includes(searchTerm.toLowerCase()));
 
         const matchesCarteirinha = !onlyPassarCarteirinha || Boolean(r.passarCarteirinha);
+        const matchesReceitaAzul = !onlyReceitaAzul || Boolean(r.receitaAzul);
 
-        return matchesSearch && matchesCarteirinha;
+        return matchesSearch && matchesCarteirinha && matchesReceitaAzul;
     });
 
     const filtered = filter === "ALL" ? searchFilteredRequests : searchFilteredRequests.filter((r) => r.status === filter);
@@ -523,6 +551,7 @@ export default function PrescriptionsPage() {
     };
 
     const carteirinhaCount = requests.filter((r) => Boolean(r.passarCarteirinha)).length;
+    const receitaAzulCount = requests.filter((r) => Boolean(r.receitaAzul)).length;
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
     const safePage = Math.min(Math.max(1, currentPage), totalPages);
@@ -628,6 +657,28 @@ export default function PrescriptionsPage() {
                                 {carteirinhaCount}
                             </span>
                         </button>
+
+                        {/* Botão de Filtro "Receita Azul" */}
+                        <button
+                            type="button"
+                            onClick={() => setOnlyReceitaAzul((prev) => !prev)}
+                            className={cn(
+                                "px-3.5 py-2 rounded-2xl text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-2 border shadow-sm cursor-pointer shrink-0",
+                                onlyReceitaAzul
+                                    ? "bg-blue-600 text-white border-blue-700 shadow-[0_4px_14px_rgba(37,99,235,0.3)] ring-2 ring-blue-400/30"
+                                    : "bg-white text-slate-700 hover:bg-blue-50/70 border-[#E8E2D6]"
+                            )}
+                            title={onlyReceitaAzul ? "Mostrando apenas 'Receita Azul'. Clique para ver todas." : "Filtrar receitas com a tag 'Receita Azul'"}
+                        >
+                            <FileText className={cn("w-3.5 h-3.5", onlyReceitaAzul ? "text-white" : "text-blue-600")} />
+                            <span>Receita Azul</span>
+                            <span className={cn(
+                                "text-[10px] font-bold px-2 py-0.5 rounded-full transition-colors",
+                                onlyReceitaAzul ? "bg-white text-blue-950" : "bg-blue-100 text-blue-900"
+                            )}>
+                                {receitaAzulCount}
+                            </span>
+                        </button>
                     </div>
 
                     <div className="flex items-center self-start lg:self-auto gap-1 bg-white border border-[#E8E2D6] shadow-sm rounded-full p-1 overflow-x-auto max-w-full shrink-0">
@@ -717,7 +768,12 @@ export default function PrescriptionsPage() {
                                 <motion.div
                                     key={req.id}
                                     variants={item}
-                                    className="bg-white border border-[#E8E2D6] rounded-[32px] shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-6 md:p-7 flex flex-col justify-between group hover:border-amber-300 transition-all relative overflow-hidden"
+                                    className={cn(
+                                        "bg-white border rounded-[32px] shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-6 md:p-7 flex flex-col justify-between group transition-all relative overflow-hidden",
+                                        req.receitaAzul
+                                            ? "border-blue-300/90 hover:border-blue-500 shadow-[0_10px_30px_rgba(37,99,235,0.06)]"
+                                            : "border-[#E8E2D6] hover:border-amber-300"
+                                    )}
                                 >
                                     {/* Status + Date header */}
                                     <div>
@@ -753,6 +809,30 @@ export default function PrescriptionsPage() {
                                                     )}
                                                     <span>Passar Carteirinha</span>
                                                     {req.passarCarteirinha && (
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                                                    )}
+                                                </button>
+
+                                                {/* Tag Receita Azul (Badge Clicável no Header) */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleToggleReceitaAzul(req.id, Boolean(req.receitaAzul))}
+                                                    disabled={togglingReceitaAzulId === req.id}
+                                                    className={cn(
+                                                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer shadow-xs",
+                                                        req.receitaAzul
+                                                            ? "bg-blue-600 hover:bg-blue-700 text-white border border-blue-700/40 ring-2 ring-blue-400/30"
+                                                            : "bg-[#F8F5EE] hover:bg-blue-50 text-slate-600 hover:text-blue-900 border border-[#E8E2D6]"
+                                                    )}
+                                                    title={req.receitaAzul ? "Tag 'Receita Azul' ATIVA. Clique para desativar." : "Clique para ativar a tag 'Receita Azul' (Notificação B)"}
+                                                >
+                                                    {togglingReceitaAzulId === req.id ? (
+                                                        <Loader2 className="w-3 h-3 animate-spin text-current" />
+                                                    ) : (
+                                                        <FileText className={cn("w-3 h-3", req.receitaAzul ? "text-white" : "text-blue-600")} />
+                                                    )}
+                                                    <span>Receita Azul</span>
+                                                    {req.receitaAzul && (
                                                         <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                                                     )}
                                                 </button>
@@ -834,6 +914,32 @@ export default function PrescriptionsPage() {
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {/* Destaque Visual Receita Azul (Notificação B) */}
+                                            {req.receitaAzul && (
+                                                <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/90 border border-blue-200/90 shadow-xs text-blue-900 text-xs">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse shrink-0" />
+                                                        <div className="min-w-0">
+                                                            <span className="font-bold text-[11px] uppercase tracking-wider text-blue-900 block truncate">
+                                                                🔵 Receita Azul (Notificação B)
+                                                            </span>
+                                                            <p className="text-[10px] text-blue-700 truncate">
+                                                                Requer talonário azul especial e retenção na farmácia.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleToggleReceitaAzul(req.id, true)}
+                                                        disabled={togglingReceitaAzulId === req.id}
+                                                        className="text-[10px] font-bold text-blue-700 hover:text-blue-950 uppercase tracking-wider px-2 py-1 rounded-lg hover:bg-blue-100 transition-colors shrink-0 cursor-pointer ml-2"
+                                                        title="Remover tag Receita Azul"
+                                                    >
+                                                        Desmarcar
+                                                    </button>
+                                                </div>
+                                            )}
 
                                             {/* Medications */}
                                             <div className="p-3.5 rounded-2xl bg-[#FBF9F4] border border-[#E8E2D6]">
@@ -1111,8 +1217,8 @@ export default function PrescriptionsPage() {
                                     />
                                 </div>
 
-                                {/* Status & Opção Passar Carteirinha */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-stretch">
+                                {/* Status & Tags Especiais */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-stretch">
                                     <div>
                                         <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
                                             <Clock className="w-3.5 h-3.5 text-amber-700" />
@@ -1145,7 +1251,29 @@ export default function PrescriptionsPage() {
                                         </div>
                                         <div className="flex-1 leading-tight">
                                             <span className="font-semibold text-[11px] block">
-                                                Passar Carteirinha no Balcão
+                                                Passar Carteirinha
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        onClick={() => setFormData((prev) => ({ ...prev, receitaAzul: !prev.receitaAzul }))}
+                                        className={cn(
+                                            "p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 select-none self-end h-[42px]",
+                                            formData.receitaAzul
+                                                ? "bg-blue-600 text-white border-blue-700 shadow-xs"
+                                                : "bg-white text-slate-700 hover:bg-blue-50/70 border-[#E8E2D6]"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "w-4 h-4 rounded flex items-center justify-center border transition-colors shrink-0",
+                                            formData.receitaAzul ? "bg-white border-white text-blue-900" : "border-slate-300 bg-white"
+                                        )}>
+                                            {formData.receitaAzul && <Check className="w-3 h-3 stroke-[3]" />}
+                                        </div>
+                                        <div className="flex-1 leading-tight">
+                                            <span className="font-semibold text-[11px] block">
+                                                Receita Azul (Notif. B)
                                             </span>
                                         </div>
                                     </div>

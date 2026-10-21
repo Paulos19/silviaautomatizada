@@ -370,6 +370,7 @@ export async function createPrescriptionRequestAction(data: {
   address: string;
   medications: string;
   passarCarteirinha?: boolean;
+  receitaAzul?: boolean;
   status?: string;
   forceCreate?: boolean;
 }) {
@@ -383,7 +384,7 @@ export async function createPrescriptionRequestAction(data: {
 
     if (!data.forceCreate && (rawName || rawCard)) {
       const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
-      existing = await prisma.prescriptionRequest.findFirst({
+      existing = await (prisma as any).prescriptionRequest.findFirst({
         where: {
           status: "PENDENTE",
           createdAt: { gte: fortyEightHoursAgo },
@@ -398,7 +399,7 @@ export async function createPrescriptionRequestAction(data: {
 
     if (existing) {
       // Atualiza a solicitação pendente existente com as informações mais recentes/completas
-      const updated = await prisma.prescriptionRequest.update({
+      const updated = await (prisma as any).prescriptionRequest.update({
         where: { id: existing.id },
         data: {
           patientName: rawName || existing.patientName,
@@ -407,13 +408,14 @@ export async function createPrescriptionRequestAction(data: {
           address: data.address?.trim() || existing.address,
           medications: data.medications?.trim() || existing.medications,
           ...(typeof data.passarCarteirinha === "boolean" ? { passarCarteirinha: data.passarCarteirinha } : {}),
+          ...(typeof data.receitaAzul === "boolean" ? { receitaAzul: data.receitaAzul } : {}),
           ...(data.status ? { status: data.status } : {}),
         },
       });
       return { success: true, data: updated, isUpdate: true };
     }
 
-    const request = await prisma.prescriptionRequest.create({
+    const request = await (prisma as any).prescriptionRequest.create({
       data: {
         patientName: rawName || "Paciente sem nome",
         birthDate: data.birthDate?.trim() || "",
@@ -421,6 +423,7 @@ export async function createPrescriptionRequestAction(data: {
         address: data.address?.trim() || "",
         medications: data.medications?.trim() || "",
         passarCarteirinha: Boolean(data.passarCarteirinha),
+        receitaAzul: Boolean(data.receitaAzul),
         status: data.status || "PENDENTE",
       },
     });
@@ -433,7 +436,7 @@ export async function createPrescriptionRequestAction(data: {
 
 export async function togglePassarCarteirinhaAction(id: string, passarCarteirinha: boolean) {
   try {
-    const updated = await prisma.prescriptionRequest.update({
+    const updated = await (prisma as any).prescriptionRequest.update({
       where: { id },
       data: { passarCarteirinha },
     });
@@ -441,6 +444,19 @@ export async function togglePassarCarteirinhaAction(id: string, passarCarteirinh
   } catch (error: any) {
     console.error("Erro ao alternar tag Passar Carteirinha:", error);
     return { success: false, error: "Falha ao alternar tag Passar Carteirinha." };
+  }
+}
+
+export async function toggleReceitaAzulAction(id: string, receitaAzul: boolean) {
+  try {
+    const updated = await (prisma as any).prescriptionRequest.update({
+      where: { id },
+      data: { receitaAzul },
+    });
+    return { success: true, data: updated };
+  } catch (error: any) {
+    console.error("Erro ao alternar tag Receita Azul:", error);
+    return { success: false, error: "Falha ao alternar tag Receita Azul." };
   }
 }
 
@@ -539,10 +555,11 @@ export async function updatePrescriptionAction(id: string, data: {
   medications?: string;
   status?: string;
   passarCarteirinha?: boolean;
+  receitaAzul?: boolean;
 }) {
   if (!id) return { success: false, error: "ID da receita é obrigatório." };
   try {
-    const updated = await prisma.prescriptionRequest.update({
+    const updated = await (prisma as any).prescriptionRequest.update({
       where: { id },
       data: {
         ...(data.patientName ? { patientName: data.patientName.trim() } : {}),
@@ -552,6 +569,7 @@ export async function updatePrescriptionAction(id: string, data: {
         ...(data.medications ? { medications: data.medications.trim() } : {}),
         ...(data.status ? { status: data.status.trim() } : {}),
         ...(typeof data.passarCarteirinha === "boolean" ? { passarCarteirinha: data.passarCarteirinha } : {}),
+        ...(typeof data.receitaAzul === "boolean" ? { receitaAzul: data.receitaAzul } : {}),
       },
     });
     return { success: true, data: updated };
