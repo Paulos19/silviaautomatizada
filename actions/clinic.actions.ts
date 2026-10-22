@@ -369,6 +369,7 @@ export async function createPrescriptionRequestAction(data: {
   unimedCard: string;
   address: string;
   medications: string;
+  phone?: string;
   passarCarteirinha?: boolean;
   receitaAzul?: boolean;
   status?: string;
@@ -377,6 +378,7 @@ export async function createPrescriptionRequestAction(data: {
   try {
     const rawName = (data.patientName || "").trim();
     const rawCard = (data.unimedCard || "").replace(/\s+/g, "");
+    const rawPhone = (data.phone || "").trim();
 
     // Busca se já existe uma solicitação PENDENTE recente deste mesmo paciente (últimas 48h)
     // para evitar que mensagens sequenciais no WhatsApp multipliquem os cards
@@ -408,6 +410,7 @@ export async function createPrescriptionRequestAction(data: {
             unimedCard: (data.unimedCard?.trim() || existing.unimedCard).replace(/\s+/g, ""),
             address: data.address?.trim() || existing.address,
             medications: data.medications?.trim() || existing.medications,
+            ...(rawPhone ? { phone: rawPhone } : {}),
             ...(typeof data.passarCarteirinha === "boolean" ? { passarCarteirinha: data.passarCarteirinha } : {}),
             ...(typeof data.receitaAzul === "boolean" ? { receitaAzul: data.receitaAzul } : {}),
             ...(data.status ? { status: data.status } : {}),
@@ -423,6 +426,7 @@ export async function createPrescriptionRequestAction(data: {
             unimedCard: (data.unimedCard?.trim() || existing.unimedCard).replace(/\s+/g, ""),
             address: data.address?.trim() || existing.address,
             medications: data.medications?.trim() || existing.medications,
+            ...(rawPhone ? { phone: rawPhone } : {}),
             ...(typeof data.passarCarteirinha === "boolean" ? { passarCarteirinha: data.passarCarteirinha } : {}),
             ...(data.status ? { status: data.status } : {}),
           },
@@ -447,6 +451,7 @@ export async function createPrescriptionRequestAction(data: {
           unimedCard: (data.unimedCard || "").replace(/\s+/g, ""),
           address: data.address?.trim() || "",
           medications: data.medications?.trim() || "",
+          phone: rawPhone || null,
           passarCarteirinha: Boolean(data.passarCarteirinha),
           receitaAzul: Boolean(data.receitaAzul),
           status: data.status || "PENDENTE",
@@ -465,12 +470,15 @@ export async function createPrescriptionRequestAction(data: {
           status: data.status || "PENDENTE",
         },
       });
-      if (data.receitaAzul) {
+      if (data.receitaAzul || rawPhone) {
         await prisma.$executeRawUnsafe(
-          'UPDATE "PrescriptionRequest" SET "receitaAzul" = true WHERE "id" = $1',
+          'UPDATE "PrescriptionRequest" SET "receitaAzul" = COALESCE($1, "receitaAzul"), "phone" = COALESCE($2, "phone") WHERE "id" = $3',
+          Boolean(data.receitaAzul),
+          rawPhone || null,
           request.id
         );
-        request.receitaAzul = true;
+        request.receitaAzul = Boolean(data.receitaAzul);
+        request.phone = rawPhone || null;
       }
       return { success: true, data: request, isUpdate: false };
     }
@@ -622,12 +630,15 @@ export async function updatePrescriptionAction(id: string, data: {
   unimedCard?: string;
   address?: string;
   medications?: string;
+  phone?: string;
   status?: string;
   passarCarteirinha?: boolean;
   receitaAzul?: boolean;
+  lastNotifiedAt?: Date;
 }) {
   if (!id) return { success: false, error: "ID da receita é obrigatório." };
   try {
+    const rawPhone = data.phone !== undefined ? data.phone.trim() : undefined;
     try {
       const updated = await (prisma as any).prescriptionRequest.update({
         where: { id },
@@ -637,9 +648,11 @@ export async function updatePrescriptionAction(id: string, data: {
           ...(data.unimedCard !== undefined ? { unimedCard: data.unimedCard.replace(/\s+/g, "") } : {}),
           ...(data.address ? { address: data.address.trim() } : {}),
           ...(data.medications ? { medications: data.medications.trim() } : {}),
+          ...(rawPhone !== undefined ? { phone: rawPhone } : {}),
           ...(data.status ? { status: data.status.trim() } : {}),
           ...(typeof data.passarCarteirinha === "boolean" ? { passarCarteirinha: data.passarCarteirinha } : {}),
           ...(typeof data.receitaAzul === "boolean" ? { receitaAzul: data.receitaAzul } : {}),
+          ...(data.lastNotifiedAt ? { lastNotifiedAt: data.lastNotifiedAt } : {}),
         },
       });
       return { success: true, data: updated };
@@ -657,13 +670,22 @@ export async function updatePrescriptionAction(id: string, data: {
             ...(typeof data.passarCarteirinha === "boolean" ? { passarCarteirinha: data.passarCarteirinha } : {}),
           },
         });
-        if (typeof data.receitaAzul === "boolean") {
+        if (typeof data.receitaAzul === "boolean" || rawPhone !== undefined || data.lastNotifiedAt) {
           await prisma.$executeRawUnsafe(
-            'UPDATE "PrescriptionRequest" SET "receitaAzul" = $1, "updatedAt" = NOW() WHERE "id" = $2',
-            data.receitaAzul,
+            `UPDATE "PrescriptionRequest"
+             SET "receitaAzul" = COALESCE($1, "receitaAzul"),
+                 "phone" = COALESCE($2, "phone"),
+                 "lastNotifiedAt" = COALESCE($3, "lastNotifiedAt"),
+                 "updatedAt" = NOW()
+             WHERE "id" = $4`,
+            typeof data.receitaAzul === "boolean" ? data.receitaAzul : null,
+            rawPhone !== undefined ? rawPhone : null,
+            data.lastNotifiedAt || null,
             id
           );
-          updated.receitaAzul = data.receitaAzul;
+          if (typeof data.receitaAzul === "boolean") updated.receitaAzul = data.receitaAzul;
+          if (rawPhone !== undefined) updated.phone = rawPhone;
+          if (data.lastNotifiedAt) updated.lastNotifiedAt = data.lastNotifiedAt;
         }
         return { success: true, data: updated };
       } catch (rawErr) {
@@ -675,19 +697,23 @@ export async function updatePrescriptionAction(id: string, data: {
                "unimedCard" = COALESCE($3, "unimedCard"),
                "address" = COALESCE($4, "address"),
                "medications" = COALESCE($5, "medications"),
-               "status" = COALESCE($6, "status"),
-               "passarCarteirinha" = COALESCE($7, "passarCarteirinha"),
-               "receitaAzul" = COALESCE($8, "receitaAzul"),
+               "phone" = COALESCE($6, "phone"),
+               "status" = COALESCE($7, "status"),
+               "passarCarteirinha" = COALESCE($8, "passarCarteirinha"),
+               "receitaAzul" = COALESCE($9, "receitaAzul"),
+               "lastNotifiedAt" = COALESCE($10, "lastNotifiedAt"),
                "updatedAt" = NOW()
-           WHERE "id" = $9`,
+           WHERE "id" = $11`,
           data.patientName ? data.patientName.trim() : null,
           data.birthDate ? data.birthDate.trim() : null,
           data.unimedCard !== undefined ? data.unimedCard.replace(/\s+/g, "") : null,
           data.address ? data.address.trim() : null,
           data.medications ? data.medications.trim() : null,
+          rawPhone !== undefined ? rawPhone : null,
           data.status ? data.status.trim() : null,
           typeof data.passarCarteirinha === "boolean" ? data.passarCarteirinha : null,
           typeof data.receitaAzul === "boolean" ? data.receitaAzul : null,
+          data.lastNotifiedAt || null,
           id
         );
         const rows: any[] = await prisma.$queryRawUnsafe(
@@ -725,6 +751,317 @@ export async function searchPrescriptionsAction(query?: string, status?: string)
   } catch (error: any) {
     console.error("Erro ao buscar receitas:", error);
     return { success: false, error: "Falha ao buscar receitas." };
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// TEMPLATES DE MENSAGEM & DISPARO DE AVISO DE RECEITA PRONTA
+// ════════════════════════════════════════════════════════════════════════════════
+
+const DEFAULT_PRESCRIPTION_TEMPLATES = [
+  {
+    title: "Receita Pronta - Retirada na Clínica",
+    content: `Olá, {nome_paciente}! Tudo bem? 😊
+
+Informamos que a sua receita médica solicitada ao {medico} já está pronta para retirada na nossa clínica!
+
+📋 *Medicamentos:*
+{conteudo_receita}
+
+📍 *Endereço:* Hospital Otorrinos Curitiba - Rua Doutor Roberto Barrozo, 1381 - Mercês
+⏰ *Horário de Atendimento:* Segunda a Sexta, das 08h às 18h
+
+Qualquer dúvida, estamos à disposição!`,
+    isDefault: true,
+  },
+  {
+    title: "Receita Digital Emitida",
+    content: `Olá, {nome_paciente}! Tudo bem?
+
+Sua receita médica do {medico} já foi emitida com sucesso!
+
+📋 *Prescrição:*
+{conteudo_receita}
+
+Data de emissão: {data} às {horario}.
+Se precisar de mais alguma orientação, conte conosco!`,
+    isDefault: false,
+  },
+  {
+    title: "Receita Azul (Notificação Especial)",
+    content: `Olá, {nome_paciente}! Tudo bem?
+
+Sua receita de controle especial (Receita Azul) emitida pelo {medico} está pronta!
+
+📋 *Medicamentos:*
+{conteudo_receita}
+
+⚠️ *Atenção:* Por se tratar de receituário de controle especial (notificação azul), a receita física original deve ser retirada presencialmente na clínica mediante apresentação de documento com foto.
+
+📍 Hospital Otorrinos Curitiba - Rua Doutor Roberto Barrozo, 1381 - Mercês`,
+    isDefault: false,
+  },
+];
+
+export async function fetchPrescriptionMessageTemplatesAction() {
+  try {
+    let rows: any[] = [];
+    try {
+      rows = await prisma.$queryRawUnsafe<any[]>(
+        'SELECT * FROM "PrescriptionMessageTemplate" ORDER BY "isDefault" DESC, "createdAt" ASC'
+      );
+    } catch {
+      try {
+        rows = await (prisma as any).prescriptionMessageTemplate.findMany({
+          orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+        });
+      } catch (e) {
+        console.warn("Could not query PrescriptionMessageTemplate:", e);
+      }
+    }
+
+    if (!rows || rows.length === 0) {
+      // Auto-seed default templates
+      for (const tpl of DEFAULT_PRESCRIPTION_TEMPLATES) {
+        const id = "tpl_" + Math.random().toString(36).substring(2, 11);
+        try {
+          await prisma.$executeRawUnsafe(
+            'INSERT INTO "PrescriptionMessageTemplate" ("id", "title", "content", "isDefault", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW())',
+            id,
+            tpl.title,
+            tpl.content,
+            tpl.isDefault
+          );
+        } catch (seedErr) {
+          console.warn("Error seeding template:", seedErr);
+        }
+      }
+      try {
+        rows = await prisma.$queryRawUnsafe<any[]>(
+          'SELECT * FROM "PrescriptionMessageTemplate" ORDER BY "isDefault" DESC, "createdAt" ASC'
+        );
+      } catch {
+        rows = DEFAULT_PRESCRIPTION_TEMPLATES.map((t, i) => ({
+          id: `seed_${i}`,
+          title: t.title,
+          content: t.content,
+          isDefault: t.isDefault,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+      }
+    }
+
+    return { success: true, data: rows };
+  } catch (error: any) {
+    console.error("Erro ao carregar templates de mensagem:", error);
+    return { success: false, error: "Falha ao carregar templates de mensagem." };
+  }
+}
+
+export async function savePrescriptionMessageTemplateAction(data: {
+  id?: string;
+  title: string;
+  content: string;
+  isDefault?: boolean;
+}) {
+  try {
+    if (!data.title?.trim()) {
+      return { success: false, error: "O título do template é obrigatório." };
+    }
+    if (!data.content?.trim()) {
+      return { success: false, error: "O conteúdo do template é obrigatório." };
+    }
+
+    const title = data.title.trim();
+    const content = data.content.trim();
+    const isDefault = Boolean(data.isDefault);
+
+    if (isDefault) {
+      try {
+        await prisma.$executeRawUnsafe(
+          'UPDATE "PrescriptionMessageTemplate" SET "isDefault" = false'
+        );
+      } catch (unmarkErr) {
+        console.warn("Could not unmark default templates:", unmarkErr);
+      }
+    }
+
+    if (data.id) {
+      await prisma.$executeRawUnsafe(
+        'UPDATE "PrescriptionMessageTemplate" SET "title" = $1, "content" = $2, "isDefault" = $3, "updatedAt" = NOW() WHERE "id" = $4',
+        title,
+        content,
+        isDefault,
+        data.id
+      );
+      const rows: any[] = await prisma.$queryRawUnsafe(
+        'SELECT * FROM "PrescriptionMessageTemplate" WHERE "id" = $1 LIMIT 1',
+        data.id
+      );
+      return { success: true, data: rows[0] };
+    } else {
+      const id = "tpl_" + Math.random().toString(36).substring(2, 11);
+      await prisma.$executeRawUnsafe(
+        'INSERT INTO "PrescriptionMessageTemplate" ("id", "title", "content", "isDefault", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW())',
+        id,
+        title,
+        content,
+        isDefault
+      );
+      const rows: any[] = await prisma.$queryRawUnsafe(
+        'SELECT * FROM "PrescriptionMessageTemplate" WHERE "id" = $1 LIMIT 1',
+        id
+      );
+      return { success: true, data: rows[0] };
+    }
+  } catch (error: any) {
+    console.error("Erro ao salvar template de mensagem:", error);
+    return { success: false, error: "Falha ao salvar template." };
+  }
+}
+
+export async function deletePrescriptionMessageTemplateAction(id: string) {
+  try {
+    if (!id) return { success: false, error: "ID do template é obrigatório." };
+    await prisma.$executeRawUnsafe(
+      'DELETE FROM "PrescriptionMessageTemplate" WHERE "id" = $1',
+      id
+    );
+    return { success: true };
+  } catch (error: any) {
+    console.error("Erro ao excluir template de mensagem:", error);
+    return { success: false, error: "Falha ao excluir template." };
+  }
+}
+
+function normalizeWhatsAppNumber(rawPhone: string): string {
+  let cleaned = (rawPhone || "").replace(/\D/g, "");
+  if (!cleaned) return "";
+  if (!cleaned.startsWith("55") && (cleaned.length === 10 || cleaned.length === 11)) {
+    cleaned = `55${cleaned}`;
+  }
+  return cleaned;
+}
+
+export async function dispatchPrescriptionReadyMessageAction(params: {
+  prescriptionId: string;
+  phone: string;
+  messageText: string;
+  markCompleted?: boolean;
+}) {
+  try {
+    const { prescriptionId, phone, messageText, markCompleted } = params;
+
+    if (!phone || !phone.trim()) {
+      return { success: false, error: "Número de WhatsApp do paciente é obrigatório." };
+    }
+    if (!messageText || !messageText.trim()) {
+      return { success: false, error: "A mensagem a ser enviada não pode estar vazia." };
+    }
+
+    const cleanNumber = normalizeWhatsAppNumber(phone);
+    if (cleanNumber.length < 10) {
+      return { success: false, error: "Número de telefone inválido (formato esperado: DDD + Número)." };
+    }
+
+    const evoUrl = process.env.EVOLUTION_API_URL;
+    const evoKey = process.env.EVOLUTION_API_KEY;
+    const evoInst = process.env.EVOLUTION_INSTANCE || "Silvia";
+
+    if (!evoUrl || !evoKey) {
+      return { success: false, error: "Credenciais de WhatsApp não configuradas no servidor." };
+    }
+
+    const evoResp = await fetch(`${evoUrl}/message/sendText/${evoInst}`, {
+      method: "POST",
+      headers: {
+        apikey: evoKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        number: cleanNumber,
+        text: messageText,
+      }),
+    });
+
+    if (!evoResp.ok) {
+      const errText = await evoResp.text();
+      console.error("[dispatchPrescriptionReadyMessageAction] Erro Evolution API:", evoResp.status, errText);
+      return { success: false, error: `Falha ao enviar mensagem via WhatsApp (Evolution API: ${evoResp.status}).` };
+    }
+
+    // Registra envio e atualiza telefone no PrescriptionRequest
+    const now = new Date();
+    await prisma.$executeRawUnsafe(
+      `UPDATE "PrescriptionRequest"
+       SET "phone" = $1,
+           "lastNotifiedAt" = $2,
+           ${markCompleted ? '"status" = \'CONCLUIDO\',' : ''}
+           "updatedAt" = NOW()
+       WHERE "id" = $3`,
+      phone.trim(),
+      now,
+      prescriptionId
+    );
+
+    return { success: true, lastNotifiedAt: now };
+  } catch (error: any) {
+    console.error("Erro ao disparar mensagem de receita:", error);
+    return { success: false, error: error.message || "Falha ao disparar mensagem." };
+  }
+}
+
+export async function bulkDispatchPrescriptionReadyMessagesAction(params: {
+  dispatches: Array<{
+    prescriptionId: string;
+    phone: string;
+    messageText: string;
+  }>;
+  markCompleted?: boolean;
+}) {
+  try {
+    const { dispatches, markCompleted } = params;
+    if (!dispatches || dispatches.length === 0) {
+      return { success: false, error: "Nenhum paciente selecionado para disparo." };
+    }
+
+    let sentCount = 0;
+    let failedCount = 0;
+    const errors: string[] = [];
+
+    for (const item of dispatches) {
+      try {
+        const res = await dispatchPrescriptionReadyMessageAction({
+          prescriptionId: item.prescriptionId,
+          phone: item.phone,
+          messageText: item.messageText,
+          markCompleted,
+        });
+
+        if (res.success) {
+          sentCount++;
+        } else {
+          failedCount++;
+          errors.push(`${item.phone || item.prescriptionId}: ${res.error}`);
+        }
+        // Intervalo de segurança anti-ban entre os disparos (600ms)
+        await new Promise((r) => setTimeout(r, 600));
+      } catch (err: any) {
+        failedCount++;
+        errors.push(`${item.phone || item.prescriptionId}: ${err.message}`);
+      }
+    }
+
+    return {
+      success: sentCount > 0,
+      sentCount,
+      failedCount,
+      errors,
+    };
+  } catch (error: any) {
+    console.error("Erro no disparo em massa de receitas:", error);
+    return { success: false, error: "Falha geral no disparo em massa." };
   }
 }
 

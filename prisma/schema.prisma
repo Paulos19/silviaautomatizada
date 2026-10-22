@@ -37,17 +37,28 @@ model AiPersonality {
 }
 
 model PrescriptionRequest {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   patientName       String
+  phone             String?
   birthDate         String
   unimedCard        String
   address           String
   medications       String
-  status            String   @default("PENDENTE") // PENDENTE, CONCLUIDO, REJEITADO
-  passarCarteirinha Boolean  @default(false)
-  receitaAzul       Boolean  @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  status            String    @default("PENDENTE") // PENDENTE, CONCLUIDO, REJEITADO
+  passarCarteirinha Boolean   @default(false)
+  receitaAzul       Boolean   @default(false)
+  lastNotifiedAt    DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model PrescriptionMessageTemplate {
+  id        String   @id @default(cuid())
+  title     String
+  content   String   @db.Text
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model WaitlistEntry {
