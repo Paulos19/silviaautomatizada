@@ -316,7 +316,7 @@ Gostaria de antecipar sua consulta para este horário? Basta me responder por aq
     // Dispara via Evolution API se configurada
     const evoUrl = process.env.EVOLUTION_API_URL;
     const evoKey = process.env.EVOLUTION_API_KEY;
-    const evoInst = process.env.EVOLUTION_INSTANCE || "henrique";
+    const evoInst = process.env.EVOLUTION_INSTANCE || "";
 
     if (evoUrl && evoKey && evoInst) {
       try {

@@ -142,9 +142,8 @@ export default function DoctorsPage() {
                 <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">ID do Médico no Clinic API</Label>
                 <Input
                   name="doctorId"
-                  placeholder="Ex: 10073 (Dr. Marco Antonio)"
+                  placeholder="Digite o ID do médico..."
                   required
-                  defaultValue="10073"
                   className="h-11 rounded-2xl border-[#E8E2D6] bg-[#FBF9F4] text-xs text-slate-900 focus-visible:ring-amber-400"
                 />
               </div>
@@ -231,33 +230,35 @@ export default function DoctorsPage() {
             </div>
 
             <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
-              {(allDoctors.length > 0 ? allDoctors : [
-                { id: 10073, name: "Dr. Marco Antonio de Castro", crm: "18492-PR", specialty: "Otorrinolaringologia" },
-                { id: 10074, name: "Dra. Paula Regina Castro", crm: "22145-PR", specialty: "Audiologia & Labirinto" },
-                { id: 10075, name: "Dr. Carlos Eduardo Menezes", crm: "19320-PR", specialty: "Cirurgia da Face" }
-              ]).map((doc) => (
-                <div
-                  key={doc.id}
-                  className="p-3.5 rounded-2xl bg-[#FBF9F4] hover:bg-[#F2ECE0] border border-[#E8E2D6] transition-colors flex items-center justify-between text-xs"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-slate-900 text-amber-400 font-bold flex items-center justify-center text-xs shadow-sm">
-                      {doc.name.replace(/^(Dr\.|Dra\.)\s*/, "").charAt(0)}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-900">{doc.name}</p>
-                      <p className="text-[11px] text-slate-700">{doc.specialty || "Otorrinolaringologista"} • {doc.crm ? `CRM ${doc.crm}` : "Hospital Otorrinos"}</p>
-                    </div>
-                  </div>
-
-                  <Link
-                    href={`/dashboard/bookings`}
-                    className="px-3 py-1 rounded-xl bg-white border border-[#E8E2D6] hover:bg-amber-50 text-slate-800 text-[11px] font-semibold transition-colors flex items-center gap-1 shadow-sm"
+              {loadingDoctors ? (
+                <div className="py-8 text-center text-xs text-slate-700">Carregando corpo clínico...</div>
+              ) : allDoctors.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-700">Nenhum médico encontrado no sistema.</div>
+              ) : (
+                allDoctors.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="p-3.5 rounded-2xl bg-[#FBF9F4] hover:bg-[#F2ECE0] border border-[#E8E2D6] transition-colors flex items-center justify-between text-xs"
                   >
-                    Agendar <ChevronRight className="w-3 h-3 text-amber-600" />
-                  </Link>
-                </div>
-              ))}
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-slate-900 text-amber-400 font-bold flex items-center justify-center text-xs shadow-sm">
+                        {doc.name.replace(/^(Dr\.|Dra\.)\s*/, "").charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-900">{doc.name}</p>
+                        <p className="text-[11px] text-slate-700">{doc.specialty || "Otorrinolaringologista"} • {doc.crm ? `CRM ${doc.crm}` : "Hospital Otorrinos"}</p>
+                      </div>
+                    </div>
+
+                    <Link
+                      href={`/dashboard/bookings`}
+                      className="px-3 py-1 rounded-xl bg-white border border-[#E8E2D6] hover:bg-amber-50 text-slate-800 text-[11px] font-semibold transition-colors flex items-center gap-1 shadow-sm"
+                    >
+                      Agendar <ChevronRight className="w-3 h-3 text-amber-600" />
+                    </Link>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

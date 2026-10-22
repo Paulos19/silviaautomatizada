@@ -4,12 +4,12 @@ import prisma from "@/lib/prisma";
 import { ClinicService } from "@/services/clinic.service";
 import { matchWaitlistForSlotAction, notifyWaitlistOfferAction } from "@/actions/waitlist.actions";
 
-const DOCTOR_ID = process.env.CLINIC_DOCTOR_ID || "10073";
-const ADDRESS_ID = process.env.CLINIC_ADDRESS_ID || "1";
+const DOCTOR_ID = process.env.CLINIC_DOCTOR_ID || "";
+const ADDRESS_ID = process.env.CLINIC_ADDRESS_ID || "";
 const ORCHESTRATOR_API_URL =
   process.env.ORCHESTRATOR_API_URL ||
   process.env.NEXT_PUBLIC_ORCHESTRATOR_API_URL ||
-  "https://n8n-silvia-py.yyuhkk.easypanel.host";
+  "";
 
 export type NoticeType =
   | "48H"               // 1º Aviso (08h00 - 48h antes)
@@ -152,6 +152,13 @@ function parseClinicDate(rawDate: string): { displayDate: string; dateObj: Date 
 // TEMPLATES INTELIGENTES DE MENSAGENS (48h, 24h Não Confirmada, 24h Confirmada, Cancelamento)
 // ─────────────────────────────────────────────────────────────────────────────
 
+function formatDoctorIntro(doctorName?: string): string {
+  const doc = doctorName || process.env.CLINIC_DOCTOR_NAME;
+  if (!doc) return "Aqui é a Silv.IA do consultório médico.\n\n";
+  const nameWithTitle = doc.startsWith("Dr") ? doc : `Dr(a). ${doc}`;
+  return `Aqui é a Silv.IA do consultório do(a) ${nameWithTitle}.\n\n`;
+}
+
 /**
  * 1º Aviso de Confirmação (Disparo das 08h00 - 48h antes ou antecipado na sexta)
  */
@@ -159,12 +166,14 @@ function buildFirstNoticeMessage(
   firstName: string,
   dateSchedule: string,
   hourSchedule: string,
-  isAdvanceWeekend: boolean = false
+  isAdvanceWeekend: boolean = false,
+  doctorName?: string
 ): string {
+  const docIntro = formatDoctorIntro(doctorName);
   if (isAdvanceWeekend) {
     return (
       `Olá, ${firstName}! Tudo bem? 😊\n` +
-      `Aqui é a Silv.IA do consultório do Dr. Marco Antonio.\n\n` +
+      docIntro +
       `Como nosso consultório não opera aos finais de semana, estamos antecipando o contato para confirmar sua consulta da próxima *segunda-feira, ${dateSchedule}* às *${hourSchedule}*.\n\n` +
       `📍 *Nosso endereço:*\n` +
       `Rua Dr. Roberto Barrozo, 1379, 2º andar\n` +
@@ -176,7 +185,7 @@ function buildFirstNoticeMessage(
 
   return (
     `Olá, ${firstName}! Tudo bem? 😊\n` +
-    `Aqui é a Silv.IA do consultório do Dr. Marco Antonio.\n\n` +
+    docIntro +
     `Passando para confirmar sua consulta agendada para o dia *${dateSchedule}* às *${hourSchedule}*.\n\n` +
     `📍 *Nosso endereço:*\n` +
     `Rua Dr. Roberto Barrozo, 1379, 2º andar\n` +
@@ -205,11 +214,13 @@ function buildSecondNoticeMessage(
 function buildReminderConfirmedMessage(
   firstName: string,
   dateSchedule: string,
-  hourSchedule: string
+  hourSchedule: string,
+  doctorName?: string
 ): string {
+  const docIntro = formatDoctorIntro(doctorName);
   return (
     `Olá, ${firstName}! Tudo bem? 😊\n` +
-    `Aqui é a Silv.IA do consultório do Dr. Marco Antonio.\n\n` +
+    docIntro +
     `Passando apenas para lembrar da sua consulta agendada para amanhã, dia *${dateSchedule}* às *${hourSchedule}*.\n\n` +
     `Como você já confirmou sua presença anteriormente, *não é necessário responder esta mensagem*. Estamos te aguardando!\n\n` +
     `📍 *Nosso endereço:*\n` +
@@ -226,10 +237,12 @@ function buildReminderConfirmedMessage(
 function buildCancellationDueToInactionMessage(
   firstName: string,
   dateSchedule: string,
-  hourSchedule: string
+  hourSchedule: string,
+  doctorName?: string
 ): string {
+  const docIntro = formatDoctorIntro(doctorName);
   return (
-    `Olá, ${firstName}. Aqui é a Silv.IA do consultório do Dr. Marco Antonio.\n\n` +
+    `Olá, ${firstName}. ${docIntro}` +
     `Como não tivemos a confirmação da sua consulta agendada para hoje (*${dateSchedule} às ${hourSchedule}*), o horário foi cancelado no sistema e disponibilizado para o próximo paciente da lista de espera.\n\n` +
     `Caso queira remarcar sua consulta para uma nova data, basta nos responder por aqui que te ajudaremos com os novos horários disponíveis. Tenha um ótimo dia!`
   );
@@ -242,21 +255,22 @@ function resolveMessageForBooking(
   firstName: string,
   dateSchedule: string,
   hourSchedule: string,
-  noticeType: NoticeType
+  noticeType: NoticeType,
+  doctorName?: string
 ): string {
   switch (noticeType) {
     case "48H":
-      return buildFirstNoticeMessage(firstName, dateSchedule, hourSchedule, false);
+      return buildFirstNoticeMessage(firstName, dateSchedule, hourSchedule, false, doctorName);
     case "ANTECIPADO_SEXTA":
-      return buildFirstNoticeMessage(firstName, dateSchedule, hourSchedule, true);
+      return buildFirstNoticeMessage(firstName, dateSchedule, hourSchedule, true, doctorName);
     case "24H_AVISO":
       return buildSecondNoticeMessage(firstName, dateSchedule, hourSchedule);
     case "24H_LEMBRETE":
-      return buildReminderConfirmedMessage(firstName, dateSchedule, hourSchedule);
+      return buildReminderConfirmedMessage(firstName, dateSchedule, hourSchedule, doctorName);
     case "CANCELADO_INACAO":
-      return buildCancellationDueToInactionMessage(firstName, dateSchedule, hourSchedule);
+      return buildCancellationDueToInactionMessage(firstName, dateSchedule, hourSchedule, doctorName);
     default:
-      return buildFirstNoticeMessage(firstName, dateSchedule, hourSchedule, false);
+      return buildFirstNoticeMessage(firstName, dateSchedule, hourSchedule, false, doctorName);
   }
 }
 
@@ -289,6 +303,10 @@ export async function fetchUpcomingBookingsAction(daysAhead: number = 4): Promis
     const endDate = new Date(today);
     endDate.setDate(endDate.getDate() + actualDaysAhead);
     const endDateStr = endDate.toISOString().split("T")[0];
+
+    if (!DOCTOR_ID || !ADDRESS_ID) {
+      return { success: false, error: "CLINIC_DOCTOR_ID ou CLINIC_ADDRESS_ID não configurados no ambiente." };
+    }
 
     // Consulta na API da Clinic
     const rawRes = await ClinicService.getDoctorBookings(
@@ -359,7 +377,7 @@ export async function fetchUpcomingBookingsAction(daysAhead: number = 4): Promis
       const hourSchedule = normalizeTime(rawHour);
 
       const dateTimeDisplay = `${dateSchedule || "Data a definir"} às ${hourSchedule || "Horário a definir"}`;
-      const doctorName = String(item.doctor || "Dr. Marco Antonio Teixeira da Silva");
+      const doctorName = String(item.doctor || item.doctor_name || process.env.CLINIC_DOCTOR_NAME || "");
       const healthInsurance = String(item.healthInsurance || "Particular");
       const confirm = String(item.confirm || "A Confirmar");
       const status = String(item.status || "Agendado");
@@ -420,7 +438,7 @@ export async function fetchUpcomingBookingsAction(daysAhead: number = 4): Promis
         noticeTitle = "Aviso de Confirmação";
       }
 
-      const previewMessage = resolveMessageForBooking(firstName, dateSchedule, hourSchedule, targetNoticeType);
+      const previewMessage = resolveMessageForBooking(firstName, dateSchedule, hourSchedule, targetNoticeType, doctorName);
 
       // Checa se JÁ foi disparado ESPECIFICAMENTE o aviso correspondente para esta consulta
       const matchingNotice = existingConfirmations.find((c: any) => {
@@ -548,45 +566,47 @@ export async function dispatchSingleConfirmationAction(booking: {
       booking.dayOffset === 1 ? "24H_AVISO" : booking.dayOffset === 2 ? "48H" : "MANUAL"
     );
 
-    const messageText = booking.customMessage || resolveMessageForBooking(firstName, dateSchedule, hourSchedule, noticeType);
+    const messageText = booking.customMessage || resolveMessageForBooking(firstName, dateSchedule, hourSchedule, noticeType, booking.doctorName);
 
     let sentViaOrchestrator = false;
 
     // 1. Tenta disparar através do agente Python (FastAPI), que insere no contexto de memória da Silvia
-    try {
-      const pyResp = await fetch(`${ORCHESTRATOR_API_URL}/orchestrator/dispatch-single-confirmation`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: booking.id,
-          client: rawClient,
-          mobile: phone,
-          date_schedule: dateSchedule,
-          hour_schedule: hourSchedule,
-          doctor: booking.doctorName || "Dr. Marco Antonio",
-          healthInsurance: booking.healthInsurance || "Particular",
-          notice_type: noticeType,
-          custom_message: messageText,
-        }),
-      });
+    if (ORCHESTRATOR_API_URL) {
+      try {
+        const pyResp = await fetch(`${ORCHESTRATOR_API_URL}/orchestrator/dispatch-single-confirmation`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: booking.id,
+            client: rawClient,
+            mobile: phone,
+            date_schedule: dateSchedule,
+            hour_schedule: hourSchedule,
+            doctor: booking.doctorName || process.env.CLINIC_DOCTOR_NAME || "",
+            healthInsurance: booking.healthInsurance || "Particular",
+            notice_type: noticeType,
+            custom_message: messageText,
+          }),
+        });
 
-      if (pyResp.ok) {
-        const pyData = await pyResp.json();
-        if (pyData.success) {
-          sentViaOrchestrator = true;
+        if (pyResp.ok) {
+          const pyData = await pyResp.json();
+          if (pyData.success) {
+            sentViaOrchestrator = true;
+          }
         }
+      } catch (pyErr: any) {
+        console.warn("[dispatchSingleConfirmationAction] Python Orchestrator indisponível, usando fallback:", pyErr.message);
       }
-    } catch (pyErr: any) {
-      console.warn("[dispatchSingleConfirmationAction] Python Orchestrator indisponível, usando fallback:", pyErr.message);
     }
 
     // 2. Fallback via Evolution API se o orchestrator Python estiver temporariamente offline
     if (!sentViaOrchestrator) {
       const evoUrl = process.env.EVOLUTION_API_URL;
       const evoKey = process.env.EVOLUTION_API_KEY;
-      const evoInst = process.env.EVOLUTION_INSTANCE || "Silvia";
+      const evoInst = process.env.EVOLUTION_INSTANCE || "";
 
-      if (!evoUrl || !evoKey) {
+      if (!evoUrl || !evoKey || !evoInst) {
         return { success: false, error: "Credenciais de WhatsApp não configuradas no servidor." };
       }
 
@@ -621,7 +641,7 @@ export async function dispatchSingleConfirmationAction(booking: {
         bookingId: String(booking.id),
         patientName,
         phone,
-        doctorName: booking.doctorName || "Dr. Marco Antonio Teixeira da Silva",
+        doctorName: booking.doctorName || process.env.CLINIC_DOCTOR_NAME || "",
         appointmentDate: dateObj || new Date(),
         notificationType: noticeType,
         status: "ENVIADO",
@@ -693,6 +713,7 @@ export async function confirmBookingInClinicAction(bookingId: string): Promise<{
 }> {
   try {
     if (!bookingId) return { success: false, error: "ID do agendamento é obrigatório." };
+    if (!DOCTOR_ID || !ADDRESS_ID) return { success: false, error: "CLINIC_DOCTOR_ID ou CLINIC_ADDRESS_ID não configurados." };
 
     await ClinicService.setBookingConfirmation(DOCTOR_ID, ADDRESS_ID, bookingId, "confirmed");
 
@@ -847,6 +868,10 @@ export async function cancelUnconfirmedAppointmentsAndNotifyWaitlistAction(): Pr
   try {
     const todayStr = new Date().toISOString().split("T")[0];
 
+    if (!DOCTOR_ID || !ADDRESS_ID) {
+      return { success: false, cancelledCount: 0, waitlistNotifiedCount: 0, error: "CLINIC_DOCTOR_ID ou CLINIC_ADDRESS_ID não configurados." };
+    }
+
     // 1. Busca agendamentos de hoje na Clinic API
     const rawRes = await ClinicService.getDoctorBookings(
       DOCTOR_ID,
@@ -912,12 +937,17 @@ export async function cancelUnconfirmedAppointmentsAndNotifyWaitlistAction(): Pr
         const { displayDate } = parseClinicDate(String(item.date_schedule || item.date || todayStr));
 
         if (phone) {
-          const cancelMsg = buildCancellationDueToInactionMessage(firstName, displayDate, hourSchedule);
+          const cancelMsg = buildCancellationDueToInactionMessage(
+            firstName,
+            displayDate,
+            hourSchedule,
+            String(item.doctor || item.doctor_name || process.env.CLINIC_DOCTOR_NAME || "")
+          );
           try {
             const evoUrl = process.env.EVOLUTION_API_URL;
             const evoKey = process.env.EVOLUTION_API_KEY;
-            const evoInst = process.env.EVOLUTION_INSTANCE || "henrique";
-            if (evoUrl && evoKey) {
+            const evoInst = process.env.EVOLUTION_INSTANCE || "";
+            if (evoUrl && evoKey && evoInst) {
               await fetch(`${evoUrl}/message/sendText/${evoInst}`, {
                 method: "POST",
                 headers: { apikey: evoKey, "Content-Type": "application/json" },

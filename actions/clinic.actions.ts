@@ -201,8 +201,11 @@ export async function fetchFreeSlotsAction(doctorId: string, addressId: string, 
 
 export async function bookSlotAction(doctorId: string, addressId: string, slotStart: string, payload: Record<string, any>) {
   try {
-    const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "10073";
-    const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "1";
+    const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "";
+    const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "";
+    if (!finalDoctorId || !finalAddressId) {
+      return { success: false, error: "CLINIC_DOCTOR_ID ou CLINIC_ADDRESS_ID não configurados." };
+    }
 
     // Mapeamento e normalização dos campos exigidos pela Clinic API
     let healthInsuranceCode = 
@@ -245,8 +248,10 @@ export async function bookSlotAction(doctorId: string, addressId: string, slotSt
 }
 
 export async function cancelBookingAction(doctorId?: string, addressId?: string, bookingId?: string, externalId: string = "1") {
-  const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "10073";
-  const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "1";
+  const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "";
+  const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "";
+
+  if (!finalDoctorId || !finalAddressId) return { success: false, error: "CLINIC_DOCTOR_ID ou CLINIC_ADDRESS_ID não configurados." };
 
   if (!bookingId) return { success: false, error: "ID do agendamento (bookingId) é obrigatório." };
 
@@ -265,8 +270,10 @@ export async function setBookingConfirmationAction(
   bookingId?: string,
   status: "confirmed" | "pending" = "confirmed"
 ) {
-  const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "10073";
-  const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "1";
+  const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "";
+  const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "";
+
+  if (!finalDoctorId || !finalAddressId) return { success: false, error: "CLINIC_DOCTOR_ID ou CLINIC_ADDRESS_ID não configurados." };
 
   if (!bookingId) return { success: false, error: "ID do agendamento (bookingId) é obrigatório." };
 
@@ -286,8 +293,8 @@ export async function fetchDoctorBookingsAction(
   endDate?: string,
   filters: Record<string, string> = {}
 ) {
-  const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "10073";
-  const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "1";
+  const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "";
+  const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "";
   const todayStr = new Date().toISOString().split("T")[0];
   const finalStartDate = startDate || todayStr;
   const finalEndDate = endDate || finalStartDate;
@@ -334,8 +341,8 @@ export async function fetchBookingsByNINAction(nin: string, birthday?: string, d
     futureDate.setDate(futureDate.getDate() + 365);
     const endDate = futureDate.toISOString().split('T')[0];
 
-    const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "10073";
-    const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "1";
+    const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "";
+    const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "";
 
     const response = await ClinicService.getPatientBookings(
       finalDoctorId,
@@ -608,8 +615,8 @@ export async function moveBookingAction(
   bookingId?: string,
   newSlotStart?: string
 ) {
-  const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "10073";
-  const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "1";
+  const finalDoctorId = doctorId || process.env.CLINIC_DOCTOR_ID || "";
+  const finalAddressId = addressId || process.env.CLINIC_ADDRESS_ID || "";
 
   if (!bookingId || !newSlotStart) {
     return { success: false, error: "bookingId e newSlotStart são obrigatórios." };
@@ -967,9 +974,9 @@ export async function dispatchPrescriptionReadyMessageAction(params: {
 
     const evoUrl = process.env.EVOLUTION_API_URL;
     const evoKey = process.env.EVOLUTION_API_KEY;
-    const evoInst = process.env.EVOLUTION_INSTANCE || "Silvia";
+    const evoInst = process.env.EVOLUTION_INSTANCE || "";
 
-    if (!evoUrl || !evoKey) {
+    if (!evoUrl || !evoKey || !evoInst) {
       return { success: false, error: "Credenciais de WhatsApp não configuradas no servidor." };
     }
 

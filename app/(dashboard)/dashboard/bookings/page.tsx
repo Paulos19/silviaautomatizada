@@ -229,8 +229,13 @@ export default function BookingsPage() {
   // ─── Buscar Slots ───
   const handleGetSlots = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const doctorId = selectedDoctor?.id?.toString() || "10073";
-    const addrId = addressId || "1";
+    const doctorId = selectedDoctor?.id?.toString() || "";
+    const addrId = addressId || "";
+
+    if (!doctorId) {
+      setSlotsError("Por favor, selecione um médico nas configurações.");
+      return;
+    }
 
     setLoading("slots");
     setFreeSlots([]);

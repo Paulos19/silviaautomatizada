@@ -15,7 +15,7 @@ import {
 const CLINIC_URL = process.env.CLINIC_API_URL;
 const CLIENT_ID = process.env.CLINIC_CLIENT_ID;
 const CLIENT_SECRET = process.env.CLINIC_CLIENT_SECRET;
-const FACILITY_ID = process.env.CLINIC_FACILITY_ID || "1";
+const FACILITY_ID = process.env.CLINIC_FACILITY_ID || "";
 
 let cachedToken: string | null = null;
 let tokenExpiresAt: number | null = null;
@@ -127,26 +127,26 @@ export const ClinicService = {
   },
 
   async setBookingStatus(doctorId: string, addressId: string, bookingId: string, value: string = "canceled") {
-    const facilityId = FACILITY_ID || "1";
+    const facilityId = FACILITY_ID;
     const url = `/api/v1/integration/facilities/${facilityId}/doctors/${doctorId}/addresses/${addressId}/bookings/${bookingId}/status?value=${value}`;
     return await clinicFetch(url, { method: "PATCH" });
   },
 
   async setBookingConfirmation(doctorId: string, addressId: string, bookingId: string, status: "confirmed" | "pending" = "confirmed") {
-    const facilityId = FACILITY_ID || "1";
+    const facilityId = FACILITY_ID;
     const url = `/api/v1/integration/facilities/${facilityId}/doctors/${doctorId}/addresses/${addressId}/bookings/${bookingId}/confirmation?status=${status}`;
     return await clinicFetch(url, { method: "PATCH" });
   },
 
   async moveBooking(doctorId: string, addressId: string, bookingId: string, newSlotStart: string) {
-    const facilityId = FACILITY_ID || "1";
+    const facilityId = FACILITY_ID;
     const slotPath = encodeURIComponent(newSlotStart);
     const url = `/api/v1/integration/facilities/${facilityId}/doctors/${doctorId}/addresses/${addressId}/booking/${bookingId}/move?slot_start=${slotPath}`;
     return await clinicFetch(url, { method: "POST" });
   },
 
   async getDoctorBookings(doctorId: string, addressId: string, startDate: string, endDate: string, filters: Record<string, string> = {}) {
-    const facilityId = FACILITY_ID || "1";
+    const facilityId = FACILITY_ID;
     const url = new URL(`${CLINIC_URL}/api/v1/integration/facilities/${facilityId}/doctors/${doctorId}/addresses/${addressId}/bookings`);
     url.searchParams.append("start_date", startDate);
     url.searchParams.append("end_date", endDate);
@@ -160,7 +160,7 @@ export const ClinicService = {
   },
 
   async cancelBooking(doctorId: string, addressId: string, bookingId: string, externalId: string = "1") {
-    const facilityId = FACILITY_ID || "1";
+    const facilityId = FACILITY_ID;
     // Tenta atualizar o status para canceled no prontuário/histórico da clínica
     try {
       const patchUrl = `/api/v1/integration/facilities/${facilityId}/doctors/${doctorId}/addresses/${addressId}/bookings/${bookingId}/status?value=canceled`;

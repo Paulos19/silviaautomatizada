@@ -23,8 +23,8 @@ import { ThreeLogo } from "@/components/ui/ThreeLogo";
 import { LiveNotificationsModal, NotificationItem } from "@/components/dashboard/LiveNotificationsModal";
 import { cn } from "@/lib/utils";
 
-const DEFAULT_API_URL = process.env.NEXT_PUBLIC_ORCHESTRATOR_API_URL || "https://n8n-silvia-py.yyuhkk.easypanel.host";
-const DEFAULT_WS_URL = process.env.NEXT_PUBLIC_ORCHESTRATOR_WS_URL || "wss://n8n-silvia-py.yyuhkk.easypanel.host/ws/orchestrator";
+const DEFAULT_API_URL = process.env.NEXT_PUBLIC_ORCHESTRATOR_API_URL || "";
+const DEFAULT_WS_URL = process.env.NEXT_PUBLIC_ORCHESTRATOR_WS_URL || "";
 
 export function AppHeaderbar() {
     const pathname = usePathname();
@@ -39,28 +39,31 @@ export function AppHeaderbar() {
         let isMounted = true;
 
         // Snapshot inicial da API
-        fetch(`${DEFAULT_API_URL}/orchestrator/metrics`)
-            .then((res) => res.json())
-            .then((data) => {
-                if (isMounted && data.recent_events) {
-                    const formatted = data.recent_events.slice(0, 30).map((evt: any, idx: number) => ({
-                        id: evt.id || `notif-init-${idx}`,
-                        timestamp: evt.timestamp || new Date().toISOString(),
-                        time: evt.time || "Hoje",
-                        type: evt.type || "INFO",
-                        title: evt.title || "Evento Silvia",
-                        description: evt.description || "",
-                        severity: evt.severity || "info",
-                        read: idx > 4, // Primeiras 5 são novas
-                        metadata: evt.metadata
-                    }));
-                    setNotifications(formatted);
-                }
-            })
-            .catch(() => {});
+        if (DEFAULT_API_URL) {
+            fetch(`${DEFAULT_API_URL}/orchestrator/metrics`)
+                .then((res) => res.json())
+                .then((data) => {
+                    if (isMounted && data.recent_events) {
+                        const formatted = data.recent_events.slice(0, 30).map((evt: any, idx: number) => ({
+                            id: evt.id || `notif-init-${idx}`,
+                            timestamp: evt.timestamp || new Date().toISOString(),
+                            time: evt.time || "Hoje",
+                            type: evt.type || "INFO",
+                            title: evt.title || "Evento Silvia",
+                            description: evt.description || "",
+                            severity: evt.severity || "info",
+                            read: idx > 4, // Primeiras 5 são novas
+                            metadata: evt.metadata
+                        }));
+                        setNotifications(formatted);
+                    }
+                })
+                .catch(() => {});
+        }
 
         // Conexão ao vivo com WebSocket
         const checkConnection = () => {
+            if (!DEFAULT_WS_URL) return;
             try {
                 ws = new WebSocket(DEFAULT_WS_URL);
                 ws.onopen = () => {

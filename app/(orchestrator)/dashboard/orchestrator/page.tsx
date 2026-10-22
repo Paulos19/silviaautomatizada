@@ -92,8 +92,8 @@ interface DailySummary {
     report_sent_at?: string | null;
 }
 
-const DEFAULT_API_URL = process.env.NEXT_PUBLIC_ORCHESTRATOR_API_URL || "https://n8n-silvia-py.yyuhkk.easypanel.host";
-const DEFAULT_WS_URL = process.env.NEXT_PUBLIC_ORCHESTRATOR_WS_URL || "wss://n8n-silvia-py.yyuhkk.easypanel.host/ws/orchestrator";
+const DEFAULT_API_URL = process.env.NEXT_PUBLIC_ORCHESTRATOR_API_URL || "";
+const DEFAULT_WS_URL = process.env.NEXT_PUBLIC_ORCHESTRATOR_WS_URL || "";
 
 // Cores determinísticas para avatar baseadas no telefone
 const AVATAR_PALETTE = [
@@ -274,6 +274,7 @@ export default function OrchestratorBentoPage() {
         let isMounted = true;
 
         const connectWs = () => {
+            if (!DEFAULT_WS_URL) return;
             try {
                 const ws = new WebSocket(DEFAULT_WS_URL);
                 wsRef.current = ws;
@@ -335,19 +336,21 @@ export default function OrchestratorBentoPage() {
         };
 
         // Carrega snapshot oficial da API
-        fetch(`${DEFAULT_API_URL}/orchestrator/metrics`)
-            .then((res) => res.json())
-            .then((data) => {
-                if (isMounted) {
-                    setSummary(data);
-                    setEvents(data.recent_events || []);
-                    // Seleciona a primeira conversa real disponível
-                    if (data.active_patients && data.active_patients.length > 0) {
-                        setSelectedChatPhone(data.active_patients[0]);
+        if (DEFAULT_API_URL) {
+            fetch(`${DEFAULT_API_URL}/orchestrator/metrics`)
+                .then((res) => res.json())
+                .then((data) => {
+                    if (isMounted) {
+                        setSummary(data);
+                        setEvents(data.recent_events || []);
+                        // Seleciona a primeira conversa real disponível
+                        if (data.active_patients && data.active_patients.length > 0) {
+                            setSelectedChatPhone(data.active_patients[0]);
+                        }
                     }
-                }
-            })
-            .catch(() => {});
+                })
+                .catch(() => {});
+        }
 
         connectWs();
 
@@ -390,6 +393,10 @@ export default function OrchestratorBentoPage() {
 
     // Disparo manual do relatório diário à Ana
     const handleTriggerReport = async () => {
+        if (!DEFAULT_API_URL) {
+            setReportFeedback("Erro: URL do Orquestrador não configurada (NEXT_PUBLIC_ORCHESTRATOR_API_URL).");
+            return;
+        }
         setIsTriggeringReport(true);
         setReportFeedback(null);
         try {
