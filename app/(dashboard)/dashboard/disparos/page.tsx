@@ -124,9 +124,9 @@ export default function DisparosPage() {
       if (selectedTab === "MORNING_8H") {
         if (b.suggestedScheduleTime !== "08:00") return false;
       } else if (selectedTab === "AFTERNOON_24H_AVISO") {
-        if (b.suggestedScheduleTime !== "14:00" || b.targetNoticeType !== "24H_AVISO") return false;
+        if (b.suggestedScheduleTime !== "16:00" || b.targetNoticeType !== "24H_AVISO") return false;
       } else if (selectedTab === "AFTERNOON_24H_LEMBRETE") {
-        if (b.suggestedScheduleTime !== "14:00" || b.targetNoticeType !== "24H_LEMBRETE") return false;
+        if (b.suggestedScheduleTime !== "16:00" || b.targetNoticeType !== "24H_LEMBRETE") return false;
       } else if (selectedTab === "TODAY") {
         if (b.dayOffset !== 0) return false;
       } else if (selectedTab === "TOMORROW") {
@@ -238,7 +238,7 @@ export default function DisparosPage() {
     }
   };
 
-  // Ação: Disparo da Rotina Vespertina (14h00 - 24h)
+  // Ação: Disparo da Rotina Vespertina (16h00 - 24h)
   const handleRunAfternoonRoutine = async () => {
     setIsExecutingRoutine("afternoon");
     const res = await runAfternoonConfirmationDispatchAction();
@@ -251,12 +251,12 @@ export default function DisparosPage() {
 
     if (res.success) {
       showToast(
-        `Rotina das 14h00 executada! ${res.data?.dispatched || 0} mensagens de 24h disparadas.`,
+        `Rotina das 16h00 executada! ${res.data?.dispatched || 0} mensagens de 24h disparadas.`,
         "success"
       );
       loadData();
     } else {
-      showToast(res.error || "Falha ao executar rotina das 14h00", "error");
+      showToast(res.error || "Falha ao executar rotina das 16h00", "error");
     }
   };
 
@@ -339,7 +339,7 @@ export default function DisparosPage() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-[#1E1E1E]">Central de Disparos</h1>
               <p className="text-xs text-[#6B7280]">
-                Lembretes às <b>08h00</b> (48h e antecipações) e às <b>14h00</b> (24h com cancelamento automático e repasse à lista).
+                Lembretes às <b>08h00</b> (48h e antecipações) e às <b>16h00</b> (24h com cancelamento automático e repasse à lista).
               </p>
             </div>
           </div>
@@ -367,15 +367,15 @@ export default function DisparosPage() {
             <span>Disparar 08:00 (Manhã)</span>
           </button>
 
-          {/* Botão Rotina 14h00 */}
+          {/* Botão Rotina 16h00 */}
           <button
             onClick={handleRunAfternoonRoutine}
             disabled={isExecutingRoutine !== null}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-semibold hover:bg-indigo-100 transition-all shadow-sm active:scale-95 disabled:opacity-50"
-            title="Executar disparos das 14h00 (24h antes: 2º aviso urgente ou lembrete passivo)"
+            title="Executar disparos das 16h00 (24h antes: 2º aviso urgente ou lembrete passivo)"
           >
             <Sunset className={`w-3.5 h-3.5 text-indigo-600 ${isExecutingRoutine === "afternoon" ? "animate-spin" : ""}`} />
-            <span>Disparar 14:00 (Tarde)</span>
+            <span>Disparar 16:00 (Tarde)</span>
           </button>
 
           {/* Botão Cancelamento por Inação & Repasse */}
@@ -439,10 +439,10 @@ export default function DisparosPage() {
           </p>
         </div>
 
-        {/* Card 3: 14h00 Lembrete 24h (Não confirmados) */}
+        {/* Card 3: 16h00 Lembrete 24h (Não confirmados) */}
         <div className="bg-white rounded-2xl p-4 sm:p-5 border border-amber-200/80 shadow-[0_2px_12px_rgba(245,158,11,0.05)] relative overflow-hidden bg-gradient-to-br from-white to-amber-50/30">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-amber-800 uppercase tracking-wider">14:00 (Lembrete 24h)</span>
+            <span className="text-xs font-semibold text-amber-800 uppercase tracking-wider">16:00 (Lembrete 24h)</span>
             <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
               <Clock className="w-4 h-4" />
             </div>
@@ -456,10 +456,10 @@ export default function DisparosPage() {
           </p>
         </div>
 
-        {/* Card 4: 14h00 Lembretes Passivos (Confirmados) */}
+        {/* Card 4: 16h00 Lembretes Passivos (Confirmados) */}
         <div className="bg-white rounded-2xl p-4 sm:p-5 border border-indigo-200/80 shadow-[0_2px_12px_rgba(99,102,241,0.05)] relative overflow-hidden bg-gradient-to-br from-white to-indigo-50/30">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-indigo-800 uppercase tracking-wider">14:00 (Lembretes)</span>
+            <span className="text-xs font-semibold text-indigo-800 uppercase tracking-wider">16:00 (Lembretes)</span>
             <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
               <Sunset className="w-4 h-4" />
             </div>
@@ -545,7 +545,7 @@ export default function DisparosPage() {
             }`}
           >
             <AlertTriangle className="w-3.5 h-3.5" />
-            <span>14:00 (2º Aviso Urgente)</span>
+            <span>16:00 (2º Aviso Urgente)</span>
           </button>
           <button
             onClick={() => setSelectedTab("AFTERNOON_24H_LEMBRETE")}
@@ -556,7 +556,7 @@ export default function DisparosPage() {
             }`}
           >
             <Sunset className="w-3.5 h-3.5" />
-            <span>14:00 (Lembretes)</span>
+            <span>16:00 (Lembretes)</span>
           </button>
           <button
             onClick={() => setSelectedTab("TODAY")}
@@ -616,7 +616,7 @@ export default function DisparosPage() {
           <div className="p-12 text-center space-y-3">
             <RefreshCw className="w-8 h-8 text-[#064E3B] animate-spin mx-auto" />
             <p className="text-sm font-semibold text-[#374151]">Consultando agenda do Dr. Marco Antonio na Clinic API...</p>
-            <p className="text-xs text-[#9CA3AF]">Calculando janelas de 08h00 (48h) e 14h00 (24h) com regras de fim de semana.</p>
+            <p className="text-xs text-[#9CA3AF]">Calculando janelas de 08h00 (48h) e 16h00 (24h) com regras de fim de semana.</p>
           </div>
         ) : filteredBookings.length === 0 ? (
           <div className="p-12 text-center space-y-3">
@@ -698,7 +698,7 @@ export default function DisparosPage() {
                             : "bg-amber-50 text-amber-800 border-amber-200"
                         }`}
                       >
-                        {b.suggestedScheduleTime === "14:00" ? (
+                        {b.suggestedScheduleTime === "16:00" ? (
                           <Sunset className="w-3 h-3" />
                         ) : (
                           <Sun className="w-3 h-3" />

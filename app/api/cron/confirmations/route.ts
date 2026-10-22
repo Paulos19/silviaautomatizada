@@ -33,9 +33,9 @@ export async function GET(request: Request) {
     const nowSp = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
     const currentHour = nowSp.getHours();
 
-    if (currentHour >= 13 && currentHour <= 17) {
+    if (currentHour >= 15 && currentHour <= 18) {
       const res = await runAfternoonConfirmationDispatchAction();
-      return NextResponse.json({ routine: "afternoon_14h", ...res });
+      return NextResponse.json({ routine: "afternoon_16h", ...res });
     } else {
       const res = await runMorningConfirmationDispatchAction();
       return NextResponse.json({ routine: "morning_08h", ...res });

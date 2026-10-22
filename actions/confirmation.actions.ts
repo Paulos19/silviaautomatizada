@@ -13,8 +13,8 @@ const ORCHESTRATOR_API_URL =
 
 export type NoticeType =
   | "48H"               // 1º Aviso (08h00 - 48h antes)
-  | "24H_AVISO"         // Lembrete cordial de consulta para quem ainda não confirmou (14h00 - 24h antes)
-  | "24H_LEMBRETE"      // Lembrete passivo para quem já confirmou (14h00 - 24h antes)
+  | "24H_AVISO"         // Lembrete de consulta para quem ainda não confirmou (16h00 - 24h antes)
+  | "24H_LEMBRETE"      // Lembrete passivo para quem já confirmou (16h00 - 24h antes)
   | "ANTECIPADO_SEXTA"  // Antecipação de segunda/terça enviada na sexta (08h00)
   | "CANCELADO_INACAO"  // Cancelado por falta de retorno e vaga dada à lista de espera
   | "MANUAL";
@@ -43,7 +43,7 @@ export interface UpcomingBookingItem {
   notificationType?: string | null;
   previewMessage: string;
   targetNoticeType: NoticeType;
-  suggestedScheduleTime: "08:00" | "14:00";
+  suggestedScheduleTime: "08:00" | "16:00";
   noticeTitle: string;
 }
 
@@ -56,8 +56,8 @@ export interface UpcomingBookingsSummary {
   tomorrowCount: number;
   dayAfterCount: number;
   pendingMorningCount: number; // 08h00 (48h e antecipações)
-  pendingAfternoonNoticeCount: number; // 14h00 (24h - 2º aviso)
-  pendingAfternoonReminderCount: number; // 14h00 (24h - lembrete confirmado)
+  pendingAfternoonNoticeCount: number; // 16h00 (24h - 2º aviso)
+  pendingAfternoonReminderCount: number; // 16h00 (24h - lembrete confirmado)
 }
 
 /**
@@ -187,29 +187,19 @@ function buildFirstNoticeMessage(
 }
 
 /**
- * Lembrete de Consulta (Disparo das 14h00 - 24h antes, caso AINDA NÃO confirmada)
- * Mensagem cordial e atenciosa para lembrar o paciente e confirmar presença.
+ * Lembrete de Consulta (Disparo das 16h00 - 24h antes, caso AINDA NÃO confirmada)
+ * Mensagem simplificada para quem ainda não confirmou.
  */
 function buildSecondNoticeMessage(
-  firstName: string,
-  dateSchedule: string,
-  hourSchedule: string
+  firstName?: string,
+  dateSchedule?: string,
+  hourSchedule?: string
 ): string {
-  const timePart = hourSchedule ? ` às *${hourSchedule}*` : "";
-  return (
-    `Olá, ${firstName}! Tudo bem? 😊\n` +
-    `Aqui é a Silv.IA do consultório do Dr. Marco Antonio.\n\n` +
-    `Passando para lembrar da sua consulta agendada para amanhã, dia *${dateSchedule}*${timePart}.\n\n` +
-    `Como ainda não registramos sua confirmação, você poderia nos confirmar se comparecerá? Assim conseguimos organizar a agenda e deixar tudo pronto para o seu atendimento!\n\n` +
-    `📍 *Endereço:*\n` +
-    `Rua Dr. Roberto Barrozo, 1379, 2º andar - Hospital Otorrinos Curitiba\n` +
-    `https://maps.google.com/?q=-25.415823,-49.282524\n\n` +
-    `Podemos confirmar sua consulta para amanhã?`
-  );
+  return "Olá! Ainda não recebi sua confirmação. Gostaria de confirmar sua consulta?";
 }
 
 /**
- * Lembrete de Presença (Disparo das 14h00 - 24h antes, caso JÁ CONFIRMADA)
+ * Lembrete de Presença (Disparo das 16h00 - 24h antes, caso JÁ CONFIRMADA)
  * Mensagem cordial informativa, sem necessidade de resposta do paciente.
  */
 function buildReminderConfirmedMessage(
@@ -277,7 +267,7 @@ function resolveMessageForBooking(
 /**
  * Busca agendamentos próximos diretamente da API da clínica,
  * normaliza os campos com dados reais, classifica o tipo de aviso (48h/24h)
- * e o horário programado de disparo (08h00 ou 14h00), aplicando a regra de fim de semana.
+ * e o horário programado de disparo (08h00 ou 16h00), aplicando a regra de fim de semana.
  */
 export async function fetchUpcomingBookingsAction(daysAhead: number = 4): Promise<{
   success: boolean;
@@ -393,9 +383,9 @@ export async function fetchUpcomingBookingsAction(daysAhead: number = 4): Promis
 
       // Determinação do Tipo de Aviso e Horário Programado de Envio:
       // - 08h00: 48h (D+2), e na sexta-feira antecipações de segunda (D+3) e terça (D+4)
-      // - 14h00: 24h (D+1) — 2º aviso se pendente, ou lembrete cordial se já confirmado
+      // - 16h00: 24h (D+1) — 2º aviso se pendente, ou lembrete cordial se já confirmado
       let targetNoticeType: NoticeType = "48H";
-      let suggestedScheduleTime: "08:00" | "14:00" = "08:00";
+      let suggestedScheduleTime: "08:00" | "16:00" = "08:00";
       let noticeTitle = "1º Aviso de Confirmação";
 
       if (dayOffset === 0) {
@@ -405,7 +395,7 @@ export async function fetchUpcomingBookingsAction(daysAhead: number = 4): Promis
         noticeTitle = isConfirmed ? "Lembrete do Dia (Confirmado)" : "Urgente (Hoje - Pendente)";
       } else if (dayOffset === 1) {
         dayLabel = "Amanhã";
-        suggestedScheduleTime = "14:00"; // 24h é SEMPRE às 14h!
+        suggestedScheduleTime = "16:00"; // 24h é SEMPRE às 16h!
         targetNoticeType = isConfirmed ? "24H_LEMBRETE" : "24H_AVISO";
         noticeTitle = isConfirmed ? "Lembrete de Presença (24h - Confirmado)" : "Lembrete de Consulta (24h)";
       } else if (dayOffset === 2) {
@@ -435,7 +425,7 @@ export async function fetchUpcomingBookingsAction(daysAhead: number = 4): Promis
       // Checa se JÁ foi disparado ESPECIFICAMENTE o aviso correspondente para esta consulta
       const matchingNotice = existingConfirmations.find((c: any) => {
         if (c.bookingId !== id) return false;
-        if (suggestedScheduleTime === "14:00") {
+        if (suggestedScheduleTime === "16:00") {
           return c.notificationType?.startsWith("24H") || c.notificationType === "24H";
         } else {
           return c.notificationType === "48H" || c.notificationType === "ANTECIPADO_SEXTA";
@@ -494,10 +484,10 @@ export async function fetchUpcomingBookingsAction(daysAhead: number = 4): Promis
         (b) => !b.isDispatched && b.suggestedScheduleTime === "08:00"
       ).length,
       pendingAfternoonNoticeCount: bookings.filter(
-        (b) => !b.isDispatched && b.suggestedScheduleTime === "14:00" && b.targetNoticeType === "24H_AVISO"
+        (b) => !b.isDispatched && b.suggestedScheduleTime === "16:00" && b.targetNoticeType === "24H_AVISO"
       ).length,
       pendingAfternoonReminderCount: bookings.filter(
-        (b) => !b.isDispatched && b.suggestedScheduleTime === "14:00" && b.targetNoticeType === "24H_LEMBRETE"
+        (b) => !b.isDispatched && b.suggestedScheduleTime === "16:00" && b.targetNoticeType === "24H_LEMBRETE"
       ).length,
     };
 
@@ -720,7 +710,7 @@ export async function confirmBookingInClinicAction(bookingId: string): Promise<{
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ROTINAS CRON: 08h00 (MANHÃ) E 14h00 (TARDE) + CANCELAMENTO AUTOMÁTICO
+// ROTINAS CRON: 08h00 (MANHÃ) E 16h00 (TARDE) + CANCELAMENTO AUTOMÁTICO
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -791,12 +781,12 @@ export async function runMorningConfirmationDispatchAction(): Promise<{
 }
 
 /**
- * Rotina automática das 14h00:
+ * Rotina automática das 16h00:
  * - Se for Sábado ou Domingo: pula
  * - Dispara para consultas de amanhã (D+1):
  *   - Se confirmada: envia 24H_LEMBRETE (lembrete passivo de presença)
- *   - Se pendente: envia 24H_AVISO (lembrete cordial de consulta para quem ainda não confirmou)
- * - Na Sexta-feira: se houver consultas no Sábado (D+1), envia às 14h00
+ *   - Se pendente: envia 24H_AVISO (lembrete de consulta para quem ainda não confirmou)
+ * - Na Sexta-feira: se houver consultas no Sábado (D+1), envia às 16h00
  */
 export async function runAfternoonConfirmationDispatchAction(): Promise<{
   success: boolean;
@@ -822,7 +812,7 @@ export async function runAfternoonConfirmationDispatchAction(): Promise<{
       return { success: false, error: upcoming.error || "Falha ao buscar agendamentos." };
     }
 
-    // Candidatos das 14h00: agendamentos de amanhã (D+1) ainda não disparados no período da tarde
+    // Candidatos das 16h00: agendamentos de amanhã (D+1) ainda não disparados no período da tarde
     const candidates = upcoming.data.bookings.filter(
       (b) => b.dayOffset === 1 && !b.isDispatched && b.mobile
     );
@@ -832,7 +822,7 @@ export async function runAfternoonConfirmationDispatchAction(): Promise<{
     return {
       success: true,
       data: {
-        routine: "14h00_vespertina",
+        routine: "16h00_vespertina",
         totalProcessed: candidates.length,
         dispatched: batchRes.dispatched,
         errors: batchRes.errors,
@@ -840,7 +830,7 @@ export async function runAfternoonConfirmationDispatchAction(): Promise<{
     };
   } catch (error: any) {
     console.error("[runAfternoonConfirmationDispatchAction] Erro:", error);
-    return { success: false, error: "Falha ao executar rotina vespertina das 14h00." };
+    return { success: false, error: "Falha ao executar rotina vespertina das 16h00." };
   }
 }
 
