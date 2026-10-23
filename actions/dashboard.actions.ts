@@ -5,17 +5,17 @@ import { ClinicService } from "@/services/clinic.service";
 
 export async function getDashboardMetricsAction() {
     try {
-        // Fetch all data in parallel — each wrapped individually so one failure doesn't break all
-        const [doctorsRes, insurancesRes, aiCount, patientsRes] = await Promise.all([
+        // Fetch doctors, insurances, and AI personality count
+        // Note: Raw patient list polling removed to prevent heavy SELECT queries on Clinic database
+        const [doctorsRes, insurancesRes, aiCount] = await Promise.all([
             ClinicService.getDoctors().catch(() => ({ result: { items: [] } })),
             ClinicService.getInsuranceProviders().catch(() => ({ result: { items: [] } })),
             prisma.aiPersonality.count().catch(() => 0),
-            ClinicService.getPatients(undefined, 1, 20).catch(() => ({ result: { items: [] } })),
         ]);
 
         const doctors = doctorsRes.result?.items || [];
         const insurances = insurancesRes.result?.items || [];
-        const patients = patientsRes.result?.items || [];
+        const recentPatients: { id: number; name: string }[] = [];
 
         // Group doctors by specialty
         const specialtyMap = new Map<string, number>();
@@ -32,12 +32,6 @@ export async function getDashboardMetricsAction() {
             .filter((ins) => ins.name)
             .map((ins) => ({ id: ins.id, name: ins.name || "Sem Nome" }));
 
-        // Recent patients
-        const recentPatients = patients
-            .filter((p) => p.name)
-            .slice(0, 10)
-            .map((p) => ({ id: p.id, name: p.name || "Sem Nome" }));
-
         return {
             success: true,
             metrics: {
@@ -48,7 +42,7 @@ export async function getDashboardMetricsAction() {
             doctorsBySpecialty,
             insuranceProviders,
             recentPatients,
-            totalPatients: patients.length,
+            totalPatients: 0,
         };
     } catch (error) {
         console.error("Dashboard metrics error:", error);

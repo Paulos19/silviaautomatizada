@@ -5,9 +5,13 @@ import { ClinicService } from "@/services/clinic.service";
 
 // --- Actions de Listagem ---
 export async function fetchPatientsAction(nin?: string) {
+  if (!nin || !nin.trim()) {
+    return { success: false, error: "CPF/NIN obrigatório para consulta de paciente." };
+  }
   try {
-    const response = await ClinicService.getPatients(nin);
-    return { success: true, data: response.result.items || [] };
+    const cleanNin = nin.replace(/\D/g, "");
+    const response = await ClinicService.getPatients(cleanNin, 1, 1);
+    return { success: true, data: response.result?.items || [] };
   } catch (error) {
     console.error("[Clinic API Error] fetchPatients:", error);
     return { success: false, error: "Falha ao buscar pacientes da Clinic API." };
@@ -60,10 +64,42 @@ export async function checkPatientExistsAction(nin: string, birthday?: string) {
 
   try {
     const cleanNin = nin.replace(/\D/g, "");
-    if (!cleanNin) return { success: false, error: "CPF inválido." };
+    if (!cleanNin || cleanNin.length < 7) return { success: false, error: "CPF inválido." };
 
-    // 1. Busca Básica para ver se o paciente existe (sempre dígitos limpos)
-    const response = await ClinicService.getPatients(cleanNin, 1, 100);
+    // 1. Se birthday foi informado, usa o endpoint dedicado e indexado
+    if (birthday && birthday.trim()) {
+      try {
+        const existsRes = await ClinicService.checkPatientExists(cleanNin, birthday.trim());
+        if (existsRes.result?.patient_id) {
+          try {
+            const fullProfile = await ClinicService.getPatientById(existsRes.result.patient_id);
+            const fullPatient = fullProfile.result || fullProfile;
+            return {
+              success: true,
+              data: {
+                patient_id: existsRes.result.patient_id,
+                patient_name: fullPatient.name,
+                patient_mobile: fullPatient.mobile,
+                patient_email: fullPatient.email,
+                healthInsuranceCode: fullPatient.healthInsuranceCode || fullPatient.insurance_id || fullPatient.healthInsurancePlan || null,
+                maritalStatus: fullPatient.maritalStatus || null,
+                sex: fullPatient.sex || null
+              }
+            };
+          } catch {
+            return {
+              success: true,
+              data: { patient_id: existsRes.result.patient_id }
+            };
+          }
+        }
+      } catch (checkErr) {
+        console.warn("[Clinic API] Falha no endpoint exists, usando fallback getPatients(1):", checkErr);
+      }
+    }
+
+    // 2. Busca estritamente indexada por CPF limitando a 1 único registro (pageSize=1)
+    const response = await ClinicService.getPatients(cleanNin, 1, 1);
     const items = response.result?.items;
 
     if (items && items.length > 0) {
@@ -322,8 +358,8 @@ export async function fetchBookingsByNINAction(nin: string, birthday?: string, d
   if (!nin) return { success: false, error: "CPF/NIN é obrigatório." };
   try {
     const cleanNin = nin.replace(/\D/g, "");
-    // Passo 1: Descobrir o patientId pelo CPF
-    const patientsResponse = await ClinicService.getPatients(cleanNin, 1, 100);
+    // Passo 1: Descobrir o patientId pelo CPF (estritamente 1 registro indexado)
+    const patientsResponse = await ClinicService.getPatients(cleanNin, 1, 1);
     const items = patientsResponse.result?.items;
 
     if (!items || items.length === 0) {
@@ -589,20 +625,18 @@ export async function searchPatientsAction(query: string) {
   const digitsOnly = clean.replace(/\D/g, "");
 
   try {
+    // A Clinic API indexa consultas estritamente por CPF/NIN.
+    // Buscas abertas sem CPF foram definitivamente removidas para proteger a integridade do banco.
     if (digitsOnly.length >= 7) {
-      const res = await ClinicService.getPatients(digitsOnly, 1, 10);
+      const res = await ClinicService.getPatients(digitsOnly, 1, 1);
       return { success: true, data: res.result?.items || [] };
     }
 
-    const res = await ClinicService.getPatients(undefined, 1, 100);
-    const items = res.result?.items || [];
-    const lowerQuery = clean.toLowerCase();
-    const filtered = items.filter((p: any) => 
-      (p.name && p.name.toLowerCase().includes(lowerQuery)) ||
-      (p.mobile && p.mobile.includes(digitsOnly)) ||
-      (p.phone && p.phone.includes(digitsOnly))
-    );
-    return { success: true, data: filtered.slice(0, 15) };
+    return {
+      success: false,
+      error: "Para consultar na base da clínica, informe o CPF do paciente.",
+      data: []
+    };
   } catch (error: any) {
     console.error("[Clinic API Error] searchPatientsAction:", error);
     return { success: false, error: "Falha ao buscar pacientes: " + error.message };

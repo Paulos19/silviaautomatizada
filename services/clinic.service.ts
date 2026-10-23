@@ -77,11 +77,21 @@ async function clinicFetch(endpoint: string, options: RequestInit = {}, isRetry:
 }
 
 export const ClinicService = {
-  async getPatients(nin?: string, page: number = 1, pageSize: number = 10) {
+  async getPatients(nin?: string, page: number = 1, pageSize: number = 1) {
+    if (!nin || !nin.trim()) {
+      console.warn("[ClinicService] Chamada bloqueada: consulta sem CPF rejeitada para evitar sobrecarga no banco da Clinic.");
+      return { result: { items: [], total: 0 } };
+    }
+    const cleanNin = nin.trim().replace(/\D/g, "");
+    if (cleanNin.length < 7) {
+      console.warn("[ClinicService] Chamada bloqueada: CPF com menos de 7 dígitos rejeitado.");
+      return { result: { items: [], total: 0 } };
+    }
+    const safePageSize = Math.min(Math.max(1, pageSize), 5);
     const url = new URL(`${CLINIC_URL}/api/v1/integration/facilities/${FACILITY_ID}/patients`);
     url.searchParams.append("page", page.toString());
-    url.searchParams.append("pageSize", pageSize.toString());
-    if (nin) url.searchParams.append("nin", nin);
+    url.searchParams.append("pageSize", safePageSize.toString());
+    url.searchParams.append("nin", cleanNin);
     const data = await clinicFetch(url.pathname + url.search);
     return ClinicPatientResponseSchema.parse(data);
   },
