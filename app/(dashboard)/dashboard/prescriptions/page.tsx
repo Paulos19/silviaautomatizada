@@ -17,6 +17,7 @@ import {
     bulkDispatchPrescriptionReadyMessagesAction,
 } from "@/actions/clinic.actions";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/sonner";
 import {
     Loader2,
     Pill,
@@ -506,11 +507,11 @@ export default function PrescriptionsPage() {
     const [dispatching, setDispatching] = useState(false);
     const [dispatchFeedback, setDispatchFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-    // ─── Toast Global ───
-    const [toast, setToast] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
+    // ─── Toast Global (Sonner) ───
     const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
-        setToast({ message, type });
-        setTimeout(() => setToast(null), 4000);
+        if (type === "error") toast.error(message);
+        else if (type === "info") toast.info(message);
+        else toast.success(message);
     };
 
     const resetForm = () => {
@@ -757,7 +758,7 @@ export default function PrescriptionsPage() {
                 }
                 showToast("Template excluído com sucesso.");
             } else {
-                alert(res.error || "Falha ao excluir template.");
+                toast.error(res.error || "Falha ao excluir template.");
             }
         } finally {
             setDeletingTemplateId(null);
@@ -945,7 +946,7 @@ export default function PrescriptionsPage() {
         // Validação de telefones
         const missingPhones = selectedRequests.filter((r) => !bulkPatientData[r.id]?.phone?.trim());
         if (missingPhones.length > 0) {
-            alert(
+            toast.warning(
                 `Atenção: ${missingPhones.length} paciente(s) selecionado(s) não possuem número de WhatsApp preenchido. Por favor, preencha os campos em destaque antes de enviar.`
             );
             return;
@@ -1077,7 +1078,7 @@ export default function PrescriptionsPage() {
             setRequests((prev) =>
                 prev.map((r) => (r.id === id ? { ...r, passarCarteirinha: currentVal } : r))
             );
-            alert("Erro ao atualizar a tag 'Passar Carteirinha'.");
+            toast.error("Erro ao atualizar a tag 'Passar Carteirinha'.");
         }
         setTogglingTagId(null);
     };
@@ -1097,7 +1098,7 @@ export default function PrescriptionsPage() {
             setRequests((prev) =>
                 prev.map((r) => (r.id === id ? { ...r, receitaAzul: currentVal } : r))
             );
-            alert("Erro ao atualizar a tag 'Receita Azul'.");
+            toast.error("Erro ao atualizar a tag 'Receita Azul'.");
         }
         setTogglingReceitaAzulId(null);
     };
@@ -1112,8 +1113,9 @@ export default function PrescriptionsPage() {
         const res = await deletePrescriptionRequestAction(id);
         if (res.success) {
             setRequests((prev) => prev.filter((r) => r.id !== id));
+            toast.success(`Solicitação de "${patientName}" excluída com sucesso.`);
         } else {
-            alert("Erro ao excluir solicitação de receita.");
+            toast.error("Erro ao excluir solicitação de receita.");
         }
         setDeletingId(null);
     };
@@ -2290,21 +2292,6 @@ export default function PrescriptionsPage() {
                 document.body
             )}
 
-            {/* ═══ TOAST NOTIFICATION ═══ */}
-            {toast && (
-                <div className="fixed bottom-6 right-6 z-[99999] flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl border text-xs font-medium animate-in slide-in-from-bottom-5 duration-200 bg-[#1E2022] text-white border-white/10">
-                    {toast.type === "success" && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
-                    {toast.type === "error" && <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />}
-                    {toast.type === "info" && <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />}
-                    <span>{toast.message}</span>
-                    <button
-                        onClick={() => setToast(null)}
-                        className="ml-2 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                    >
-                        <X className="w-3.5 h-3.5" />
-                    </button>
-                </div>
-            )}
 
             {/* ═══ FLOATING BULK BAR ═══ */}
             {selectedIds.size > 0 && (

@@ -6,6 +6,7 @@ import { fetchDoctorsAction } from "@/actions/clinic.actions";
 import { saveRagAction } from "@/actions/rag.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/sonner";
 import {
   Loader2,
   Stethoscope,
@@ -136,7 +137,12 @@ export default function SettingsPage() {
       specialty: doc.specialty,
     };
     setSelectedDoctor(selected);
-    await saveRagAction(localRag || ragPrompt, selected);
+    const saveRes = await saveRagAction(localRag || ragPrompt, selected);
+    if (saveRes.success) {
+      toast.success(`Médico ativo configurado: ${doc.name}`);
+    } else {
+      toast.error("Erro ao vincular médico.");
+    }
   };
 
   const handleSaveRag = async () => {
@@ -146,9 +152,10 @@ export default function SettingsPage() {
     setRagSaving(false);
     if (res.success) {
       setRagSaved(true);
+      toast.success("Personalidade e configurações da IA salvas com sucesso!");
       setTimeout(() => setRagSaved(false), 2500);
     } else {
-      alert("Erro ao salvar personalidade: " + (res.error || "Desconhecido"));
+      toast.error("Erro ao salvar personalidade: " + (res.error || "Desconhecido"));
     }
   };
 

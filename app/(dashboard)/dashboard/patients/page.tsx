@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { checkPatientExistsAction, createPatientAction, fetchInsuranceProvidersAction } from "@/actions/clinic.actions";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -248,6 +249,13 @@ export default function PatientsPage() {
     const res = await checkPatientExistsAction(nin, birthday);
     setExistsResult(res as PatientExistsResult);
     setLoading(null);
+    if (res.success && res.data) {
+      toast.success("Paciente localizado no Clinic API!");
+    } else if (res.success && !res.data) {
+      toast.info("Nenhum cadastro encontrado para este CPF e data.");
+    } else if (!res.success) {
+      toast.error(res.error || "Erro ao consultar paciente.");
+    }
   };
 
   const handleCreatePatient = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -268,6 +276,11 @@ export default function PatientsPage() {
     const res = await createPatientAction(payload);
     setCreateResult(res as CreatePatientResult);
     setLoading(null);
+    if (res.success) {
+      toast.success(`Paciente "${payload.name}" cadastrado com sucesso!`);
+    } else {
+      toast.error(res.error || "Erro ao cadastrar paciente.");
+    }
   };
 
   return (

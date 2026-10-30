@@ -41,6 +41,7 @@ import {
   UpcomingBookingsSummary,
   NoticeType,
 } from "@/actions/confirmation.actions";
+import { toast } from "@/components/ui/sonner";
 
 export default function DisparosPage() {
   const [isPending, startTransition] = useTransition();
@@ -73,11 +74,9 @@ export default function DisparosPage() {
   const [previewBooking, setPreviewBooking] = useState<UpcomingBookingItem | null>(null);
   const [isDispatchingSingle, setIsDispatchingSingle] = useState(false);
   const [isExecutingRoutine, setIsExecutingRoutine] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
-
   const showToast = (text: string, type: "success" | "error" = "success") => {
-    setToastMessage({ text, type });
-    setTimeout(() => setToastMessage(null), 5000);
+    if (type === "error") toast.error(text);
+    else toast.success(text);
   };
 
   // Carrega agendamentos
@@ -305,29 +304,6 @@ export default function DisparosPage() {
 
   return (
     <div className="min-h-screen bg-[#FBF9F4] text-[#1E1E1E] p-4 sm:p-6 lg:p-8 space-y-6">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div
-          className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border backdrop-blur-xl transition-all duration-300 animate-in fade-in slide-in-from-top-4 ${
-            toastMessage.type === "success"
-              ? "bg-[#064E3B]/95 text-white border-emerald-500/30"
-              : "bg-red-900/95 text-white border-red-500/30"
-          }`}
-        >
-          {toastMessage.type === "success" ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-          ) : (
-            <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
-          )}
-          <span className="text-sm font-medium">{toastMessage.text}</span>
-          <button
-            onClick={() => setToastMessage(null)}
-            className="ml-2 text-white/60 hover:text-white transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
 
       {/* Top Header */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b border-[#E8E2D6]">

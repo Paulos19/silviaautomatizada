@@ -11,6 +11,7 @@ import {
 } from "@/actions/waitlist.actions";
 import { runMorningConfirmationDispatchAction } from "@/actions/confirmation.actions";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/sonner";
 import {
     Loader2,
     Clock,
@@ -147,9 +148,10 @@ export default function WaitlistPage() {
         setActionLoadingId(id);
         const res = await updateWaitlistPriorityAction(id, newPriority);
         if (res.success) {
+            toast.success("Prioridade atualizada com sucesso.");
             await loadWaitlist();
         } else {
-            alert("Erro ao alterar prioridade.");
+            toast.error("Erro ao alterar prioridade.");
         }
         setActionLoadingId(null);
     };
@@ -158,13 +160,14 @@ export default function WaitlistPage() {
         setActionLoadingId(id);
         const res = await updateWaitlistStatusAction(id, newStatus);
         if (res.success) {
+            toast.success(`Status alterado para "${newStatus}".`);
             setEntries((prev) =>
                 statusFilter === "ALL"
                     ? prev.map((e) => (e.id === id ? { ...e, status: newStatus } : e))
                     : prev.filter((e) => e.id !== id)
             );
         } else {
-            alert("Erro ao atualizar status.");
+            toast.error("Erro ao atualizar status.");
         }
         setActionLoadingId(null);
     };
@@ -174,9 +177,10 @@ export default function WaitlistPage() {
         setActionLoadingId(id);
         const res = await deleteWaitlistEntryAction(id);
         if (res.success) {
+            toast.success(`"${name}" removido da lista de espera.`);
             setEntries((prev) => prev.filter((e) => e.id !== id));
         } else {
-            alert("Erro ao excluir registro.");
+            toast.error("Erro ao excluir registro.");
         }
         setActionLoadingId(null);
     };
@@ -191,10 +195,10 @@ export default function WaitlistPage() {
         setActionLoadingId(entry.id);
         const res = await notifyWaitlistOfferAction(entry.id, slotInput);
         if (res.success) {
-            alert(`Mensagem com a vaga antecipada enviada com sucesso para ${entry.patientName}!`);
+            toast.success(`Mensagem com a vaga antecipada enviada com sucesso para ${entry.patientName}!`);
             await loadWaitlist();
         } else {
-            alert(res.error || "Erro ao enviar notificação.");
+            toast.error(res.error || "Erro ao enviar notificação.");
         }
         setActionLoadingId(null);
     };
@@ -216,6 +220,7 @@ export default function WaitlistPage() {
         });
 
         if (res.success) {
+            toast.success(`"${formData.patientName}" adicionado à fila de espera com sucesso!`);
             setIsAddModalOpen(false);
             setFormData({
                 patientName: "",
@@ -231,7 +236,7 @@ export default function WaitlistPage() {
             });
             await loadWaitlist();
         } else {
-            alert(res.error || "Erro ao salvar na fila de espera.");
+            toast.error(res.error || "Erro ao salvar na fila de espera.");
         }
         setSubmitting(false);
     };
@@ -242,11 +247,13 @@ export default function WaitlistPage() {
         setDispatchResult(null);
         const res = await runMorningConfirmationDispatchAction();
         if (res.success && res.data) {
-            setDispatchResult(
-                `Disparo concluído! ${res.data.sent48h + res.data.sent24h} mensagens enviadas (${res.data.sent48h} de 48h, ${res.data.sent24h} de 24h). ${res.data.alreadySent} já haviam sido enviadas.`
-            );
+            const msg = `Disparo concluído! ${res.data.sent48h + res.data.sent24h} mensagens enviadas (${res.data.sent48h} de 48h, ${res.data.sent24h} de 24h). ${res.data.alreadySent} já haviam sido enviadas.`;
+            toast.success(msg);
+            setDispatchResult(msg);
         } else {
-            setDispatchResult(res.error || "Erro ao executar disparos.");
+            const err = res.error || "Erro ao executar disparos.";
+            toast.error(err);
+            setDispatchResult(err);
         }
         setDispatchingMorning(false);
     };

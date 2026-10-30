@@ -13,6 +13,7 @@ import {
   fetchBookingByIdAction,
 } from "@/actions/clinic.actions";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -363,6 +364,11 @@ export default function BookingsPage() {
     );
     setBookResult(res);
     setLoading(null);
+    if (res.success) {
+      toast.success("Consulta agendada com sucesso no sistema da clínica!");
+    } else {
+      toast.error(res.error || "Erro ao agendar consulta na clínica.");
+    }
   };
 
   // ─── Buscar Paciente (Cancelar) ───
@@ -476,6 +482,11 @@ export default function BookingsPage() {
     );
     setCancelResult(res);
     setLoading(null);
+    if (res.success) {
+      toast.success("Agendamento cancelado com sucesso no sistema da clínica!");
+    } else {
+      toast.error(res.error || "Erro ao cancelar agendamento.");
+    }
   };
 
   // ─── Guard: Médico não configurado ───

@@ -40,6 +40,7 @@ import {
     ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 import { SvgSmartphoneMockup } from "@/components/dashboard/orchestrator/SvgSmartphoneMockup";
 import {
@@ -258,7 +259,6 @@ export default function OrchestratorBentoPage() {
     const [events, setEvents] = useState<OrchestratorEvent[]>([]);
     const [isConnected, setIsConnected] = useState(false);
     const [isTriggeringReport, setIsTriggeringReport] = useState(false);
-    const [reportFeedback, setReportFeedback] = useState<string | null>(null);
     const [selectedChatPhone, setSelectedChatPhone] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<string>("ALL");
     const [activeAccordion, setActiveAccordion] = useState<string>("devices");
@@ -394,24 +394,22 @@ export default function OrchestratorBentoPage() {
     // Disparo manual do relatório diário à Ana
     const handleTriggerReport = async () => {
         if (!DEFAULT_API_URL) {
-            setReportFeedback("Erro: URL do Orquestrador não configurada (NEXT_PUBLIC_ORCHESTRATOR_API_URL).");
+            toast.error("Erro: URL do Orquestrador não configurada (NEXT_PUBLIC_ORCHESTRATOR_API_URL).");
             return;
         }
         setIsTriggeringReport(true);
-        setReportFeedback(null);
         try {
             const res = await fetch(`${DEFAULT_API_URL}/orchestrator/send-daily-report`, { method: "POST" });
             const data = await res.json();
             if (res.ok) {
-                setReportFeedback("Relatório diário enviado com sucesso para a secretária Ana via WhatsApp!");
+                toast.success("Relatório diário enviado com sucesso para a secretária Ana via WhatsApp!");
             } else {
-                setReportFeedback(`Erro: ${data.detail || "Falha ao enviar relatório"}`);
+                toast.error(`Erro: ${data.detail || "Falha ao enviar relatório"}`);
             }
         } catch {
-            setReportFeedback("Relatório compilado com sucesso.");
+            toast.info("Relatório compilado com sucesso.");
         } finally {
             setIsTriggeringReport(false);
-            setTimeout(() => setReportFeedback(null), 5000);
         }
     };
 
@@ -451,18 +449,6 @@ export default function OrchestratorBentoPage() {
     return (
         <div ref={gridContainerRef} className="w-full space-y-8 pb-16">
             
-            {/* Feedback Alert do Relatório Diário */}
-            {reportFeedback && (
-                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between animate-in fade-in">
-                    <span className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        {reportFeedback}
-                    </span>
-                    <button onClick={() => setReportFeedback(null)} className="text-emerald-700 hover:text-emerald-900">
-                        &times;
-                    </button>
-                </div>
-            )}
 
             {/* ========================================================
                 SESSÃO 1: HEADER COM MÉTRICAS E STATUS EM TEMPO REAL

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { fetchSingleDoctorAction, fetchInsuranceProvidersAction, fetchDoctorsAction } from "@/actions/clinic.actions";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -76,8 +77,10 @@ export default function DoctorsPage() {
 
     if (res.success && res.data) {
       setSearchedDoctor(res.data);
+      toast.success(`Médico localizado: ${res.data.name || "Dr(a)."}`);
     } else {
       setDoctorSearchError(res.error || "Médico não encontrado no Clinic API.");
+      toast.error(res.error || "Médico não encontrado no Clinic API.");
     }
     setLoading(null);
   };
