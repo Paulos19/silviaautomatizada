@@ -486,6 +486,41 @@ export async function createPrescriptionRequestAction(data: {
       }
     }
 
+    const isPlaceholderField = (val?: string) => {
+      const norm = (val || "").trim().toLowerCase();
+      return (
+        !norm ||
+        [
+          "não informado",
+          "nao informado",
+          "n/a",
+          "na",
+          "a confirmar",
+          "indefinido",
+          "desconhecido",
+          "paciente",
+          "paciente sem nome",
+          "---",
+          "...",
+        ].includes(norm)
+      );
+    };
+
+    if (
+      !existing &&
+      (isPlaceholderField(rawName) ||
+        rawName.split(/\s+/).filter(Boolean).length < 2 ||
+        isPlaceholderField(data.birthDate) ||
+        isPlaceholderField(data.address) ||
+        isPlaceholderField(data.medications))
+    ) {
+      return {
+        success: false,
+        error:
+          "Dados obrigatórios incompletos para solicitação de receita (nome completo, data de nascimento, endereço e medicações/dosagens).",
+      };
+    }
+
     try {
       const request = await (prisma as any).prescriptionRequest.create({
         data: {
