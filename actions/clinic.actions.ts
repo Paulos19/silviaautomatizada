@@ -1364,9 +1364,12 @@ export async function queryDatabaseAdminAction(payload: {
       dateFilter = { createdAt: { gte: startDate, lte: endDate } };
     }
 
-    // Consulta específica de porcentagem / filtro de carteirinha (ex: "0032")
+    // Consulta específica de porcentagem / filtro de carteirinha (suporta qualquer início de número)
     if (prefixo_carteirinha || tipo_consulta === "porcentagem_carteirinha" || tipo_consulta === "estatisticas_receitas") {
-      const prefix = (prefixo_carteirinha || "0032").replace(/\D/g, "");
+      const rawPrefix = prefixo_carteirinha !== undefined && prefixo_carteirinha !== null ? String(prefixo_carteirinha).trim() : "";
+      const prefixDigits = rawPrefix.replace(/\D/g, "");
+      const prefix = prefixDigits || rawPrefix || "0032";
+
       const allRx = await prisma.prescriptionRequest.findMany({
         where: { ...dateFilter },
         select: {
@@ -1383,6 +1386,7 @@ export async function queryDatabaseAdminAction(payload: {
       let unimedTotal = 0;
       let saneparTotal = 0;
       let particularTotal = 0;
+      const prefixDistribution: Record<string, number> = {};
 
       for (const rx of allRx) {
         const card = (rx.unimedCard || "").trim();
@@ -1393,7 +1397,20 @@ export async function queryDatabaseAdminAction(payload: {
         else if (card.toLowerCase().includes("sanepar")) saneparTotal++;
         else particularTotal++;
 
-        if (card.startsWith(prefix) || digits.startsWith(prefix) || (prefix && card.includes(prefix))) {
+        // Contabiliza prefixos dos primeiros 4 dígitos
+        if (digits.length >= 4) {
+          const p4 = digits.substring(0, 4);
+          prefixDistribution[p4] = (prefixDistribution[p4] || 0) + 1;
+        }
+
+        // Verifica se a carteirinha inicia com o prefixo solicitado pela Ana
+        const matchesStart = prefix && (
+          digits.startsWith(prefix) ||
+          card.startsWith(prefix) ||
+          (prefixDigits && digits.startsWith(prefixDigits))
+        );
+
+        if (matchesStart) {
           matchCount++;
         }
       }
@@ -1401,18 +1418,30 @@ export async function queryDatabaseAdminAction(payload: {
       const pctTotal = total > 0 ? ((matchCount / total) * 100).toFixed(1) : "0.0";
       const pctUnimed = unimedTotal > 0 ? ((matchCount / unimedTotal) * 100).toFixed(1) : "0.0";
 
+      // Ordena os principais prefixos identificados no banco
+      const topPrefixes = Object.entries(prefixDistribution)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([pref, count]) => ({
+          prefixo: pref,
+          quantidade: count,
+          porcentagem: total > 0 ? `${((count / total) * 100).toFixed(1)}%` : "0.0%"
+        }));
+
       return {
         success: true,
         data: {
           tipo: "analise_carteirinhas",
-          prefixo_consultado: prefix || "0032",
+          prefixo_consultado: prefix,
           total_solicitacoes: total,
+          total_com_prefixo: matchCount,
           total_correspondentes: matchCount,
           porcentagem_sobre_total: `${pctTotal}%`,
           total_unimed: unimedTotal,
           porcentagem_sobre_unimed: `${pctUnimed}%`,
           total_sanepar: saneparTotal,
           total_particular: particularTotal,
+          top_prefixos_identificados: topPrefixes,
           periodo: mes && ano ? `${mes}/${ano}` : "Todo o período histórico",
         },
       };
