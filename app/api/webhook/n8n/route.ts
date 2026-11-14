@@ -19,6 +19,8 @@ import {
   updatePrescriptionStatusAction,
   searchPrescriptionsAction,
   fetchPrescriptionRequestsAction,
+  getMonthlyReportDataAction,
+  queryDatabaseAdminAction,
 } from "@/actions/clinic.actions";
 import {
   createWaitlistEntryAction,
@@ -218,6 +220,13 @@ export async function POST(request: Request) {
 
       case "RUN_AFTERNOON_DISPATCH":
         return NextResponse.json(await runAfternoonConfirmationDispatchAction());
+
+      // --- RELATÓRIOS MENSAIS E ANÁLISES DB (ANA / ADMIN) ---
+      case "GET_MONTHLY_REPORT_DATA":
+        return NextResponse.json(await getMonthlyReportDataAction(payload?.year, payload?.month));
+
+      case "QUERY_DATABASE_ADMIN":
+        return NextResponse.json(await queryDatabaseAdminAction(payload || {}));
 
       default:
         return NextResponse.json({ success: false, error: `Action '${action}' not supported.` }, { status: 400 });

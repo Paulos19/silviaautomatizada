@@ -1163,4 +1163,292 @@ export async function bulkDispatchPrescriptionReadyMessagesAction(params: {
   }
 }
 
+// ══════════════════════════════════════════════════════════
+// RELATÓRIOS MENSAIS E CONSULTAS ADMINISTRATIVAS DO DB (ANA)
+// ══════════════════════════════════════════════════════════
+
+export async function getMonthlyReportDataAction(year?: number, month?: number) {
+  try {
+    const now = new Date();
+    const targetYear = year && Number(year) >= 2020 ? Number(year) : now.getFullYear();
+    const targetMonth = month && Number(month) >= 1 && Number(month) <= 12 ? Number(month) : now.getMonth() + 1;
+
+    const startDate = new Date(Date.UTC(targetYear, targetMonth - 1, 1, 0, 0, 0));
+    const endDate = new Date(Date.UTC(targetYear, targetMonth, 0, 23, 59, 59, 999));
+
+    // 1. Busca solicitações de receita no mês
+    const prescriptions = await prisma.prescriptionRequest.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // 2. Busca confirmações de consulta no mês
+    const confirmations = await prisma.appointmentConfirmation.findMany({
+      where: {
+        appointmentDate: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      orderBy: { appointmentDate: "desc" },
+    });
+
+    // 3. Busca entradas na lista de espera no mês
+    const waitlist = await prisma.waitlistEntry.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // --- CÁLCULO DE MÉTRICAS DE RECEITAS ---
+    const totalPrescriptions = prescriptions.length;
+    let rxPending = 0;
+    let rxCompleted = 0;
+    let rxRejected = 0;
+    let unimedCount = 0;
+    let unimed0032Count = 0;
+    let saneparCount = 0;
+    let particularCount = 0;
+    let passarCarteirinhaCount = 0;
+    let receitaAzulCount = 0;
+
+    for (const p of prescriptions) {
+      const st = (p.status || "").toUpperCase();
+      if (st === "PENDENTE") rxPending++;
+      else if (st === "CONCLUIDO" || st === "CONCLUÍDO") rxCompleted++;
+      else if (st === "REJEITADO") rxRejected++;
+
+      if (p.passarCarteirinha) passarCarteirinhaCount++;
+      if (p.receitaAzul) receitaAzulCount++;
+
+      const card = (p.unimedCard || "").trim().toLowerCase();
+      const cardDigits = card.replace(/\D/g, "");
+
+      if (card.startsWith("0032") || cardDigits.startsWith("0032")) {
+        unimed0032Count++;
+        unimedCount++;
+      } else if (card.includes("unimed") || cardDigits.length >= 8) {
+        unimedCount++;
+      } else if (card.includes("sanepar")) {
+        saneparCount++;
+      } else {
+        particularCount++;
+      }
+    }
+
+    const pctUnimed0032Total = totalPrescriptions > 0 ? ((unimed0032Count / totalPrescriptions) * 100).toFixed(1) : "0.0";
+    const pctUnimed0032OfUnimed = unimedCount > 0 ? ((unimed0032Count / unimedCount) * 100).toFixed(1) : "0.0";
+    const pctUnimed = totalPrescriptions > 0 ? ((unimedCount / totalPrescriptions) * 100).toFixed(1) : "0.0";
+    const pctSanepar = totalPrescriptions > 0 ? ((saneparCount / totalPrescriptions) * 100).toFixed(1) : "0.0";
+    const pctParticular = totalPrescriptions > 0 ? ((particularCount / totalPrescriptions) * 100).toFixed(1) : "0.0";
+
+    // --- CÁLCULO DE MÉTRICAS DE AGENDAMENTOS/CONFIRMAÇÕES ---
+    const totalConfirmations = confirmations.length;
+    let apptConfirmed = 0;
+    let apptCancelled = 0;
+    let apptRescheduled = 0;
+    let apptPending = 0;
+
+    for (const c of confirmations) {
+      const st = (c.status || "").toUpperCase();
+      if (st === "CONFIRMADO") apptConfirmed++;
+      else if (st === "CANCELADO") apptCancelled++;
+      else if (st === "REMARCADO") apptRescheduled++;
+      else apptPending++;
+    }
+
+    // Anonimização de telefones (ex: "(41) 9****-1234") - SEM expor credenciais ou números completos
+    const maskPhone = (phone?: string | null) => {
+      if (!phone) return "Não informado";
+      const digits = phone.replace(/\D/g, "");
+      if (digits.length >= 10) {
+        const ddd = digits.slice(-11, -9) || digits.slice(0, 2);
+        const last4 = digits.slice(-4);
+        return `(${ddd}) 9****-${last4}`;
+      }
+      return "Sigiloso";
+    };
+
+    const anonymizedPrescriptions = prescriptions.slice(0, 60).map((p) => ({
+      id: p.id,
+      patientName: p.patientName,
+      maskedPhone: maskPhone(p.phone),
+      birthDate: p.birthDate || "Não informada",
+      unimedCard: p.unimedCard || "Particular",
+      is0032: (p.unimedCard || "").replace(/\D/g, "").startsWith("0032"),
+      address: p.address || "Curitiba - PR",
+      medications: p.medications,
+      status: p.status,
+      passarCarteirinha: p.passarCarteirinha,
+      receitaAzul: p.receitaAzul,
+      createdAt: p.createdAt.toISOString(),
+    }));
+
+    return {
+      success: true,
+      data: {
+        year: targetYear,
+        month: targetMonth,
+        monthName: [
+          "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+          "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+        ][targetMonth - 1],
+        metrics: {
+          prescriptions: {
+            total: totalPrescriptions,
+            pending: rxPending,
+            completed: rxCompleted,
+            rejected: rxRejected,
+            passarCarteirinha: passarCarteirinhaCount,
+            receitaAzul: receitaAzulCount,
+            unimedTotal: unimedCount,
+            unimed0032Count: unimed0032Count,
+            pctUnimed0032Total: `${pctUnimed0032Total}%`,
+            pctUnimed0032OfUnimed: `${pctUnimed0032OfUnimed}%`,
+            pctUnimed: `${pctUnimed}%`,
+            pctSanepar: `${pctSanepar}%`,
+            pctParticular: `${pctParticular}%`,
+          },
+          appointments: {
+            total: totalConfirmations,
+            confirmed: apptConfirmed,
+            cancelled: apptCancelled,
+            rescheduled: apptRescheduled,
+            pending: apptPending,
+            confirmationRate: totalConfirmations > 0 ? `${((apptConfirmed / totalConfirmations) * 100).toFixed(1)}%` : "0.0%",
+          },
+          waitlist: {
+            total: waitlist.length,
+            waiting: waitlist.filter((w) => w.status === "AGUARDANDO").length,
+            offered: waitlist.filter((w) => w.status === "OFERTADO").length,
+            booked: waitlist.filter((w) => w.status === "AGENDADO").length,
+          },
+        },
+        items: anonymizedPrescriptions,
+      },
+    };
+  } catch (error: any) {
+    console.error("Erro ao gerar dados do relatório mensal:", error);
+    return { success: false, error: "Falha ao consolidar dados mensais: " + error.message };
+  }
+}
+
+export async function queryDatabaseAdminAction(payload: {
+  tipo_consulta?: string;
+  prefixo_carteirinha?: string;
+  mes?: number;
+  ano?: number;
+  status?: string;
+  convenio?: string;
+}) {
+  try {
+    const { tipo_consulta, prefixo_carteirinha, mes, ano, status } = payload || {};
+
+    let dateFilter: any = {};
+    if (ano && mes) {
+      const startDate = new Date(Date.UTC(Number(ano), Number(mes) - 1, 1, 0, 0, 0));
+      const endDate = new Date(Date.UTC(Number(ano), Number(mes), 0, 23, 59, 59, 999));
+      dateFilter = { createdAt: { gte: startDate, lte: endDate } };
+    } else if (ano) {
+      const startDate = new Date(Date.UTC(Number(ano), 0, 1, 0, 0, 0));
+      const endDate = new Date(Date.UTC(Number(ano), 11, 31, 23, 59, 59, 999));
+      dateFilter = { createdAt: { gte: startDate, lte: endDate } };
+    }
+
+    // Consulta específica de porcentagem / filtro de carteirinha (ex: "0032")
+    if (prefixo_carteirinha || tipo_consulta === "porcentagem_carteirinha" || tipo_consulta === "estatisticas_receitas") {
+      const prefix = (prefixo_carteirinha || "0032").replace(/\D/g, "");
+      const allRx = await prisma.prescriptionRequest.findMany({
+        where: { ...dateFilter },
+        select: {
+          id: true,
+          patientName: true,
+          unimedCard: true,
+          status: true,
+          createdAt: true,
+        },
+      });
+
+      const total = allRx.length;
+      let matchCount = 0;
+      let unimedTotal = 0;
+      let saneparTotal = 0;
+      let particularTotal = 0;
+
+      for (const rx of allRx) {
+        const card = (rx.unimedCard || "").trim();
+        const digits = card.replace(/\D/g, "");
+        const isUnimed = card.toLowerCase().includes("unimed") || digits.length >= 8;
+
+        if (isUnimed) unimedTotal++;
+        else if (card.toLowerCase().includes("sanepar")) saneparTotal++;
+        else particularTotal++;
+
+        if (card.startsWith(prefix) || digits.startsWith(prefix) || (prefix && card.includes(prefix))) {
+          matchCount++;
+        }
+      }
+
+      const pctTotal = total > 0 ? ((matchCount / total) * 100).toFixed(1) : "0.0";
+      const pctUnimed = unimedTotal > 0 ? ((matchCount / unimedTotal) * 100).toFixed(1) : "0.0";
+
+      return {
+        success: true,
+        data: {
+          tipo: "analise_carteirinhas",
+          prefixo_consultado: prefix || "0032",
+          total_solicitacoes: total,
+          total_correspondentes: matchCount,
+          porcentagem_sobre_total: `${pctTotal}%`,
+          total_unimed: unimedTotal,
+          porcentagem_sobre_unimed: `${pctUnimed}%`,
+          total_sanepar: saneparTotal,
+          total_particular: particularTotal,
+          periodo: mes && ano ? `${mes}/${ano}` : "Todo o período histórico",
+        },
+      };
+    }
+
+    // Consulta geral de prescrições
+    const allPrescriptions = await prisma.prescriptionRequest.findMany({
+      where: {
+        ...dateFilter,
+        ...(status ? { status: status.toUpperCase() } : {}),
+      },
+      select: {
+        id: true,
+        patientName: true,
+        unimedCard: true,
+        status: true,
+        medications: true,
+        createdAt: true,
+      },
+      take: 100,
+      orderBy: { createdAt: "desc" },
+    });
+
+    return {
+      success: true,
+      data: {
+        total_encontrado: allPrescriptions.length,
+        status_filtrado: status || "TODOS",
+        periodo: mes && ano ? `${mes}/${ano}` : "Geral",
+        amostra: allPrescriptions.slice(0, 20),
+      },
+    };
+  } catch (error: any) {
+    console.error("Erro ao executar queryDatabaseAdminAction:", error);
+    return { success: false, error: "Falha na consulta ao banco de dados: " + error.message };
+  }
+}
+
 
