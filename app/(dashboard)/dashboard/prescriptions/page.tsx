@@ -532,7 +532,7 @@ export default function PrescriptionsPage() {
     const handleCreatePrescription = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.patientName.trim()) {
-            setCreateError("O nome completo do paciente é obrigatório.");
+            setCreateError("O nome do paciente é obrigatório.");
             return;
         }
         if (!formData.medications.trim()) {
@@ -555,6 +555,7 @@ export default function PrescriptionsPage() {
                 receitaAzul: formData.receitaAzul,
                 status: formData.status,
                 forceCreate: true,
+                isManual: true,
             });
 
             if (res.success && res.data) {
@@ -1875,7 +1876,7 @@ export default function PrescriptionsPage() {
                                     <div>
                                         <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
                                             <User className="w-3.5 h-3.5 text-amber-700" />
-                                            <span>Nome Completo do Paciente *</span>
+                                            <span>Nome do Paciente *</span>
                                         </label>
                                         <input
                                             type="text"
@@ -1889,7 +1890,7 @@ export default function PrescriptionsPage() {
                                     <div>
                                         <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
                                             <Phone className="w-3.5 h-3.5 text-amber-700" />
-                                            <span>WhatsApp / Telefone</span>
+                                            <span>WhatsApp / Telefone <span className="text-slate-400 font-normal text-[11px]">(opcional)</span></span>
                                         </label>
                                         <input
                                             type="text"
@@ -1906,7 +1907,7 @@ export default function PrescriptionsPage() {
                                     <div>
                                         <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
                                             <CalendarDays className="w-3.5 h-3.5 text-amber-700" />
-                                            <span>Data de Nascimento</span>
+                                            <span>Data de Nascimento <span className="text-slate-400 font-normal text-[11px]">(opcional)</span></span>
                                         </label>
                                         <input
                                             type="text"
@@ -1919,7 +1920,7 @@ export default function PrescriptionsPage() {
                                     <div>
                                         <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
                                             <CreditCard className="w-3.5 h-3.5 text-amber-700" />
-                                            <span>Carteirinha Unimed / Convênio</span>
+                                            <span>Carteirinha Unimed / Convênio <span className="text-slate-400 font-normal text-[11px]">(opcional)</span></span>
                                         </label>
                                         <input
                                             type="text"
@@ -1935,7 +1936,7 @@ export default function PrescriptionsPage() {
                                 <div>
                                     <label className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1.5">
                                         <MapPin className="w-3.5 h-3.5 text-amber-700" />
-                                        <span>Endereço Completo</span>
+                                        <span>Endereço Completo <span className="text-slate-400 font-normal text-[11px]">(opcional)</span></span>
                                     </label>
                                     <input
                                         type="text"

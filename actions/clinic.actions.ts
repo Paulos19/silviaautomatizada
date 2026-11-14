@@ -408,15 +408,16 @@ export async function fetchBookingByIdAction(doctorId: string, addressId: string
 
 export async function createPrescriptionRequestAction(data: {
   patientName: string;
-  birthDate: string;
-  unimedCard: string;
-  address: string;
+  birthDate?: string;
+  unimedCard?: string;
+  address?: string;
   medications: string;
   phone?: string;
   passarCarteirinha?: boolean;
   receitaAzul?: boolean;
   status?: string;
   forceCreate?: boolean;
+  isManual?: boolean;
 }) {
   try {
     const rawName = (data.patientName || "").trim();
@@ -506,19 +507,40 @@ export async function createPrescriptionRequestAction(data: {
       );
     };
 
-    if (
-      !existing &&
-      (isPlaceholderField(rawName) ||
-        rawName.split(/\s+/).filter(Boolean).length < 2 ||
-        isPlaceholderField(data.birthDate) ||
-        isPlaceholderField(data.address) ||
-        isPlaceholderField(data.medications))
-    ) {
-      return {
-        success: false,
-        error:
-          "Dados obrigatórios incompletos para solicitação de receita (nome completo, data de nascimento, endereço e medicações/dosagens).",
-      };
+    const isManualCreation = Boolean(data.isManual || data.forceCreate);
+
+    if (!existing) {
+      if (isManualCreation) {
+        // Inserção manual no Dashboard: obrigatório apenas Nome do Paciente e Medicamentos.
+        // Data de nascimento, convênio, endereço e telefone são opcionais.
+        if (isPlaceholderField(rawName)) {
+          return {
+            success: false,
+            error: "O nome do paciente é obrigatório para cadastrar a prescrição.",
+          };
+        }
+        if (isPlaceholderField(data.medications)) {
+          return {
+            success: false,
+            error: "Informe os medicamentos solicitados.",
+          };
+        }
+      } else {
+        // Criação automatizada (Silvia / WhatsApp / API): continua exigindo estritamente todos os dados
+        if (
+          isPlaceholderField(rawName) ||
+          rawName.split(/\s+/).filter(Boolean).length < 2 ||
+          isPlaceholderField(data.birthDate) ||
+          isPlaceholderField(data.address) ||
+          isPlaceholderField(data.medications)
+        ) {
+          return {
+            success: false,
+            error:
+              "Dados obrigatórios incompletos para solicitação de receita (nome completo, data de nascimento, endereço e medicações/dosagens).",
+          };
+        }
+      }
     }
 
     try {
